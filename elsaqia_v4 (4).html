@@ -303,6 +303,56 @@ textarea.fc{resize:vertical;min-height:68px}
 .divider{height:1px;background:var(--border);margin:12px 0}
 .sec-lbl{font-size:10px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
 
+/* AUTOCOMPLETE */
+.ac-wrap{position:relative}
+.ac-list{
+  position:absolute;top:100%;right:0;left:0;z-index:999;
+  background:var(--surface);border:1.5px solid var(--g400);border-radius:var(--rs);
+  box-shadow:var(--shadow-md);max-height:220px;overflow-y:auto;
+  display:none;
+}
+.ac-list.open{display:block}
+.ac-item{
+  padding:9px 14px;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid #f0f5f0;transition:background .12s;
+}
+.ac-item:last-child{border-bottom:none}
+.ac-item:hover,.ac-item.selected{background:var(--g50)}
+.ac-item-name{font-weight:600;color:var(--g900)}
+.ac-item-code{font-family:monospace;font-size:11px;color:var(--e400)}
+.ac-item-warn{font-size:10px;color:var(--gold);font-weight:700}
+.ac-new{color:var(--g600);font-weight:700}
+
+/* ING SEARCH */
+.ing-search-wrap{
+  display:flex;gap:8px;align-items:center;
+  background:#f3f8f3;border:1px solid var(--border);border-radius:var(--rs);
+  padding:8px 12px;margin-bottom:8px;
+}
+.ing-search-inp{
+  flex:1;border:none;background:transparent;
+  font-family:'Cairo',sans-serif;font-size:13px;outline:none;color:var(--e800);
+}
+.ing-search-inp::placeholder{color:var(--e400)}
+.ing-results{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.ing-chip{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--rs);
+  padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;
+  transition:all .15s;color:var(--e700);
+}
+.ing-chip:hover{border-color:var(--g600);color:var(--g700);background:var(--g50)}
+.ing-chip-code{font-family:monospace;font-size:10px;color:var(--e400)}
+.ing-chip-warn{color:var(--gold);font-size:10px}
+
+/* PRINT STYLES */
+@media print{
+  .sidebar,.ph-acts,.btn,.mh button{display:none!important}
+  .modal{box-shadow:none;border:none}
+  body{background:#fff}
+}
+
 @media(max-width:900px){:root{--sidebar:200px}.dash2col,.c3,.c4{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.auth-card{grid-template-columns:1fr}.auth-brand{display:none}:root{--sidebar:0px}.sidebar{display:none}.page{padding:14px}}
 </style>
@@ -459,7 +509,16 @@ textarea.fc{resize:vertical;min-height:68px}
   <div class="modal xl">
     <div class="mh"><span class="mh-title" id="mp-title">منتج جديد</span><button class="mclose" onclick="closeM('mo-prod')">×</button></div>
     <div class="mb">
-      <div class="frow c2"><div class="fg"><label class="fl">كود المنتج (تلقائي)</label><input class="fc" id="pp-code" readonly></div><div class="fg"><label class="fl">اسم المنتج *</label><input class="fc" id="pp-name" placeholder="مثال: نيتروسبور 20-20-20"></div></div>
+      <div class="frow c2">
+        <div class="fg"><label class="fl">كود المنتج (تلقائي)</label><input class="fc" id="pp-code" readonly></div>
+        <div class="fg">
+          <label class="fl">اسم المنتج *</label>
+          <div class="ac-wrap">
+            <input class="fc" id="pp-name" placeholder="اكتب لبحث أو إضافة..." autocomplete="off" oninput="prodNameAC(this.value)" onkeydown="prodNameKey(event)">
+            <div class="ac-list" id="pp-name-ac"></div>
+          </div>
+        </div>
+      </div>
       <div class="frow c4">
         <div class="fg"><label class="fl">النوع</label><select class="fc" id="pp-type"><option>سماد</option><option>مقوي</option><option>رش ورقي</option><option>هرمون</option><option>حشري</option><option>أخرى</option></select></div>
         <div class="fg"><label class="fl">الكمية الأساسية</label><input type="number" class="fc" id="pp-bq" value="1000"></div>
@@ -487,8 +546,13 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="divider"></div>
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
         <span class="sec-lbl">🧪 التركيبة — الخامات والكميات</span>
-        <button class="btn btn-ghost btn-sm" onclick="addIngRow()"><i class="fas fa-plus"></i>إضافة خامة</button>
+        <button class="btn btn-ghost btn-sm" onclick="addIngRow()"><i class="fas fa-plus"></i>إضافة يدوي</button>
       </div>
+      <div class="ing-search-wrap">
+        <i class="fas fa-search" style="color:var(--e400);font-size:13px"></i>
+        <input class="ing-search-inp" id="ing-search" placeholder="ابحث عن خامة بالاسم أو الكود..." oninput="ingSearch(this.value)" autocomplete="off">
+      </div>
+      <div id="ing-search-results"></div>
       <div id="ing-cont"></div>
     </div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-prod')">إلغاء</button><button class="btn btn-g" onclick="saveProd()"><i class="fas fa-save"></i>حفظ المنتج</button></div>
@@ -505,7 +569,16 @@ textarea.fc{resize:vertical;min-height:68px}
   <div class="modal">
     <div class="mh"><span class="mh-title" id="mm-title">خامة جديدة</span><button class="mclose" onclick="closeM('mo-mat')">×</button></div>
     <div class="mb">
-      <div class="frow c2"><div class="fg"><label class="fl">كود الخامة (تلقائي)</label><input class="fc" id="mm-code" readonly></div><div class="fg"><label class="fl">اسم الخامة *</label><input class="fc" id="mm-name" placeholder="مثال: يوريا"></div></div>
+      <div class="frow c2">
+        <div class="fg"><label class="fl">كود الخامة (تلقائي)</label><input class="fc" id="mm-code" readonly></div>
+        <div class="fg">
+          <label class="fl">اسم الخامة *</label>
+          <div class="ac-wrap">
+            <input class="fc" id="mm-name" placeholder="اكتب لبحث أو إضافة..." autocomplete="off" oninput="matNameAC(this.value)" onkeydown="matNameKey(event)">
+            <div class="ac-list" id="mm-name-ac"></div>
+          </div>
+        </div>
+      </div>
       <div class="frow c2">
         <div class="fg"><label class="fl">الوحدة</label><select class="fc" id="mm-unit"><option>كجم</option><option>لتر</option><option>جرام</option><option>مل</option><option>طن</option></select></div>
         <div class="fg"><label class="fl">المادة الفعالة %</label><input type="number" class="fc" id="mm-ai" placeholder="46" min="0" max="100"></div>
@@ -571,7 +644,7 @@ textarea.fc{resize:vertical;min-height:68px}
 </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile, browserSessionPersistence, setPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getStorage, ref as sRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
@@ -660,13 +733,16 @@ window.doLogin = async () => {
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري الدخول...';
   try {
-    // Session persistence — يتسجل خروج تلقائي لما المتصفح يتقفل
-    await setPersistence(auth, browserSessionPersistence);
     await signInWithEmailAndPassword(auth, email, pass);
   } catch(e) {
-    err.textContent = e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'
-      ? 'بريد إلكتروني أو كلمة مرور خاطئة'
-      : 'خطأ في الدخول: ' + e.message;
+    const code = e.code || '';
+    if (code==='auth/invalid-credential'||code==='auth/wrong-password'||code==='auth/user-not-found') {
+      err.textContent = 'بريد إلكتروني أو كلمة مرور خاطئة';
+    } else if (code==='auth/network-request-failed') {
+      err.textContent = 'لا يوجد اتصال بالإنترنت';
+    } else {
+      err.textContent = 'خطأ: ' + (e.message||code);
+    }
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-sign-in-alt"></i>دخول';
   }
@@ -1331,7 +1407,12 @@ window.showMDetail = id => {
     </div>
     ${elems?`<div class="sec-lbl" style="margin-bottom:8px">العناصر الغذائية</div>${elems}`:'<p style="font-size:12px;color:var(--e400)">لم يتم تحديد عناصر لهذه الخامة</p>'}`;
   const cE=hasPerm('edit_materials');
-  document.getElementById('md-foot').innerHTML=`${cE?`<button class="btn btn-gold" onclick="closeM('mo-mdetail');openMModal('${m.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}<button class="btn btn-ghost" onclick="closeM('mo-mdetail')">إغلاق</button>`;
+  document.getElementById('md-foot').innerHTML=`
+    <button class="btn btn-ghost" onclick="printMatDetail('${m.id}')"><i class="fas fa-print"></i>طباعة</button>
+    <button class="btn btn-ghost" onclick="exportMatDetail('${m.id}')"><i class="fas fa-file-excel"></i>Excel</button>
+    ${cE?`<button class="btn btn-gold" onclick="closeM('mo-mdetail');openMModal('${m.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
+    <button class="btn btn-ghost" onclick="closeM('mo-mdetail')">إغلاق</button>
+  `;
   openM('mo-mdetail');
 };
 
@@ -1683,6 +1764,182 @@ window.renderAudit     = renderAudit;
 window.renderDash      = renderDash;
 window.renderCalcOpts  = renderCalcOpts;
 window.renderDashProducts = renderDashProducts;
+
+// ══════════════════════════════════════════════
+// AUTOCOMPLETE — اسم الخامة
+// ══════════════════════════════════════════════
+window.matNameAC = val => {
+  const ac = document.getElementById('mm-name-ac');
+  if (!val || val.length < 1) { ac.classList.remove('open'); return; }
+  const q = val.toLowerCase();
+  const matches = _materials.filter(m =>
+    m.name.toLowerCase().includes(q) || (m.code||'').includes(q)
+  ).slice(0, 8);
+  if (!matches.length) { ac.classList.remove('open'); return; }
+  ac.innerHTML = matches.map(m => {
+    const isDupe = !window._editMid && m.name.toLowerCase() === val.toLowerCase();
+    return `<div class="ac-item" onclick="selectMatName('${m.id}')">
+      <span class="ac-item-name">${m.name} ${isDupe?'<span class="ac-item-warn">&#9888; موجودة</span>':''}</span>
+      <span class="ac-item-code">#${m.code||m.id}</span>
+    </div>`;
+  }).join('');
+  ac.classList.add('open');
+};
+
+window.selectMatName = id => {
+  const m = _materials.find(x=>x.id===id); if(!m)return;
+  document.getElementById('mm-name-ac').classList.remove('open');
+  if (!window._editMid && _materials.some(x=>x.name.toLowerCase()===m.name.toLowerCase())) {
+    toast(`⚠️ "${m.name}" موجودة بالفعل — كود: #${m.code||m.id}`,'info');
+  }
+  document.getElementById('mm-name').value = m.name;
+};
+
+window.matNameKey = e => {
+  if (e.key==='Escape') document.getElementById('mm-name-ac').classList.remove('open');
+};
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.ac-wrap'))
+    document.querySelectorAll('.ac-list').forEach(el=>el.classList.remove('open'));
+});
+
+// ══════════════════════════════════════════════
+// AUTOCOMPLETE — اسم المنتج
+// ══════════════════════════════════════════════
+window.prodNameAC = val => {
+  const ac = document.getElementById('pp-name-ac');
+  if (!val || val.length < 1) { ac.classList.remove('open'); return; }
+  const q = val.toLowerCase();
+  const matches = _products.filter(p =>
+    p.name.toLowerCase().includes(q) || (p.code||'').includes(q)
+  ).slice(0, 8);
+  if (!matches.length) { ac.classList.remove('open'); return; }
+  ac.innerHTML = matches.map(p => {
+    const isDupe = !window._editPid && p.name.toLowerCase() === val.toLowerCase();
+    return `<div class="ac-item" onclick="selectProdName('${p.id}')">
+      <span class="ac-item-name">${p.name} ${isDupe?'<span class="ac-item-warn">&#9888; موجود</span>':''}</span>
+      <span class="ac-item-code">#${p.code||p.id} — ${p.type||''}</span>
+    </div>`;
+  }).join('');
+  ac.classList.add('open');
+};
+
+window.selectProdName = id => {
+  const p = _products.find(x=>x.id===id); if(!p)return;
+  document.getElementById('pp-name-ac').classList.remove('open');
+  if (!window._editPid && _products.some(x=>x.name.toLowerCase()===p.name.toLowerCase())) {
+    toast(`⚠️ "${p.name}" موجود بالفعل — كود: #${p.code||p.id}`,'info');
+  }
+  document.getElementById('pp-name').value = p.name;
+};
+
+window.prodNameKey = e => {
+  if (e.key==='Escape') document.getElementById('pp-name-ac').classList.remove('open');
+};
+
+// ══════════════════════════════════════════════
+// INGREDIENT SEARCH — بحث في خامات المنتج
+// ══════════════════════════════════════════════
+window.ingSearch = val => {
+  const res = document.getElementById('ing-search-results');
+  if (!val || val.length < 1) { res.innerHTML=''; return; }
+  const q = val.toLowerCase();
+  const addedIds = [...document.querySelectorAll('.i-mat')].map(s=>s.value).filter(Boolean);
+  const matches = _materials.filter(m =>
+    m.name.toLowerCase().includes(q) || (m.code||'').includes(q)
+  ).slice(0, 12);
+  if (!matches.length) { res.innerHTML=`<div style="font-size:12px;color:var(--e400);padding:6px 0">لا توجد نتائج</div>`; return; }
+  res.innerHTML = `<div style="font-size:10px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">نتائج البحث — اضغط للإضافة</div>
+  <div class="ing-results">` +
+  matches.map(m => {
+    const isAdded = addedIds.includes(m.id);
+    const elemPills = (m.elements||[]).slice(0,3).map(k=>{
+      const el=ELEMENTS[k];
+      return el?`<span style="background:${el.bg};color:${el.c};padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700">${el.sym}</span>`:'';
+    }).join('');
+    return `<div class="ing-chip" onclick="addIngFromSearch('${m.id}')"
+      style="${isAdded?'border-color:var(--g400);background:var(--g50)':''}">
+      <div>
+        <div>${m.name} ${isAdded?'<span class="ing-chip-warn">&#10003; مضافة</span>':''}</div>
+        <div style="display:flex;gap:3px;margin-top:2px">${elemPills}<span class="ing-chip-code">#${m.code||m.id}</span></div>
+      </div>
+      ${isAdded?'<i class="fas fa-check-circle" style="color:var(--g600)"></i>':'<i class="fas fa-plus-circle" style="color:var(--e400)"></i>'}
+    </div>`;
+  }).join('') + `</div>`;
+};
+
+window.addIngFromSearch = matId => {
+  const existing = [...document.querySelectorAll('.i-mat')].find(s=>s.value===matId);
+  if (existing) {
+    toast('هذه الخامة مضافة بالفعل — يمكنك تعديل الكمية','info');
+    existing.closest('.ing-row').scrollIntoView({behavior:'smooth',block:'center'});
+    existing.closest('.ing-row').style.boxShadow='0 0 0 2px var(--g400)';
+    setTimeout(()=>existing.closest('.ing-row').style.boxShadow='',2000);
+    return;
+  }
+  addIngRow(matId, '');
+  const q = document.getElementById('ing-search').value;
+  if (q) ingSearch(q);
+  toast('تم إضافة الخامة','success');
+};
+
+// ══════════════════════════════════════════════
+// PRINT & EXPORT — مواصفات الخامة
+// ══════════════════════════════════════════════
+window.printMatDetail = id => {
+  const m = _materials.find(x=>x.id===id); if(!m)return;
+  const elemRows = (m.elements||[]).map(k=>{
+    const el=ELEMENTS[k];
+    return el?`<tr><td>${el.sym}</td><td>${el.name}</td><td>${{macro:'عنصر كبرى',micro:'عنصر صغرى',organic:'عضوي',benefi:'مفيد'}[el.cat]||''}</td><td>${el.benefits}</td></tr>`:'';
+  }).join('');
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>مواصفات ${m.name}</title>
+  <style>body{font-family:Arial,sans-serif;padding:24px;color:#222;direction:rtl}
+  h1{color:#1a4a2e;font-size:22px;margin-bottom:4px}.code{font-family:monospace;color:#666;margin-bottom:16px}
+  table{width:100%;border-collapse:collapse;margin-top:12px}
+  th{background:#e8f5e9;padding:9px 12px;text-align:right;font-size:13px;border:1px solid #ccc}
+  td{padding:9px 12px;border:1px solid #ccc;font-size:13px}
+  .sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+  .si{background:#f5f5f5;padding:10px 12px;border-radius:6px}
+  .sl{font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase}
+  .sv{font-size:14px;font-weight:700;color:#1a4a2e}</style></head><body>
+  <h1>${m.name}</h1><div class="code">كود الخامة: #${m.code||m.id}</div>
+  <div class="sg">
+    <div class="si"><div class="sl">الوحدة</div><div class="sv">${m.unit||'—'}</div></div>
+    <div class="si"><div class="sl">المادة الفعالة</div><div class="sv">${m.activeIngredient?m.activeIngredient+'%':'—'}</div></div>
+    <div class="si"><div class="sl">اللون</div><div class="sv">${m.color||'—'}</div></div>
+    <div class="si"><div class="sl">الرائحة</div><div class="sv">${m.smell||'—'}</div></div>
+    <div class="si"><div class="sl">الكثافة</div><div class="sv">${m.density?m.density+' g/cm³':'—'}</div></div>
+    <div class="si"><div class="sl">pH</div><div class="sv">${m.ph||'—'}</div></div>
+    <div class="si"><div class="sl">الذوبانية</div><div class="sv">${m.solubility?m.solubility+'%':'—'}</div></div>
+    <div class="si"><div class="sl">الاستخدام</div><div class="sv">${m.usage||'—'}</div></div>
+  </div>
+  ${elemRows?`<h3 style="color:#1a4a2e;margin-bottom:8px">العناصر الغذائية</h3>
+  <table><thead><tr><th>الرمز</th><th>الاسم</th><th>النوع</th><th>الفائدة</th></tr></thead><tbody>${elemRows}</tbody></table>`:''}
+  <br><small style="color:#999">طُبع: ${new Date().toLocaleString('ar-EG')} — الساقية للصناعات الزراعية</small>
+  </body></html>`);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+};
+
+window.exportMatDetail = id => {
+  const m = _materials.find(x=>x.id===id); if(!m)return;
+  const elemNames = (m.elements||[]).map(k=>ELEMENTS[k]?.name||k).join(' | ');
+  let csv = 'البيان,القيمة
+';
+  [['الكود',m.code||m.id],['الاسم',m.name],['الوحدة',m.unit||''],
+   ['المادة الفعالة',m.activeIngredient?m.activeIngredient+'%':''],
+   ['اللون',m.color||''],['الرائحة',m.smell||''],['الكثافة',m.density||''],
+   ['pH',m.ph||''],['الذوبانية',m.solubility?m.solubility+'%':''],
+   ['الاستخدام',m.usage||''],['العناصر الغذائية',elemNames]
+  ].forEach(([k,v])=>{ csv+=`"${k}","${v}"
+`; });
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`خامة_${m.name}_${m.code||m.id}.csv`;a.click();
+  toast('تم تصدير مواصفات الخامة','success');
+};
 
 </script>
 
