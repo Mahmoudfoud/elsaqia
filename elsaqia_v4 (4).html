@@ -1926,17 +1926,17 @@ window.printMatDetail = id => {
 window.exportMatDetail = id => {
   const m = _materials.find(x=>x.id===id); if(!m)return;
   const elemNames = (m.elements||[]).map(k=>ELEMENTS[k]?.name||k).join(' | ');
-  let csv = 'البيان,القيمة';
+  const NL = String.fromCharCode(10);
+  let csv = 'البيان,القيمة' + NL;
   [['الكود',m.code||m.id],['الاسم',m.name],['الوحدة',m.unit||''],
    ['المادة الفعالة',m.activeIngredient?m.activeIngredient+'%':''],
    ['اللون',m.color||''],['الرائحة',m.smell||''],['الكثافة',m.density||''],
    ['pH',m.ph||''],['الذوبانية',m.solubility?m.solubility+'%':''],
    ['الاستخدام',m.usage||''],['العناصر الغذائية',elemNames]
-  ].forEach(([k,v])=>{ csv+=`"${k}","${v}"
-`; });
+  ].forEach(([k,v])=>{ csv+='"'+k+'","'+v+'"'+NL; });
   const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`خامة_${m.name}_${m.code||m.id}.csv`;a.click();
+  a.download='خامة_'+m.name+'_'+(m.code||m.id)+'.csv';a.click();
   toast('تم تصدير مواصفات الخامة','success');
 };
 
