@@ -1926,8 +1926,7 @@ window.printMatDetail = id => {
 window.exportMatDetail = id => {
   const m = _materials.find(x=>x.id===id); if(!m)return;
   const elemNames = (m.elements||[]).map(k=>ELEMENTS[k]?.name||k).join(' | ');
-  let csv = 'البيان,القيمة
-';
+  let csv = 'البيان,القيمة';
   [['الكود',m.code||m.id],['الاسم',m.name],['الوحدة',m.unit||''],
    ['المادة الفعالة',m.activeIngredient?m.activeIngredient+'%':''],
    ['اللون',m.color||''],['الرائحة',m.smell||''],['الكثافة',m.density||''],
