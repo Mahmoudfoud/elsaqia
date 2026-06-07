@@ -407,7 +407,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="sb-grp-lbl">الرئيسية</div>
       <div class="nav-link active" data-page="dashboard" onclick="goPage('dashboard')"><i class="fas fa-chart-pie"></i>لوحة التحكم</div>
       <div class="nav-link perm-nav" data-perm="use_calc" data-page="calc" onclick="goPage('calc')"><i class="fas fa-calculator"></i>الحاسبة</div>
-      <div class="nav-link" data-page="history" onclick="goPage('history')"><i class="fas fa-history"></i>سجل الطلبات</div>
+      <div class="nav-link" data-page="history" data-perm="view_history" onclick="goPage('history')"><i class="fas fa-history"></i>سجل الطلبات</div>
       <div class="sb-grp-lbl" style="margin-top:6px">التصنيع</div>
       <div class="nav-link perm-nav" data-perm="view_products" data-page="products" onclick="goPage('products')"><i class="fas fa-flask"></i>المنتجات</div>
       <div class="nav-link perm-nav" data-perm="view_materials" data-page="materials" onclick="goPage('materials')"><i class="fas fa-box-open"></i>الخامات</div>
@@ -464,7 +464,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">🧪 المنتجات</div><div class="ph-sub">إدارة تركيبات المنتجات الزراعية</div></div>
         <div class="ph-acts">
-          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-excel"></i>Excel</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_products" onclick="exportProducts()"><i class="fas fa-file-excel"></i>Excel</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_products" onclick="openPModal()"><i class="fas fa-plus"></i>منتج جديد</button>
         </div>
       </div>
@@ -670,7 +670,7 @@ textarea.fc{resize:vertical;min-height:68px}
 
 <!-- History Detail -->
 <div class="overlay" id="mo-hdetail">
-  <div class="modal lg"><div class="mh"><span class="mh-title">تفاصيل الطلب</span><button class="mclose" onclick="closeM('mo-hdetail')">×</button></div><div class="mb" id="hd-body"></div><div class="mf"><button class="btn btn-ghost" onclick="printH()"><i class="fas fa-print"></i>طباعة</button><button class="btn btn-ghost" onclick="closeM('mo-hdetail')">إغلاق</button></div></div>
+  <div class="modal lg"><div class="mh"><span class="mh-title">تفاصيل الطلب</span><button class="mclose" onclick="closeM('mo-hdetail')">×</button></div><div class="mb" id="hd-body"></div><div class="mf" id="hdetail-foot"><button class="btn btn-ghost" onclick="closeM('mo-hdetail')">إغلاق</button></div></div>
 </div>
 
 <!-- Confirm Delete -->
@@ -941,6 +941,7 @@ window.goPage = name => {
     products:  'view_products',
     materials: 'view_materials',
     calc:      'use_calc',
+    history:   'view_history',
     users:     null,
     audit:     null,
   };
@@ -1239,6 +1240,8 @@ window.showPDetail = id => {
     ${renderAnalysis(p)}`;
   const cE=hasPerm('edit_products'),cD=hasPerm('delete_products');
   document.getElementById('pd-foot').innerHTML=`
+    ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProduct('${p.id}')"><i class="fas fa-print"></i>طباعة</button>`:''}
+    ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-excel"></i>Excel</button>`:''}
     ${cE?`<button class="btn btn-gold" onclick="closeM('mo-pdetail');openPModal('${p.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
     ${cD?`<button class="btn btn-red" onclick="closeM('mo-pdetail');confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')"><i class="fas fa-trash"></i>حذف</button>`:''}
     <button class="btn btn-ghost" onclick="closeM('mo-pdetail')">إغلاق</button>`;
@@ -1346,6 +1349,7 @@ window.saveProd = async () => {
 };
 
 window.exportProducts = () => {
+  if(!hasPerm('export_products')){toast('ليس لديك صلاحية تصدير المنتجات','error');return;}
   let csv='الكود,الاسم,النوع,الكمية الأساسية,الوحدة,عدد الخامات,العناصر\n';
   _products.forEach(p=>{
     const elems=(p.ingredients||[]).flatMap(ing=>{const m=_materials.find(x=>x.id===ing.matId);return m?.elements||[];});
@@ -1516,10 +1520,9 @@ window.showMDetail = id => {
   const mid2 = m.id;
   const foot = document.getElementById('md-foot');
   foot.innerHTML = '';
-  const btns = [
-    {cls:'btn btn-ghost', icon:'fa-print',       fn:()=>printMatDetail(mid2),  txt:'طباعة'},
-    {cls:'btn btn-ghost', icon:'fa-file-excel',   fn:()=>exportMatDetail(mid2), txt:'Excel'},
-  ];
+  const btns = [];
+  if(hasPerm('print_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-print',     fn:()=>printMatDetail(mid2),  txt:'طباعة'});
+  if(hasPerm('export_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-file-excel', fn:()=>exportMatDetail(mid2), txt:'Excel'});
   if(cE) btns.push({cls:'btn btn-gold', icon:'fa-edit', fn:()=>{closeM('mo-mdetail');openMModal(mid2);}, txt:'تعديل'});
   btns.push({cls:'btn btn-ghost', icon:'', fn:()=>closeM('mo-mdetail'), txt:'إغلاق'});
   btns.forEach(b=>{
@@ -1647,12 +1650,15 @@ window.doCalc = async () => {
   } catch(e){}
   SS('on');
   const rows=result.map(r=>`<tr><td style="font-family:monospace;color:var(--g500)">#${r.code}</td><td style="font-weight:600">${r.name}</td><td style="font-size:16px;font-weight:900;color:var(--g700)">${r.needed}</td><td>${r.unit}</td></tr>`).join('');
-  const cP=hasPerm('print');
+  
   document.getElementById('calc-result').innerHTML=`
     <div class="card" style="border:2px solid var(--g300)">
       <div style="background:linear-gradient(135deg,var(--g800),var(--g600));padding:14px 18px;color:#fff;display:flex;justify-content:space-between;align-items:center">
         <div><div style="font-size:16px;font-weight:900">📊 نتيجة الحساب — ${p.name}</div><div style="font-size:12px;opacity:.7;margin-top:2px">${qty} ${p.unit||'لتر'} ${note?'| '+note:''}</div></div>
-        ${cP?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="printCalc()"><i class="fas fa-print"></i>طباعة</button>`:''}
+        <div style="display:flex;gap:6px">
+          ${hasPerm('print_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="printCalc()"><i class="fas fa-print"></i>طباعة</button>`:''}
+          ${hasPerm('export_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportCalc()"><i class="fas fa-file-excel"></i>Excel</button>`:''}
+        </div>
       </div>
       <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية المطلوبة</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table>
     </div>
@@ -1662,11 +1668,31 @@ window.doCalc = async () => {
 };
 
 window.printCalc = () => {
+  if(!hasPerm('print_calc')){toast('ليس لديك صلاحية الطباعة','error');return;}
   const r=window._lastCalc; if(!r)return;
   const rows=r.result.map(x=>`<tr><td>#${x.code}</td><td>${x.name}</td><td>${x.needed}</td><td>${x.unit}</td></tr>`).join('');
   const w=window.open('','_blank');
   w.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><title>حساب</title><style>body{font-family:sans-serif;padding:24px}table{width:100%;border-collapse:collapse}th,td{padding:9px;border:1px solid #ccc;text-align:right}th{background:#e8f5e9}</style></head><body><h2>${r.p.name}</h2><p>${r.qty} ${r.p.unit} ${r.note?'| '+r.note:''}</p><table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table><br><small>طُبع: ${new Date().toLocaleString('ar-EG')}</small></body></html>`);
   w.document.close(); w.print();
+};
+
+window.exportCalc = () => {
+  if(!hasPerm('export_calc')){toast('ليس لديك صلاحية التصدير','error');return;}
+  const r=window._lastCalc; if(!r){toast('لا توجد نتيجة للتصدير','error');return;}
+  const NL=String.fromCharCode(10);
+  let csv='﻿';
+  csv+='المنتج,'+r.p.name+NL;
+  csv+='الكمية,'+r.qty+' '+(r.p.unit||'لتر')+NL;
+  if(r.note) csv+='ملاحظة,'+r.note+NL;
+  csv+='التاريخ,'+new Date().toLocaleDateString('ar-EG')+NL+NL;
+  csv+='"الكود","الخامة","الكمية المطلوبة","الوحدة"'+NL;
+  r.result.forEach(x=>{ csv+='"#'+x.code+'","'+x.name+'","'+x.needed+'","'+x.unit+'"'+NL; });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='حساب_'+r.p.name+'_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.csv';
+  a.click();
+  toast('تم التصدير بنجاح','success');
 };
 
 // ══════════════════════════════════════════════
@@ -1695,10 +1721,62 @@ window.showHDetail = id => {
   const h=_history.find(x=>x.id===id); if(!h)return;
   const rows=(h.result||[]).map(r=>`<tr><td style="font-family:monospace;color:var(--g500)">#${r.code}</td><td style="font-weight:600">${r.name}</td><td style="font-weight:900;color:var(--g700);font-size:15px">${r.needed}</td><td>${r.unit}</td></tr>`).join('');
   document.getElementById('hd-body').innerHTML=`<div style="margin-bottom:14px"><div style="font-size:18px;font-weight:900">${h.productName}</div><div style="font-size:11px;color:var(--e400);margin-top:3px">${fmtDate(h.ts)} | ${h.userName||h.user} | ${h.qty} ${h.unit} ${h.note?'| '+h.note:''}</div></div><table class="tbl" style="border:1px solid var(--border);border-radius:8px"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table>`;
-  window._printH=h; openM('mo-hdetail');
+  window._printH=h;
+  const hfoot=document.getElementById('hdetail-foot');
+  hfoot.innerHTML='';
+  if(hasPerm('print_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-print"></i>طباعة';b.onclick=printH;hfoot.insertBefore(b,hfoot.firstChild);}
+  if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-excel"></i>Excel';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
+  const closeBtn=document.createElement('button');closeBtn.className='btn btn-ghost';closeBtn.textContent='إغلاق';closeBtn.onclick=()=>closeM('mo-hdetail');hfoot.appendChild(closeBtn);
+  openM('mo-hdetail');
+};
+window.printProduct = id => {
+  if(!hasPerm('print_products')){toast('ليس لديك صلاحية الطباعة','error');return;}
+  const p=_products.find(x=>x.id===id); if(!p)return;
+  const rows=(p.ingredients||[]).map(ing=>{
+    const m=_materials.find(x=>x.id===ing.matId);
+    return '<tr><td>#'+(m?m.code||m.id:'—')+'</td><td>'+(m?m.name:ing.matId)+'</td><td>'+ing.qty+'</td><td>'+(m?m.unit||'—':'—')+'</td></tr>';
+  }).join('');
+  const w=window.open('','_blank');
+  w.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>'+p.name+'</title><style>body{font-family:Arial,sans-serif;padding:24px;color:#222;direction:rtl}h1{color:#1a4a2e;font-size:20px}table{width:100%;border-collapse:collapse;margin-top:12px}th{background:#e8f5e9;padding:9px 12px;text-align:right;border:1px solid #ccc}td{padding:9px 12px;border:1px solid #ccc}.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.si{background:#f5f5f5;padding:8px 12px;border-radius:6px}.sl{font-size:10px;color:#888}.sv{font-weight:700;color:#1a4a2e}</style></head><body>'+
+    '<h1>'+p.name+'</h1><div style="font-family:monospace;color:#888;margin-bottom:12px">كود: #'+(p.code||p.id)+'</div>'+
+    '<div class="sg">'+
+    '<div class="si"><div class="sl">النوع</div><div class="sv">'+(p.type||'—')+'</div></div>'+
+    '<div class="si"><div class="sl">الكمية الأساسية</div><div class="sv">'+(p.baseQty||1000)+' '+(p.unit||'لتر')+'</div></div>'+
+    '<div class="si"><div class="sl">pH</div><div class="sv">'+(p.ph||'—')+'</div></div>'+
+    '<div class="si"><div class="sl">الكثافة</div><div class="sv">'+(p.density||'—')+'</div></div>'+
+    '</div>'+
+    (rows?'<h3 style="color:#1a4a2e">التركيبة</h3><table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead><tbody>'+rows+'</tbody></table>':'')+
+    '<br><small style="color:#999">طُبع: '+new Date().toLocaleString('ar-EG')+' — الساقية</small></body></html>');
+  w.document.close(); setTimeout(()=>w.print(),500);
+};
+
+window.exportProduct = id => {
+  if(!hasPerm('export_products')){toast('ليس لديك صلاحية التصدير','error');return;}
+  const p=_products.find(x=>x.id===id); if(!p)return;
+  const NL=String.fromCharCode(10);
+  let csv='﻿';
+  csv+='"البيان","القيمة"'+NL;
+  [['الكود',p.code||p.id],['الاسم',p.name],['النوع',p.type||''],
+   ['الكمية الأساسية',(p.baseQty||1000)+' '+(p.unit||'لتر')],
+   ['pH',p.ph||''],['الكثافة',p.density||''],['الذوبانية',p.solubility||'']
+  ].forEach(([k,v])=>{ csv+='"'+k+'","'+v+'"'+NL; });
+  if((p.ingredients||[]).length){
+    csv+=NL+'"كود الخامة","اسم الخامة","الكمية","الوحدة"'+NL;
+    (p.ingredients||[]).forEach(ing=>{
+      const m=_materials.find(x=>x.id===ing.matId);
+      csv+='"#'+(m?m.code||m.id:'—')+'","'+(m?m.name:ing.matId)+'","'+ing.qty+'","'+(m?m.unit||'—':'—')+'"'+NL;
+    });
+  }
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='منتج_'+p.name+'_'+(p.code||p.id)+'.csv';
+  a.click();
+  toast('تم تصدير المنتج','success');
 };
 
 window.printH = () => {
+  if(!hasPerm('print_history')){toast('ليس لديك صلاحية الطباعة','error');return;}
   const h=window._printH; if(!h)return;
   const rows=(h.result||[]).map(r=>`<tr><td>#${r.code}</td><td>${r.name}</td><td>${r.needed}</td><td>${r.unit}</td></tr>`).join('');
   const w=window.open('','_blank');
@@ -1706,7 +1784,28 @@ window.printH = () => {
   w.document.close(); w.print();
 };
 
+window.exportHistoryItem = id => {
+  if(!hasPerm('export_history')){toast('ليس لديك صلاحية التصدير','error');return;}
+  const h=_history.find(x=>x.id===id); if(!h)return;
+  const NL=String.fromCharCode(10);
+  let csv='﻿';
+  csv+='"المنتج","'+h.productName+'"'+NL;
+  csv+='"الكمية","'+h.qty+' '+(h.unit||'')+'"'+NL;
+  csv+='"التاريخ","'+new Date(h.ts).toLocaleDateString('ar-EG')+'"'+NL;
+  csv+='"المستخدم","'+(h.userName||h.user||'')+'"'+NL;
+  if(h.note) csv+='"ملاحظة","'+h.note+'"'+NL;
+  csv+=NL+'"الكود","الخامة","الكمية المطلوبة","الوحدة"'+NL;
+  (h.result||[]).forEach(r=>{ csv+='"#'+r.code+'","'+r.name+'","'+r.needed+'","'+r.unit+'"'+NL; });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='طلب_'+h.productName+'_'+new Date(h.ts).toLocaleDateString('ar-EG').replace(/\//g,'-')+'.csv';
+  a.click();
+  toast('تم التصدير','success');
+};
+
 window.exportHistory = () => {
+  if(!hasPerm('export_history')){toast('ليس لديك صلاحية التصدير','error');return;}
   let csv='التاريخ,المنتج,الكمية,الوحدة,المستخدم,الملاحظة\n';
   _history.forEach(h=>{csv+=`"${fmtDate(h.ts)}","${h.productName}","${h.qty}","${h.unit}","${h.userName||h.user}","${h.note||''}"\n`;});
   dlCSV(csv,'history.csv');
