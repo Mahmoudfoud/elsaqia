@@ -405,7 +405,7 @@ textarea.fc{resize:vertical;min-height:68px}
     <nav class="sb-nav">
       <div class="sb-grp-lbl">الرئيسية</div>
       <div class="nav-link active" data-page="dashboard" onclick="goPage('dashboard')"><i class="fas fa-chart-pie"></i>لوحة التحكم</div>
-      <div class="nav-link" data-page="calc" onclick="goPage('calc')"><i class="fas fa-calculator"></i>الحاسبة</div>
+      <div class="nav-link perm-nav" data-perm="use_calc" data-page="calc" onclick="goPage('calc')"><i class="fas fa-calculator"></i>الحاسبة</div>
       <div class="nav-link" data-page="history" onclick="goPage('history')"><i class="fas fa-history"></i>سجل الطلبات</div>
       <div class="sb-grp-lbl" style="margin-top:6px">التصنيع</div>
       <div class="nav-link perm-nav" data-perm="view_products" data-page="products" onclick="goPage('products')"><i class="fas fa-flask"></i>المنتجات</div>
@@ -534,13 +534,24 @@ textarea.fc{resize:vertical;min-height:68px}
         <label class="fl">العناصر الغذائية الموجودة في المنتج</label>
         <div id="pp-elem-cbs" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:#f8fcf8;border-radius:8px;border:1px solid var(--border)"></div>
       </div>
-      <div class="fg">
-        <label class="fl">صورة المنتج</label>
-        <div class="file-upload-area" id="pp-drop" onclick="document.getElementById('pp-img-inp').click()">
-          <input type="file" id="pp-img-inp" accept="image/*" onchange="handleProdImg(this)">
-          <i class="fas fa-cloud-upload-alt" style="font-size:24px;color:var(--e400);margin-bottom:6px;display:block"></i>
-          <div style="font-size:12px;color:var(--e400)">اضغط لرفع صورة</div>
-          <div id="pp-img-preview" class="file-preview"></div>
+      <div class="frow c2">
+        <div class="fg">
+          <label class="fl">صورة المنتج</label>
+          <div class="file-upload-area" id="pp-drop" onclick="document.getElementById('pp-img-inp').click()">
+            <input type="file" id="pp-img-inp" accept="image/*" onchange="handleProdImg(this,'main')">
+            <i class="fas fa-cloud-upload-alt" style="font-size:20px;color:var(--e400);margin-bottom:4px;display:block"></i>
+            <div style="font-size:11px;color:var(--e400)">صورة المنتج الرئيسية</div>
+            <div id="pp-img-preview" class="file-preview"></div>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">صورة شكل المنتج</label>
+          <div class="file-upload-area" id="pp-shape-drop" onclick="document.getElementById('pp-shape-inp').click()">
+            <input type="file" id="pp-shape-inp" accept="image/*" onchange="handleProdImg(this,'shape')">
+            <i class="fas fa-image" style="font-size:20px;color:var(--e400);margin-bottom:4px;display:block"></i>
+            <div style="font-size:11px;color:var(--e400)">صورة شكل/مظهر المنتج</div>
+            <div id="pp-shape-preview" class="file-preview"></div>
+          </div>
         </div>
       </div>
       <div class="divider"></div>
@@ -579,24 +590,47 @@ textarea.fc{resize:vertical;min-height:68px}
           </div>
         </div>
       </div>
-      <div class="frow c2">
-        <div class="fg"><label class="fl">الوحدة</label><select class="fc" id="mm-unit"><option>كجم</option><option>لتر</option><option>جرام</option><option>مل</option><option>طن</option></select></div>
-        <div class="fg"><label class="fl">المادة الفعالة %</label><input type="number" class="fc" id="mm-ai" placeholder="46" min="0" max="100"></div>
+      <div class="frow c3">
+        <div class="fg"><label class="fl">شكل الخامة</label><input class="fc" id="mm-unit" placeholder="مثال: مسحوق — سائل — حبيبات"></div>
+        <div class="fg"><label class="fl">الاسم العلمي / المادة الفعالة</label><input class="fc" id="mm-ai" placeholder="مثال: Urea — NPK 20-20-20"></div>
+        <div class="fg"><label class="fl">الكثافة g/cm³</label><input type="number" class="fc" id="mm-den" placeholder="1.0" step="0.01"></div>
       </div>
       <div class="frow c3">
         <div class="fg"><label class="fl">اللون</label><input class="fc" id="mm-color" placeholder="أبيض"></div>
         <div class="fg"><label class="fl">الرائحة</label><input class="fc" id="mm-smell" placeholder="بدون"></div>
-        <div class="fg"><label class="fl">الكثافة</label><input type="number" class="fc" id="mm-den" placeholder="1.0" step="0.01"></div>
-      </div>
-      <div class="frow c2">
-        <div class="fg"><label class="fl">الذوبانية %</label><input type="number" class="fc" id="mm-sol" placeholder="100" min="0" max="100" step="0.1"></div>
         <div class="fg"><label class="fl">pH</label><input type="number" class="fc" id="mm-ph" placeholder="7.0" step="0.1" min="0" max="14"></div>
       </div>
-      <div class="fg"><label class="fl">الاستخدام الرئيسي</label><input class="fc" id="mm-use" placeholder="مصدر نيتروجين"></div>
+      <div class="frow c2">
+        <div class="fg"><label class="fl">الذوبانية في الماء %</label><input type="number" class="fc" id="mm-sol" placeholder="100" min="0" max="100" step="0.1"></div>
+        <div class="fg"><label class="fl">الرطوبة %</label><input type="number" class="fc" id="mm-humidity" placeholder="0" min="0" max="100" step="0.1"></div>
+      </div>
       <div class="fg">
-        <label class="fl">العناصر الغذائية الموجودة في هذه الخامة</label>
+        <label class="fl">العناصر الغذائية + نسبة كل عنصر %</label>
         <div id="elem-cbs" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:#f8fcf8;border-radius:8px;border:1px solid var(--border)"></div>
       </div>
+      <div class="frow c2">
+        <div class="fg">
+          <label class="fl">صورة الخامة</label>
+          <div class="file-upload-area" onclick="document.getElementById('mm-img1-inp').click()" id="mm-img1-drop">
+            <input type="file" id="mm-img1-inp" accept="image/*" onchange="handleMatImg(this,'mm-img1-preview','mm-img1-url')">
+            <i class="fas fa-image" style="font-size:20px;color:var(--e400);margin-bottom:4px;display:block"></i>
+            <div style="font-size:11px;color:var(--e400)">صورة الخامة</div>
+            <div id="mm-img1-preview" class="file-preview"></div>
+          </div>
+          <input type="hidden" id="mm-img1-url">
+        </div>
+        <div class="fg">
+          <label class="fl">صورة مواصفة الخامة</label>
+          <div class="file-upload-area" onclick="document.getElementById('mm-img2-inp').click()" id="mm-img2-drop">
+            <input type="file" id="mm-img2-inp" accept="image/*" onchange="handleMatImg(this,'mm-img2-preview','mm-img2-url')">
+            <i class="fas fa-file-image" style="font-size:20px;color:var(--e400);margin-bottom:4px;display:block"></i>
+            <div style="font-size:11px;color:var(--e400)">صورة المواصفة / SDS</div>
+            <div id="mm-img2-preview" class="file-preview"></div>
+          </div>
+          <input type="hidden" id="mm-img2-url">
+        </div>
+      </div>
+      <div class="fg"><label class="fl">ملاحظات</label><textarea class="fc" id="mm-use" placeholder="ملاحظات إضافية عن الخامة..." rows="2"></textarea></div>
     </div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-mat')">إلغاء</button><button class="btn btn-g" onclick="saveMat()"><i class="fas fa-save"></i>حفظ</button></div>
   </div>
@@ -703,13 +737,12 @@ const PERMS_DEF = [
   {k:'delete_products', l:'حذف منتجات'},
   {k:'view_materials',  l:'عرض الخامات'},
   {k:'edit_materials',  l:'تعديل الخامات'},
-  {k:'manage_users',    l:'إدارة المستخدمين'},
-  {k:'export_excel',    l:'تصدير Excel'},
+  {k:'use_calc',        l:'استخدام الحاسبة'},
   {k:'print',           l:'الطباعة'},
-  {k:'manage_production',l:'إدارة الإنتاج'},
+  {k:'export_excel',    l:'تصدير Excel'},
+  {k:'manage_users',    l:'إدارة المستخدمين'},
   {k:'view_formulations',l:'عرض التركيبات'},
   {k:'edit_formulations',l:'تعديل التركيبات'},
-  {k:'view_qc',         l:'مراقبة الجودة'},
 ];
 const ADMIN_PERMS = Object.fromEntries(PERMS_DEF.map(p=>[p.k,true]));
 
@@ -909,8 +942,9 @@ window.goPage = name => {
   const pagePerms = {
     products:  'view_products',
     materials: 'view_materials',
-    users:     null,   // admin only
-    audit:     null,   // admin only
+    calc:      'use_calc',
+    users:     null,
+    audit:     null,
   };
 
   if (pagePerms.hasOwnProperty(name)) {
@@ -940,67 +974,31 @@ window.goPage = name => {
 // AGRICULTURAL ANALYSIS ENGINE
 // ══════════════════════════════════════════════
 const ELEMENTS = {
-  N:  {sym:'N',  name:'نيتروجين',     cat:'macro', c:'#16a34a',bg:'#dcfce7',
-       roles:['نمو خضري','تكوين البروتين','تخضير الأوراق'],
-       benefits:'يحفز النمو الخضري ويُعمق خضرة الأوراق. أساسي لتكوين الكلوروفيل والبروتينات والأحماض النووية.',
-       def:'اصفرار الأوراق القديمة، ضعف النمو، تقزم النبات.'},
-  P:  {sym:'P',  name:'فوسفور',      cat:'macro', c:'#d97706',bg:'#fef3c7',
-       roles:['نمو الجذور','تزهير وإثمار','نقل الطاقة'],
-       benefits:'يقوي الجهاز الجذري ويعزز التزهير والإثمار. ضروري لتكوين ATP ونقل الطاقة داخل الخلية.',
-       def:'احمرار الأوراق، ضعف الجذور، تأخر النضج.'},
-  K:  {sym:'K',  name:'بوتاسيوم',    cat:'macro', c:'#7c3aed',bg:'#ede9fe',
-       roles:['تنظيم المياه','مقاومة الأمراض','جودة الثمار','فتح الثغور'],
-       benefits:'يرفع مقاومة النبات للجفاف والأمراض ويحسن جودة ولون وطعم الثمار.',
-       def:'احتراق حواف الأوراق، ذبول رغم الري.'},
-  Ca: {sym:'Ca', name:'كالسيوم',     cat:'macro', c:'#dc2626',bg:'#fee2e2',
-       roles:['تقوية جدران الخلايا','بناء الجذور','مقاومة الإجهاد'],
-       benefits:'يقوي جدران خلايا النبات ويمنع الأمراض الفسيولوجية. أساسي لنمو القمم النامية.',
-       def:'تحجر القمم النامية، تعفن طرف الثمرة.'},
-  Mg: {sym:'Mg', name:'مغنيسيوم',   cat:'macro', c:'#0891b2',bg:'#e0f2fe',
-       roles:['قلب الكلوروفيل','تنشيط الإنزيمات','امتصاص الغذاء'],
-       benefits:'العنصر الأساسي في تركيب الكلوروفيل — بدونه يستحيل التمثيل الضوئي.',
-       def:'اصفرار بين عروق الأوراق القديمة مع بقاء العروق خضراء.'},
-  S:  {sym:'S',  name:'كبريت',       cat:'macro', c:'#ca8a04',bg:'#fef9c3',
-       roles:['تكوين الأحماض الأمينية','طعم وعطر المحاصيل'],
-       benefits:'ضروري لتكوين الأحماض الأمينية الكبريتية. يحسن جودة وطعم المحاصيل.',
-       def:'اصفرار الأوراق الصغيرة أولاً، تأخر النمو.'},
-  Fe: {sym:'Fe', name:'حديد',        cat:'micro', c:'#b45309',bg:'#fef3c7',
-       roles:['تصنيع الكلوروفيل','تنفس الخلايا'],
-       benefits:'ضروري لتصنيع الكلوروفيل وتنفس الخلايا رغم عدم دخوله في تركيبه.',
-       def:'كلوروزيس الأوراق الصغيرة — اصفرار بين العروق.'},
-  Zn: {sym:'Zn', name:'زنك',         cat:'micro', c:'#4f46e5',bg:'#e0e7ff',
-       roles:['تكوين الأوكسين','نمو البراعم','تكوين البذور'],
-       benefits:'يتحكم في إنتاج هرمونات النمو ويعزز تكوين البذور والثمار.',
-       def:'صغر الأوراق، تقصير المقاطع، تشوه الأوراق.'},
-  B:  {sym:'B',  name:'بورون',       cat:'micro', c:'#be185d',bg:'#fce7f3',
-       roles:['إنبات حبوب اللقاح','نقل السكريات','جودة الثمار'],
-       benefits:'ضروري جداً للتلقيح والعقد. يزيد حلاوة الفاكهة ويحسن نقل السكريات.',
-       def:'تعفن القمم النامية، سقوط الأزهار، تشوه الثمار.'},
-  Mn: {sym:'Mn', name:'منجنيز',     cat:'micro', c:'#0e7490',bg:'#e0f2fe',
-       roles:['التمثيل الضوئي','تنشيط الإنزيمات'],
-       benefits:'يشارك في تفاعلات التمثيل الضوئي وتنشيط أكثر من 35 إنزيماً.',
-       def:'اصفرار بين العروق في الأوراق الصغيرة.'},
-  Cu: {sym:'Cu', name:'نحاس',        cat:'micro', c:'#92400e',bg:'#fef3c7',
-       roles:['إنزيمات الأكسدة','مقاومة الأمراض الفطرية'],
-       benefits:'يقوي مقاومة النبات للأمراض الفطرية والبكتيرية.',
-       def:'ذبول رغم توفر الماء، تشوه الأوراق الصغيرة.'},
-  Mo: {sym:'Mo', name:'موليبدنوم',  cat:'micro', c:'#374151',bg:'#f9fafb',
-       roles:['تثبيت النيتروجين الجوي','اختزال النترات'],
-       benefits:'ضروري لتحويل النترات وللبكتيريا المثبتة للنيتروجين في البقوليات.',
-       def:'اصفرار وتجعد الأوراق، ضعف التثبيت البيولوجي.'},
-  Si: {sym:'Si', name:'سيليكون',    cat:'benefi', c:'#6b7280',bg:'#f3f4f6',
-       roles:['تقوية جدران الخلايا','مقاومة الحشرات والأمراض'],
-       benefits:'يُصلّب جدران الخلايا ما يجعل النبات أكثر مقاومة للحشرات والفطريات.',
-       def:'ضعف بنية النبات وسهولة الإصابة.'},
-  AM: {sym:'AA', name:'أحماض أمينية',cat:'organic',c:'#059669',bg:'#d1fae5',
-       roles:['بناء البروتين مباشرة','تحفيز النمو','تقليل الإجهاد'],
-       benefits:'تُغذي النبات مباشرة دون استهلاك طاقة. تسرع التعافي من الإجهاد الحراري.',
-       def:'لا يحدث نقص مباشر لكن غيابها يبطئ النمو.'},
-  HA: {sym:'HA', name:'أحماض هيوميك',cat:'organic',c:'#78350f',bg:'#fef3c7',
-       roles:['تحسين التربة','تعزيز امتصاص الغذاء','تنشيط الأحياء الدقيقة'],
-       benefits:'تعزز بنية التربة وتزيد قدرتها على الاحتفاظ بالماء. تحسن امتصاص جميع العناصر.',
-       def:'لا ينقص لكن وجوده يعزز فاعلية كل الغذاء المضاف.'},
+  N:   {sym:'N',   name:'نيتروجين',       cat:'macro', c:'#16a34a',bg:'#dcfce7', roles:['نمو خضري','تكوين البروتين','تخضير الأوراق'], benefits:'يحفز النمو الخضري ويُعمق خضرة الأوراق. أساسي لتكوين الكلوروفيل والبروتينات.', def:'اصفرار الأوراق القديمة، ضعف النمو.'},
+  P:   {sym:'P',   name:'فوسفور',         cat:'macro', c:'#d97706',bg:'#fef3c7', roles:['نمو الجذور','تزهير وإثمار','نقل الطاقة'], benefits:'يقوي الجهاز الجذري ويعزز التزهير والإثمار. ضروري لتكوين ATP.', def:'احمرار الأوراق، ضعف الجذور.'},
+  P2O5:{sym:'P₂O₅',name:'أكسيد الفوسفور', cat:'macro', c:'#b45309',bg:'#fef9c3', roles:['نمو الجذور','تزهير وإثمار'], benefits:'الشكل الأكسيدي للفوسفور — يُستخدم في حساب تركيز الأسمدة.', def:'احمرار الأوراق، ضعف الجذور.'},
+  K:   {sym:'K',   name:'بوتاسيوم',       cat:'macro', c:'#7c3aed',bg:'#ede9fe', roles:['تنظيم المياه','مقاومة الأمراض','جودة الثمار'], benefits:'يرفع مقاومة النبات للجفاف ويحسن جودة الثمار.', def:'احتراق حواف الأوراق، ذبول رغم الري.'},
+  K2O: {sym:'K₂O', name:'أكسيد البوتاسيوم',cat:'macro', c:'#6d28d9',bg:'#ede9fe', roles:['تنظيم المياه','مقاومة الأمراض'], benefits:'الشكل الأكسيدي للبوتاسيوم — معيار قياسي في تحليل الأسمدة.', def:'احتراق حواف الأوراق.'},
+  Ca:  {sym:'Ca',  name:'كالسيوم',        cat:'macro', c:'#dc2626',bg:'#fee2e2', roles:['تقوية جدران الخلايا','بناء الجذور','مقاومة الإجهاد'], benefits:'يقوي جدران خلايا النبات ويمنع الأمراض الفسيولوجية.', def:'تحجر القمم النامية، تعفن طرف الثمرة.'},
+  CaO: {sym:'CaO', name:'أكسيد الكالسيوم',cat:'macro', c:'#b91c1c',bg:'#fee2e2', roles:['تقوية جدران الخلايا'], benefits:'الشكل الأكسيدي للكالسيوم — يُستخدم في قياس تركيز الأسمدة الكالسيومية.', def:'تحجر القمم النامية.'},
+  Mg:  {sym:'Mg',  name:'مغنيسيوم',       cat:'macro', c:'#0891b2',bg:'#e0f2fe', roles:['قلب الكلوروفيل','تنشيط الإنزيمات'], benefits:'العنصر الأساسي في تركيب الكلوروفيل — بدونه يستحيل التمثيل الضوئي.', def:'اصفرار بين عروق الأوراق القديمة.'},
+  MgO: {sym:'MgO', name:'أكسيد المغنيسيوم',cat:'macro', c:'#0e7490',bg:'#e0f2fe', roles:['قلب الكلوروفيل'], benefits:'الشكل الأكسيدي للمغنيسيوم — يُستخدم في الأسمدة المركّبة.', def:'اصفرار بين عروق الأوراق القديمة.'},
+  S:   {sym:'S',   name:'كبريت',          cat:'macro', c:'#ca8a04',bg:'#fef9c3', roles:['تكوين الأحماض الأمينية','طعم وعطر المحاصيل'], benefits:'ضروري لتكوين الأحماض الأمينية الكبريتية. يحسن جودة المحاصيل.', def:'اصفرار الأوراق الصغيرة أولاً.'},
+  Fe:  {sym:'Fe',  name:'حديد',           cat:'micro', c:'#b45309',bg:'#fef3c7', roles:['تصنيع الكلوروفيل','تنفس الخلايا'], benefits:'ضروري لتصنيع الكلوروفيل وتنفس الخلايا.', def:'كلوروزيس الأوراق الصغيرة.'},
+  Zn:  {sym:'Zn',  name:'زنك',            cat:'micro', c:'#4f46e5',bg:'#e0e7ff', roles:['تكوين الأوكسين','نمو البراعم'], benefits:'يتحكم في إنتاج هرمونات النمو ويعزز تكوين البذور.', def:'صغر الأوراق، تشوه الأوراق.'},
+  B:   {sym:'B',   name:'بورون',          cat:'micro', c:'#be185d',bg:'#fce7f3', roles:['إنبات حبوب اللقاح','نقل السكريات'], benefits:'ضروري جداً للتلقيح والعقد. يزيد حلاوة الفاكهة.', def:'تعفن القمم النامية، سقوط الأزهار.'},
+  Mn:  {sym:'Mn',  name:'منجنيز',         cat:'micro', c:'#0e7490',bg:'#e0f2fe', roles:['التمثيل الضوئي','تنشيط الإنزيمات'], benefits:'يشارك في التمثيل الضوئي وتنشيط أكثر من 35 إنزيماً.', def:'اصفرار بين العروق في الأوراق الصغيرة.'},
+  Cu:  {sym:'Cu',  name:'نحاس',           cat:'micro', c:'#92400e',bg:'#fef3c7', roles:['إنزيمات الأكسدة','مقاومة الأمراض الفطرية'], benefits:'يقوي مقاومة النبات للأمراض الفطرية والبكتيرية.', def:'ذبول رغم الماء، تشوه الأوراق.'},
+  Mo:  {sym:'Mo',  name:'موليبدنوم',      cat:'micro', c:'#374151',bg:'#f9fafb', roles:['تثبيت النيتروجين','اختزال النترات'], benefits:'ضروري لتحويل النترات وللبكتيريا المثبتة للنيتروجين.', def:'اصفرار وتجعد الأوراق.'},
+  Si:  {sym:'Si',  name:'سيليكون',        cat:'other', c:'#6b7280',bg:'#f3f4f6', roles:['تقوية جدران الخلايا','مقاومة الحشرات'], benefits:'يُصلّب جدران الخلايا ما يجعل النبات أكثر مقاومة للحشرات والفطريات.', def:'ضعف بنية النبات وسهولة الإصابة.'},
+  Na:  {sym:'Na',  name:'صوديوم',         cat:'other', c:'#0284c7',bg:'#e0f2fe', roles:['تنظيم الأسموزية','نقل الماء'], benefits:'يساهم في تنظيم الضغط الأسموزي ونقل الماء في بعض النباتات.', def:'نادر — يظهر في التربة المالحة.'},
+  Cl:  {sym:'Cl',  name:'كلوريد',         cat:'other', c:'#0891b2',bg:'#e0f2fe', roles:['تنظيم الأسموزية','فتح الثغور'], benefits:'يساهم في تنظيم فتح وغلق الثغور والضغط الأسموزي.', def:'نادر في الزراعة العادية.'},
+  AM:  {sym:'AA',  name:'أحماض أمينية',   cat:'organic',c:'#059669',bg:'#d1fae5', roles:['بناء البروتين مباشرة','تحفيز النمو','تقليل الإجهاد'], benefits:'تُغذي النبات مباشرة دون استهلاك طاقة. تسرع التعافي من الإجهاد.', def:'لا يحدث نقص مباشر لكن غيابها يبطئ النمو.'},
+  HA:  {sym:'HA',  name:'أحماض هيوميك',   cat:'organic',c:'#78350f',bg:'#fef3c7', roles:['تحسين التربة','تعزيز امتصاص الغذاء'], benefits:'تعزز بنية التربة وتزيد قدرتها على الاحتفاظ بالماء والغذاء.', def:'لا ينقص لكن وجوده يعزز فاعلية الغذاء.'},
 };
+
+// عناصر مخصصة يضيفها المستخدم
+window._customElements = {};
 
 const INCOMPAT = [
   ['Ca','P','لا تخلط الكالسيوم مع الفوسفور — يترسب فوسفات الكالسيوم غير القابل للذوبان'],
@@ -1222,7 +1220,10 @@ window.showPDetail = id => {
   }).join('');
   document.getElementById('pd-body').innerHTML=`
     <div class="dh">
-      <div class="dh-img">${p.imageUrl?`<img src="${p.imageUrl}" onerror="this.style.display='none'">`:'🧪'}</div>
+      <div style="display:flex;gap:8px">
+        <div class="dh-img">${p.imageUrl?`<img src="${p.imageUrl}" onerror="this.style.display='none'">`:'🧪'}</div>
+        ${p.shapeImageUrl?`<div class="dh-img" title="شكل المنتج"><img src="${p.shapeImageUrl}" onerror="this.style.display='none'"></div>`:''}
+      </div>
       <div style="flex:1">
         <div style="font-size:20px;font-weight:900;margin-bottom:7px;color:var(--g900)">${p.name}</div>
         <div class="dp">
@@ -1247,10 +1248,12 @@ window.showPDetail = id => {
 };
 
 window.openPModal = (id=null) => {
-  _editPid=id; _pendingImg=null;
+  _editPid=id;
+  window._prodImgUrl=null; window._prodShapeUrl=null;
   document.getElementById('mp-title').textContent=id?'تعديل المنتج':'منتج جديد';
   document.getElementById('ing-cont').innerHTML='';
   document.getElementById('pp-img-preview').innerHTML='';
+  const shapePreviewEl=document.getElementById('pp-shape-preview'); if(shapePreviewEl) shapePreviewEl.innerHTML='';
   const selected = id ? (_products.find(x=>x.id===id)||{}).elements||[] : [];
   buildElemCBs(selected, 'pp-elem-cbs');
   if (id) {
@@ -1264,7 +1267,8 @@ window.openPModal = (id=null) => {
     document.getElementById('pp-den').value=p.density||'';
     document.getElementById('pp-sol').value=p.solubility||'';
     document.getElementById('pp-rec').value=p.recommendations||'';
-    if(p.imageUrl) document.getElementById('pp-img-preview').innerHTML=`<div class="file-thumb"><img src="${p.imageUrl}"></div>`;
+    if(p.imageUrl) document.getElementById('pp-img-preview').innerHTML='<div class="file-thumb"><img src="'+p.imageUrl+'"></div>';
+    if(p.shapeImageUrl){ window._prodShapeUrl=p.shapeImageUrl; const spEl=document.getElementById('pp-shape-preview'); if(spEl) spEl.innerHTML='<div class="file-thumb"><img src="'+p.shapeImageUrl+'"></div>'; }
     (p.ingredients||[]).forEach(ing=>addIngRow(ing.matId,ing.qty));
   } else {
     nextCode('products').then(c=>document.getElementById('pp-code').value=c);
@@ -1277,12 +1281,22 @@ window.openPModal = (id=null) => {
   openM('mo-prod');
 };
 
-window.handleProdImg = inp => {
+window.handleProdImg = async (inp, type) => {
   if (!inp.files[0]) return;
-  _pendingImg=inp.files[0];
-  const r=new FileReader();
-  r.onload=e=>{ document.getElementById('pp-img-preview').innerHTML=`<div class="file-thumb"><img src="${e.target.result}"></div>`; };
-  r.readAsDataURL(_pendingImg);
+  const file = inp.files[0];
+  const previewId = type==='shape' ? 'pp-shape-preview' : 'pp-img-preview';
+  document.getElementById(previewId).innerHTML = '<div style="font-size:11px;color:var(--e400)"><i class="fas fa-spinner fa-spin"></i> جاري الرفع...</div>';
+  SS('save');
+  const url = await uploadToImgBB(file);
+  SS('on');
+  if (url) {
+    if(type==='shape') window._prodShapeUrl = url;
+    else window._prodImgUrl = url;
+    document.getElementById(previewId).innerHTML = '<div class="file-thumb"><img src="' + url + '"></div>';
+    toast('تم رفع الصورة', 'success');
+  } else {
+    document.getElementById(previewId).innerHTML = '';
+  }
 };
 
 window.addIngRow = (matId='', qty='') => {
@@ -1301,14 +1315,9 @@ window.saveProd = async () => {
     qty:parseFloat(r.querySelector('.i-qty').value)||0
   })).filter(i=>i.matId&&i.qty>0);
 
-  let imageUrl=_editPid?(_products.find(x=>x.id===_editPid)||{}).imageUrl||'':'';
-  if (_pendingImg) {
-    SS('save');
-    try {
-      const snap=await uploadBytes(sRef(stor,`products/${Date.now()}_${_pendingImg.name}`),_pendingImg);
-      imageUrl=await getDownloadURL(snap.ref);
-    } catch(e){toast('فشل رفع الصورة: '+e.message,'error');}
-  }
+  const existingProd = _editPid ? (_products.find(x=>x.id===_editPid)||{}) : {};
+  const imageUrl = window._prodImgUrl || existingProd.imageUrl || '';
+  const shapeImageUrl = window._prodShapeUrl || existingProd.shapeImageUrl || '';
 
   const elements=[...document.querySelectorAll('#pp-elem-cbs .ecb:checked')].map(x=>x.value);
   const data={
@@ -1319,7 +1328,7 @@ window.saveProd = async () => {
     density:document.getElementById('pp-den').value,
     solubility:document.getElementById('pp-sol').value,
     recommendations:document.getElementById('pp-rec').value,
-    elements, ingredients:ings, imageUrl,
+    elements, ingredients:ings, imageUrl, shapeImageUrl,
     updatedAt:Date.now(), updatedBy:CU.email
   };
   SS('save');
@@ -1334,6 +1343,7 @@ window.saveProd = async () => {
       toast('تم إضافة المنتج','success');
     }
   } catch(e){toast('خطأ: '+e.message,'error');}
+  window._prodImgUrl=null; window._prodShapeUrl=null;
   SS('on'); closeM('mo-prod');
 };
 
@@ -1350,93 +1360,202 @@ window.exportProducts = () => {
 // ══════════════════════════════════════════════
 // MATERIALS
 // ══════════════════════════════════════════════
-function buildElemCBs(sel=[], containerId='elem-cbs') {
-  const groups={macro:'العناصر الكبرى',micro:'العناصر الصغرى',organic:'عضوية ومفيدة',benefi:'مفيدة'};
+function buildElemCBs(sel=[], containerId='elem-cbs', elemPcts={}) {
+  const allElems = Object.assign({}, ELEMENTS, window._customElements||{});
+  const groups={macro:'العناصر الكبرى',micro:'العناصر الصغرى',organic:'عضوية',other:'أخرى',custom:'عناصر مخصصة'};
   let html='';
-  ['macro','micro','organic','benefi'].forEach(cat=>{
-    const els=Object.entries(ELEMENTS).filter(([k,v])=>v.cat===cat);
+  ['macro','micro','organic','other'].forEach(cat=>{
+    const els=Object.entries(allElems).filter(([k,v])=>v.cat===cat);
     if(!els.length)return;
-    html+=`<div style="width:100%;font-size:9px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:1px;margin-top:5px;margin-bottom:3px">${groups[cat]}</div>`;
+    html+=`<div style="width:100%;font-size:9px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:1px;margin-top:6px;margin-bottom:3px">${groups[cat]}</div>`;
     els.forEach(([k,el])=>{
-      html+=`<label style="display:flex;align-items:center;gap:5px;cursor:pointer;padding:4px 9px;border-radius:5px;background:${el.bg};color:${el.c};font-size:11px;font-weight:700;border:1.5px solid ${sel.includes(k)?el.c:'transparent'};transition:all .15s">
-        <input type="checkbox" value="${k}" class="ecb" ${sel.includes(k)?'checked':''} style="accent-color:${el.c}">${el.sym} ${el.name}
-      </label>`;
+      const pct = elemPcts[k]||'';
+      const checked = sel.includes(k);
+      html+=`<div style="display:flex;align-items:center;gap:4px;background:${el.bg};border-radius:6px;padding:3px 8px;border:1.5px solid ${checked?el.c:'transparent'}">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:${el.c};font-size:11px;font-weight:700">
+          <input type="checkbox" value="${k}" class="ecb" ${checked?'checked':''} style="accent-color:${el.c}" onchange="toggleElemPct(this,'${containerId}')">
+          ${el.sym} ${el.name}
+        </label>
+        <input type="number" class="elem-pct" data-elem="${k}" value="${pct}" placeholder="%" min="0" max="100" step="0.01"
+          style="width:60px;border:1px solid ${el.c};border-radius:4px;padding:2px 5px;font-size:11px;background:white;display:${checked?'block':'none'}"
+          title="نسبة العنصر %">
+      </div>`;
     });
   });
+  const customs = Object.entries(window._customElements||{});
+  if(customs.length){
+    html+=`<div style="width:100%;font-size:9px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:1px;margin-top:6px;margin-bottom:3px">عناصر مخصصة</div>`;
+    customs.forEach(([k,el])=>{
+      const pct=elemPcts[k]||''; const checked=sel.includes(k);
+      html+=`<div style="display:flex;align-items:center;gap:4px;background:${el.bg};border-radius:6px;padding:3px 8px;border:1.5px solid ${checked?el.c:'transparent'}">
+        <label style="display:flex;align-items:center;gap:4px;cursor:pointer;color:${el.c};font-size:11px;font-weight:700">
+          <input type="checkbox" value="${k}" class="ecb" ${checked?'checked':''} style="accent-color:${el.c}" onchange="toggleElemPct(this,'${containerId}')">
+          ${el.sym} ${el.name}
+        </label>
+        <input type="number" class="elem-pct" data-elem="${k}" value="${pct}" placeholder="%" min="0" max="100" step="0.01"
+          style="width:60px;border:1px solid ${el.c};border-radius:4px;padding:2px 5px;font-size:11px;background:white;display:${checked?'block':'none'}">
+      </div>`;
+    });
+  }
+  html+=`<div style="width:100%;margin-top:8px">
+    <button class="btn btn-ghost btn-sm" type="button" onclick="showAddCustomElem('${containerId}')" style="font-size:11px;padding:4px 10px">
+      <i class="fas fa-plus"></i> إضافة عنصر جديد
+    </button>
+  </div>`;
   document.getElementById(containerId).innerHTML=html;
+}
+
+window.toggleElemPct = (cb, containerId) => {
+  const wrap = cb.closest('div');
+  const pctInp = wrap.querySelector('.elem-pct');
+  if(pctInp) pctInp.style.display = cb.checked ? 'block' : 'none';
+  wrap.style.borderColor = cb.checked ? window._getElemColor(cb.value) : 'transparent';
+};
+
+window._getElemColor = k => {
+  const allElems = Object.assign({}, ELEMENTS, window._customElements||{});
+  return allElems[k]?.c || '#888';
+};
+
+window.showAddCustomElem = (containerId) => {
+  const name = prompt('اسم العنصر الجديد (عربي):');
+  if(!name||!name.trim()) return;
+  const sym = prompt('الرمز الكيميائي (إنجليزي):');
+  if(!sym||!sym.trim()) return;
+  const key = 'CUSTOM_' + sym.trim().toUpperCase().replace(/\s/g,'_');
+  window._customElements = window._customElements||{};
+  window._customElements[key] = {
+    sym: sym.trim(), name: name.trim(),
+    cat: 'custom', c: '#6366f1', bg: '#eef2ff',
+    roles: [], benefits: '', def: ''
+  };
+  const current = [...document.querySelectorAll('#'+containerId+' .ecb:checked')].map(x=>x.value);
+  const pcts = {};
+  document.querySelectorAll('#'+containerId+' .elem-pct').forEach(inp=>{ if(inp.value) pcts[inp.dataset.elem]=inp.value; });
+  buildElemCBs(current, containerId, pcts);
+  toast('تم إضافة العنصر: '+name.trim(),'success');
+};
+
+function getElemSelections(containerId='elem-cbs') {
+  const elements = [];
+  const elemPcts = {};
+  document.querySelectorAll('#'+containerId+' .ecb:checked').forEach(cb=>{
+    elements.push(cb.value);
+    const pctInp = cb.closest('div')?.querySelector('.elem-pct');
+    if(pctInp && pctInp.value) elemPcts[cb.value] = parseFloat(pctInp.value)||0;
+  });
+  return {elements, elemPcts};
 }
 
 function renderMaterials() {
   const q=(document.getElementById('m-q')?.value||'').toLowerCase();
   const items=_materials.filter(m=>!q||(m.name||'').toLowerCase().includes(q)||(m.code||'').includes(q));
   const cE=hasPerm('edit_materials');
+  const allElems=Object.assign({},ELEMENTS,window._customElements||{});
   const tbody=document.getElementById('m-body');
-  if(!items.length){tbody.innerHTML=`<tr><td colspan="7"><div class="empty"><i class="fas fa-box-open"></i><p>لا توجد خامات</p></div></td></tr>`;return;}
+  if(!items.length){tbody.innerHTML='<tr><td colspan="7"><div class="empty"><i class="fas fa-box-open"></i><p>لا توجد خامات</p></div></td></tr>';return;}
   tbody.innerHTML=items.map(m=>{
-    const pills=(m.elements||[]).map(k=>{const el=ELEMENTS[k];return el?`<span style="background:${el.bg};color:${el.c};padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700">${el.sym}</span>`:''}).join('');
-    return `<tr>
-      <td style="font-family:monospace;font-weight:700;color:var(--g600)">#${m.code||m.id}</td>
-      <td style="font-weight:600">${m.name}</td>
-      <td>${m.unit||'—'}</td>
-      <td>${pills||'<span style="color:var(--e400);font-size:11px">—</span>'}</td>
-      <td>${m.density||'—'}</td>
-      <td>${m.color||'—'}</td>
-      <td style="display:flex;gap:4px">
-        <button class="btn btn-ghost btn-xs btn-ic" onclick="showMDetail('${m.id}')"><i class="fas fa-eye"></i></button>
-        ${cE?`<button class="btn btn-gold btn-xs btn-ic" onclick="openMModal('${m.id}')"><i class="fas fa-edit"></i></button><button class="btn btn-red btn-xs btn-ic" onclick="confirmDel('material','${m.id}','${m.name.replace(/'/g,'')}')"><i class="fas fa-trash"></i></button>`:''}
-      </td>
-    </tr>`;
+    const pills=(m.elements||[]).map(k=>{
+      const el=allElems[k]; if(!el)return'';
+      const pct=m.elemPcts&&m.elemPcts[k]?'<span style="opacity:.7;font-weight:400"> '+m.elemPcts[k]+'%</span>':'';
+      return '<span style="background:'+el.bg+';color:'+el.c+';padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;white-space:nowrap">'+el.sym+pct+'</span>';
+    }).join('');
+    return '<tr>'+
+      '<td style="font-family:monospace;font-weight:700;color:var(--g600)">#'+(m.code||m.id)+'</td>'+
+      '<td style="font-weight:600">'+m.name+'</td>'+
+      '<td>'+(m.unit||'—')+'</td>'+
+      '<td style="display:flex;flex-wrap:wrap;gap:3px">'+(pills||'<span style="color:var(--e400);font-size:11px">—</span>')+'</td>'+
+      '<td>'+(m.density||'—')+'</td>'+
+      '<td>'+(m.color||'—')+'</td>'+
+      '<td style="display:flex;gap:4px">'+
+      '<button class="btn btn-ghost btn-xs btn-ic" onclick="showMDetail(&apos;'+m.id+'&apos;)"><i class="fas fa-eye"></i></button>'+
+      (cE?'<button class="btn btn-gold btn-xs btn-ic" onclick="openMModal(&apos;'+m.id+'&apos;)"><i class="fas fa-edit"></i></button><button class="btn btn-red btn-xs btn-ic" onclick="confirmDel(&apos;material&apos;,&apos;'+m.id+'&apos;,&apos;'+m.name.replace(/&apos;/g,\'\')+'&apos;)"><i class="fas fa-trash"></i></button>':'')+
+      '</td>'+
+      '</tr>';
   }).join('');
 }
 
 window.showMDetail = id => {
   const m=_materials.find(x=>x.id===id); if(!m)return;
-  const elems=(m.elements||[]).map(k=>{const el=ELEMENTS[k];return el?`<div class="elem-card"><div class="elem-sym" style="background:${el.bg};color:${el.c}">${el.sym}</div><div class="elem-info"><h4>${el.name}</h4><p>${el.benefits}</p><div class="elem-roles">${el.roles.map(r=>`<span class="erole">${r}</span>`).join('')}</div></div></div>`:''}).join('');
-  document.getElementById('md-body').innerHTML=`
-    <div class="dp" style="margin-bottom:14px">
-      <div><div class="dp-lbl">الكود</div><div class="dp-val" style="font-family:monospace">#${m.code||m.id}</div></div>
-      <div><div class="dp-lbl">الاسم</div><div class="dp-val">${m.name}</div></div>
-      <div><div class="dp-lbl">الوحدة</div><div class="dp-val">${m.unit||'—'}</div></div>
-      <div><div class="dp-lbl">المادة الفعالة</div><div class="dp-val">${m.activeIngredient?m.activeIngredient+'%':'—'}</div></div>
-      <div><div class="dp-lbl">اللون</div><div class="dp-val">${m.color||'—'}</div></div>
-      <div><div class="dp-lbl">الرائحة</div><div class="dp-val">${m.smell||'—'}</div></div>
-      <div><div class="dp-lbl">الكثافة</div><div class="dp-val">${m.density||'—'} g/cm³</div></div>
-      <div><div class="dp-lbl">pH</div><div class="dp-val">${m.ph||'—'}</div></div>
-      <div><div class="dp-lbl">الذوبان</div><div class="dp-val">${m.solubility||'—'}</div></div>
-      <div style="grid-column:1/-1"><div class="dp-lbl">الاستخدام</div><div class="dp-val">${m.usage||'—'}</div></div>
-    </div>
-    ${elems?`<div class="sec-lbl" style="margin-bottom:8px">العناصر الغذائية</div>${elems}`:'<p style="font-size:12px;color:var(--e400)">لم يتم تحديد عناصر لهذه الخامة</p>'}`;
+  const allElems=Object.assign({},ELEMENTS,window._customElements||{});
+  const elemCards=(m.elements||[]).map(k=>{
+    const el=allElems[k]; if(!el)return'';
+    const pct=m.elemPcts&&m.elemPcts[k]?'<span style="background:#dcfce7;color:#16a34a;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700;margin-right:4px">'+m.elemPcts[k]+'%</span>':'';
+    return '<div class="elem-card"><div class="elem-sym" style="background:'+el.bg+';color:'+el.c+'">'+el.sym+'</div><div class="elem-info" style="flex:1"><h4>'+el.name+' '+pct+'</h4><p>'+el.benefits+'</p><div class="elem-roles">'+el.roles.map(r=>'<span class="erole">'+r+'</span>').join('')+'</div></div></div>';
+  }).join('');
+
+  const imgs = (m.imageUrl||m.specImageUrl) ?
+    '<div class="frow c2" style="margin-bottom:14px">'+
+    (m.imageUrl?'<div><div class="dp-lbl" style="margin-bottom:5px">صورة الخامة</div><img src="'+m.imageUrl+'" style="width:100%;border-radius:8px;border:1px solid var(--border)"></div>':'')+
+    (m.specImageUrl?'<div><div class="dp-lbl" style="margin-bottom:5px">صورة المواصفة</div><img src="'+m.specImageUrl+'" style="width:100%;border-radius:8px;border:1px solid var(--border)"></div>':'')+
+    '</div>' : '';
+
+  document.getElementById('md-body').innerHTML=
+    '<div class="dp" style="margin-bottom:14px">'+
+    '<div><div class="dp-lbl">الكود</div><div class="dp-val" style="font-family:monospace">#'+(m.code||m.id)+'</div></div>'+
+    '<div><div class="dp-lbl">الاسم</div><div class="dp-val">'+m.name+'</div></div>'+
+    '<div><div class="dp-lbl">شكل الخامة</div><div class="dp-val">'+(m.unit||'—')+'</div></div>'+
+    '<div><div class="dp-lbl">الاسم العلمي</div><div class="dp-val">'+(m.activeIngredient||'—')+'</div></div>'+
+    '<div><div class="dp-lbl">اللون</div><div class="dp-val">'+(m.color||'—')+'</div></div>'+
+    '<div><div class="dp-lbl">الرائحة</div><div class="dp-val">'+(m.smell||'—')+'</div></div>'+
+    '<div><div class="dp-lbl">الكثافة</div><div class="dp-val">'+(m.density?m.density+' g/cm³':'—')+'</div></div>'+
+    '<div><div class="dp-lbl">pH</div><div class="dp-val">'+(m.ph||'—')+'</div></div>'+
+    '<div><div class="dp-lbl">الذوبانية</div><div class="dp-val">'+(m.solubility?m.solubility+'%':'—')+'</div></div>'+
+    '<div><div class="dp-lbl">الرطوبة</div><div class="dp-val">'+(m.humidity?m.humidity+'%':'—')+'</div></div>'+
+    (m.usage?'<div style="grid-column:1/-1"><div class="dp-lbl">ملاحظات</div><div class="dp-val">'+m.usage+'</div></div>':'')+
+    '</div>'+
+    imgs+
+    (elemCards?'<div class="sec-lbl" style="margin-bottom:8px">العناصر الغذائية ونسبها</div>'+elemCards:'<p style="font-size:12px;color:var(--e400)">لم يتم تحديد عناصر</p>');
+
   const cE=hasPerm('edit_materials');
-  document.getElementById('md-foot').innerHTML=`
-    <button class="btn btn-ghost" onclick="printMatDetail('${m.id}')"><i class="fas fa-print"></i>طباعة</button>
-    <button class="btn btn-ghost" onclick="exportMatDetail('${m.id}')"><i class="fas fa-file-excel"></i>Excel</button>
-    ${cE?`<button class="btn btn-gold" onclick="closeM('mo-mdetail');openMModal('${m.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
-    <button class="btn btn-ghost" onclick="closeM('mo-mdetail')">إغلاق</button>
-  `;
+  document.getElementById('md-foot').innerHTML=
+    '<button class="btn btn-ghost" onclick="printMatDetail(&apos;'+m.id+'&apos;)"><i class="fas fa-print"></i>طباعة</button>'+
+    '<button class="btn btn-ghost" onclick="exportMatDetail(&apos;'+m.id+'&apos;)"><i class="fas fa-file-excel"></i>Excel</button>'+
+    (cE?'<button class="btn btn-gold" onclick="closeM(&apos;mo-mdetail&apos;);openMModal(&apos;'+m.id+'&apos;)"><i class="fas fa-edit"></i>تعديل</button>':'')+
+    '<button class="btn btn-ghost" onclick="closeM(&apos;mo-mdetail&apos;)">إغلاق</button>';
   openM('mo-mdetail');
 };
 
 window.openMModal = (id=null) => {
   _editMid=id;
   document.getElementById('mm-title').textContent=id?'تعديل الخامة':'خامة جديدة';
-  const selected=id?(_materials.find(x=>x.id===id)||{}).elements||[]:[];
-  buildElemCBs(selected);
+  ['mm-img1-preview','mm-img2-preview'].forEach(pid=>{
+    const el=document.getElementById(pid); if(el) el.innerHTML='';
+  });
+  ['mm-img1-url','mm-img2-url'].forEach(uid=>{
+    const el=document.getElementById(uid); if(el) el.value='';
+  });
   if(id){
     const m=_materials.find(x=>x.id===id); if(!m)return;
+    const selected=m.elements||[];
+    const elemPcts=m.elemPcts||{};
+    buildElemCBs(selected,'elem-cbs',elemPcts);
     document.getElementById('mm-code').value=m.code||m.id;
     document.getElementById('mm-name').value=m.name||'';
-    document.getElementById('mm-unit').value=m.unit||'كجم';
+    document.getElementById('mm-unit').value=m.unit||'';
     document.getElementById('mm-ai').value=m.activeIngredient||'';
     document.getElementById('mm-color').value=m.color||'';
     document.getElementById('mm-smell').value=m.smell||'';
     document.getElementById('mm-den').value=m.density||'';
     document.getElementById('mm-sol').value=m.solubility||'';
     document.getElementById('mm-ph').value=m.ph||'';
+    document.getElementById('mm-humidity').value=m.humidity||'';
     document.getElementById('mm-use').value=m.usage||'';
+    if(m.imageUrl){
+      document.getElementById('mm-img1-url').value=m.imageUrl;
+      document.getElementById('mm-img1-preview').innerHTML='<div class="file-thumb"><img src="'+m.imageUrl+'"></div>';
+    }
+    if(m.specImageUrl){
+      document.getElementById('mm-img2-url').value=m.specImageUrl;
+      document.getElementById('mm-img2-preview').innerHTML='<div class="file-thumb"><img src="'+m.specImageUrl+'"></div>';
+    }
   } else {
-    nextCode('materials').then(c=>document.getElementById('mm-code').value=c);
-    ['mm-name','mm-ai','mm-color','mm-smell','mm-den','mm-sol','mm-ph','mm-use'].forEach(f=>document.getElementById(f).value='');
-    document.getElementById('mm-unit').value='كجم';
+    nextCode('materials').then(code=>document.getElementById('mm-code').value=code);
+    ['mm-name','mm-ai','mm-color','mm-smell','mm-den','mm-sol','mm-ph','mm-humidity','mm-use'].forEach(f=>{
+      const el=document.getElementById(f); if(el) el.value='';
+    });
+    document.getElementById('mm-unit').value='';
+    buildElemCBs([],'elem-cbs',{});
   }
   openM('mo-mat');
 };
@@ -1444,17 +1563,32 @@ window.openMModal = (id=null) => {
 window.saveMat = async () => {
   const name=document.getElementById('mm-name').value.trim();
   if(!name){toast('يرجى إدخال اسم الخامة','error');return;}
-  const elements=[...document.querySelectorAll('.ecb:checked')].map(c=>c.value);
-  const data={name, unit:document.getElementById('mm-unit').value, activeIngredient:document.getElementById('mm-ai').value, color:document.getElementById('mm-color').value, smell:document.getElementById('mm-smell').value, density:document.getElementById('mm-den').value, solubility:document.getElementById('mm-sol').value, ph:document.getElementById('mm-ph').value, usage:document.getElementById('mm-use').value, elements, updatedAt:Date.now(), updatedBy:CU.email};
+  const {elements, elemPcts} = getElemSelections('elem-cbs');
+  const imageUrl = document.getElementById('mm-img1-url').value||'';
+  const specImageUrl = document.getElementById('mm-img2-url').value||'';
+  const data={
+    name,
+    unit: document.getElementById('mm-unit').value,
+    activeIngredient: document.getElementById('mm-ai').value,
+    color: document.getElementById('mm-color').value,
+    smell: document.getElementById('mm-smell').value,
+    density: document.getElementById('mm-den').value,
+    solubility: document.getElementById('mm-sol').value,
+    ph: document.getElementById('mm-ph').value,
+    humidity: document.getElementById('mm-humidity').value,
+    usage: document.getElementById('mm-use').value,
+    elements, elemPcts, imageUrl, specImageUrl,
+    updatedAt:Date.now(), updatedBy:CU.email
+  };
   SS('save');
   try {
     if(_editMid){
       await updateDoc(doc(db,'materials',_editMid),data);
-      await audit('edit',`عدّل ${CU.displayName||CU.email} الخامة: ${name}`);
+      await audit('edit','عدّل '+(CU.displayName||CU.email)+' الخامة: '+name);
       toast('تم تعديل الخامة','success');
     } else {
       await addDoc(collection(db,'materials'),{...data,code:document.getElementById('mm-code').value,createdAt:Date.now(),createdBy:CU.email});
-      await audit('add',`أضاف ${CU.displayName||CU.email} الخامة: ${name}`);
+      await audit('add','أضاف '+(CU.displayName||CU.email)+' الخامة: '+name);
       toast('تم إضافة الخامة','success');
     }
   } catch(e){toast('خطأ: '+e.message,'error');}
@@ -1756,6 +1890,44 @@ function dlCSV(csv,fn) {
 }
 
 // Expose needed functions globally
+// ══════════════════════════════════════════════
+// IMGBB IMAGE UPLOAD
+// ══════════════════════════════════════════════
+const IMGBB_KEY = 'ebead1c8c951a2d3cfebfe8c9445bf9e';
+
+async function uploadToImgBB(file) {
+  const formData = new FormData();
+  formData.append('image', file);
+  try {
+    const res = await fetch('https://api.imgbb.com/1/upload?key=' + IMGBB_KEY, {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (data.success) return data.data.url;
+    throw new Error(data.error?.message || 'فشل الرفع');
+  } catch(e) {
+    toast('خطأ في رفع الصورة: ' + e.message, 'error');
+    return null;
+  }
+}
+
+window.handleMatImg = async (inp, previewId, urlId) => {
+  if (!inp.files[0]) return;
+  const file = inp.files[0];
+  document.getElementById(previewId).innerHTML = '<div style="font-size:11px;color:var(--e400)"><i class="fas fa-spinner fa-spin"></i> جاري الرفع...</div>';
+  SS('save');
+  const url = await uploadToImgBB(file);
+  SS('on');
+  if (url) {
+    document.getElementById(urlId).value = url;
+    document.getElementById(previewId).innerHTML = '<div class="file-thumb"><img src="' + url + '"></div>';
+    toast('تم رفع الصورة بنجاح', 'success');
+  } else {
+    document.getElementById(previewId).innerHTML = '';
+  }
+};
+
 window.renderProducts  = renderProducts;
 window.renderMaterials = renderMaterials;
 window.renderHistory   = renderHistory;
@@ -1889,56 +2061,52 @@ window.addIngFromSearch = matId => {
 // ══════════════════════════════════════════════
 window.printMatDetail = id => {
   const m = _materials.find(x=>x.id===id); if(!m)return;
+  const allElems = Object.assign({}, ELEMENTS, window._customElements||{});
+  const catLbl = {macro:'عنصر كبرى',micro:'عنصر صغرى',organic:'عضوي',other:'أخرى',custom:'مخصص'};
   const elemRows = (m.elements||[]).map(k=>{
-    const el=ELEMENTS[k];
-    return el?`<tr><td>${el.sym}</td><td>${el.name}</td><td>${{macro:'عنصر كبرى',micro:'عنصر صغرى',organic:'عضوي',benefi:'مفيد'}[el.cat]||''}</td><td>${el.benefits}</td></tr>`:'';
+    const el=allElems[k]; if(!el)return'';
+    const pct = m.elemPcts&&m.elemPcts[k] ? m.elemPcts[k]+'%' : '—';
+    return '<tr><td>'+el.sym+'</td><td>'+el.name+'</td><td>'+pct+'</td><td>'+(catLbl[el.cat]||'')+'</td><td>'+el.benefits+'</td></tr>';
   }).join('');
+  const imgHtml = (m.imageUrl||m.specImageUrl) ?
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">'+
+    (m.imageUrl?'<div><div style="font-size:10px;color:#888;margin-bottom:4px">صورة الخامة</div><img src="'+m.imageUrl+'" style="width:100%;border-radius:6px;border:1px solid #ddd"></div>':'')+
+    (m.specImageUrl?'<div><div style="font-size:10px;color:#888;margin-bottom:4px">صورة المواصفة</div><img src="'+m.specImageUrl+'" style="width:100%;border-radius:6px;border:1px solid #ddd"></div>':'')+
+    '</div>' : '';
   const w = window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>مواصفات ${m.name}</title>
-  <style>body{font-family:Arial,sans-serif;padding:24px;color:#222;direction:rtl}
-  h1{color:#1a4a2e;font-size:22px;margin-bottom:4px}.code{font-family:monospace;color:#666;margin-bottom:16px}
-  table{width:100%;border-collapse:collapse;margin-top:12px}
-  th{background:#e8f5e9;padding:9px 12px;text-align:right;font-size:13px;border:1px solid #ccc}
-  td{padding:9px 12px;border:1px solid #ccc;font-size:13px}
-  .sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-  .si{background:#f5f5f5;padding:10px 12px;border-radius:6px}
-  .sl{font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase}
-  .sv{font-size:14px;font-weight:700;color:#1a4a2e}</style></head><body>
-  <h1>${m.name}</h1><div class="code">كود الخامة: #${m.code||m.id}</div>
-  <div class="sg">
-    <div class="si"><div class="sl">الوحدة</div><div class="sv">${m.unit||'—'}</div></div>
-    <div class="si"><div class="sl">المادة الفعالة</div><div class="sv">${m.activeIngredient?m.activeIngredient+'%':'—'}</div></div>
-    <div class="si"><div class="sl">اللون</div><div class="sv">${m.color||'—'}</div></div>
-    <div class="si"><div class="sl">الرائحة</div><div class="sv">${m.smell||'—'}</div></div>
-    <div class="si"><div class="sl">الكثافة</div><div class="sv">${m.density?m.density+' g/cm³':'—'}</div></div>
-    <div class="si"><div class="sl">pH</div><div class="sv">${m.ph||'—'}</div></div>
-    <div class="si"><div class="sl">الذوبانية</div><div class="sv">${m.solubility?m.solubility+'%':'—'}</div></div>
-    <div class="si"><div class="sl">الاستخدام</div><div class="sv">${m.usage||'—'}</div></div>
-  </div>
-  ${elemRows?`<h3 style="color:#1a4a2e;margin-bottom:8px">العناصر الغذائية</h3>
-  <table><thead><tr><th>الرمز</th><th>الاسم</th><th>النوع</th><th>الفائدة</th></tr></thead><tbody>${elemRows}</tbody></table>`:''}
-  <br><small style="color:#999">طُبع: ${new Date().toLocaleString('ar-EG')} — الساقية للصناعات الزراعية</small>
-  </body></html>`);
+  w.document.write('<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>مواصفات '+m.name+'</title>'+
+  '<style>body{font-family:Arial,sans-serif;padding:24px;color:#222;direction:rtl}'+
+  'h1{color:#1a4a2e;font-size:22px;margin-bottom:4px}.code{font-family:monospace;color:#666;margin-bottom:16px}'+
+  'table{width:100%;border-collapse:collapse;margin-top:12px}'+
+  'th{background:#e8f5e9;padding:9px 12px;text-align:right;font-size:13px;border:1px solid #ccc}'+
+  'td{padding:9px 12px;border:1px solid #ccc;font-size:13px}'+
+  '.sg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}'+
+  '.si{background:#f5f5f5;padding:10px 12px;border-radius:6px}'+
+  '.sl{font-size:10px;color:#888;margin-bottom:3px;text-transform:uppercase}'+
+  '.sv{font-size:14px;font-weight:700;color:#1a4a2e}'+
+  '@media print{img{max-height:200px;object-fit:contain}}</style></head><body>'+
+  '<h1>'+m.name+'</h1><div class="code">كود الخامة: #'+(m.code||m.id)+'</div>'+
+  imgHtml+
+  '<div class="sg">'+
+  '<div class="si"><div class="sl">شكل الخامة</div><div class="sv">'+(m.unit||'—')+'</div></div>'+
+  '<div class="si"><div class="sl">الاسم العلمي</div><div class="sv">'+(m.activeIngredient||'—')+'</div></div>'+
+  '<div class="si"><div class="sl">اللون</div><div class="sv">'+(m.color||'—')+'</div></div>'+
+  '<div class="si"><div class="sl">الرائحة</div><div class="sv">'+(m.smell||'—')+'</div></div>'+
+  '<div class="si"><div class="sl">الكثافة</div><div class="sv">'+(m.density?m.density+' g/cm³':'—')+'</div></div>'+
+  '<div class="si"><div class="sl">pH</div><div class="sv">'+(m.ph||'—')+'</div></div>'+
+  '<div class="si"><div class="sl">الذوبانية</div><div class="sv">'+(m.solubility?m.solubility+'%':'—')+'</div></div>'+
+  '<div class="si"><div class="sl">الرطوبة</div><div class="sv">'+(m.humidity?m.humidity+'%':'—')+'</div></div>'+
+  (m.usage?'<div class="si" style="grid-column:1/-1"><div class="sl">ملاحظات</div><div class="sv">'+m.usage+'</div></div>':'')+
+  '</div>'+
+  (elemRows?'<h3 style="color:#1a4a2e;margin-bottom:8px">العناصر الغذائية ونسبها</h3>'+
+  '<table><thead><tr><th>الرمز</th><th>الاسم</th><th>النسبة %</th><th>النوع</th><th>الفائدة</th></tr></thead><tbody>'+elemRows+'</tbody></table>':'')+
+  '<br><small style="color:#999">طُبع: '+new Date().toLocaleString('ar-EG')+' — الساقية للصناعات الزراعية</small>'+
+  '</body></html>');
   w.document.close();
-  setTimeout(()=>w.print(),500);
+  setTimeout(()=>w.print(),600);
 };
 
-window.exportMatDetail = id => {
-  const m = _materials.find(x=>x.id===id); if(!m)return;
-  const elemNames = (m.elements||[]).map(k=>ELEMENTS[k]?.name||k).join(' | ');
-  const NL = String.fromCharCode(10);
-  let csv = 'البيان,القيمة' + NL;
-  [['الكود',m.code||m.id],['الاسم',m.name],['الوحدة',m.unit||''],
-   ['المادة الفعالة',m.activeIngredient?m.activeIngredient+'%':''],
-   ['اللون',m.color||''],['الرائحة',m.smell||''],['الكثافة',m.density||''],
-   ['pH',m.ph||''],['الذوبانية',m.solubility?m.solubility+'%':''],
-   ['الاستخدام',m.usage||''],['العناصر الغذائية',elemNames]
-  ].forEach(([k,v])=>{ csv+='"'+k+'","'+v+'"'+NL; });
-  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download='خامة_'+m.name+'_'+(m.code||m.id)+'.csv';a.click();
-  toast('تم تصدير مواصفات الخامة','success');
-};
+
 
 </script>
 
@@ -1979,6 +2147,41 @@ window.installPWA = async () => {
       setTimeout(() => t.remove(), 4000);
     }, 1000);
   }
+};
+
+window.exportMatDetail = id => {
+  const m = _materials.find(x=>x.id===id); if(!m)return;
+  const allElems = Object.assign({}, ELEMENTS, window._customElements||{});
+  const NL = String.fromCharCode(10);
+  let csv = 'البيان,القيمة' + NL;
+  const rows = [
+    ['الكود', m.code||m.id],
+    ['الاسم', m.name],
+    ['شكل الخامة', m.unit||''],
+    ['الاسم العلمي / المادة الفعالة', m.activeIngredient||''],
+    ['اللون', m.color||''],
+    ['الرائحة', m.smell||''],
+    ['الكثافة', m.density ? m.density+' g/cm³' : ''],
+    ['pH', m.ph||''],
+    ['الذوبانية', m.solubility ? m.solubility+'%' : ''],
+    ['الرطوبة', m.humidity ? m.humidity+'%' : ''],
+    ['ملاحظات', m.usage||''],
+  ];
+  rows.forEach(([k,v])=>{ csv+='"'+k+'","'+v+'"'+NL; });
+  if((m.elements||[]).length){
+    csv += NL + '"العنصر","الرمز","النسبة %"' + NL;
+    (m.elements||[]).forEach(k=>{
+      const el = allElems[k]; if(!el)return;
+      const pct = m.elemPcts&&m.elemPcts[k] ? m.elemPcts[k] : '';
+      csv += '"'+el.name+'","'+el.sym+'","'+pct+'"'+NL;
+    });
+  }
+  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'خامة_'+m.name+'_'+(m.code||m.id)+'.csv';
+  a.click();
+  toast('تم تصدير مواصفات الخامة','success');
 };
 </script>
 </body>
