@@ -2768,9 +2768,6 @@ window.queueOfflineOp = (fn, label = 'عملية') => {
   toast('تم حفظ "' + label + '" مؤقتاً — سيُنفَّذ عند الاتصال', 'info');
 };
 
-window.addEventListener('online',  _updateOnlineUI);
-window.addEventListener('offline', _updateOnlineUI);
-
 
 </script>
 
@@ -2895,24 +2892,32 @@ window.installPWA = async () => {
 };
 
 // ══════════════════════════════════════════════
-// OFFLINE MODE DETECTION
+// OFFLINE MODE DETECTION + BANNER
 // ══════════════════════════════════════════════
 function updateOnlineStatus() {
-  const banner = document.getElementById('offline-banner');
+  _isOnline = navigator.onLine;
+  const banner  = document.getElementById('offline-banner');
   const syncBar = document.getElementById('sync-bar');
-  if (!navigator.onLine) {
+  const syncTxt = document.getElementById('sync-txt');
+  if (!_isOnline) {
     banner?.classList.add('show');
-    if (syncBar) { syncBar.className = 's-off'; document.getElementById('sync-txt').textContent = 'غير متصل — وضع أوفلاين'; }
+    if (syncBar) syncBar.className = 's-off';
+    if (syncTxt) syncTxt.textContent = '⚠️ وضع Offline — لا يوجد اتصال';
   } else {
     banner?.classList.remove('show');
-    if (syncBar && syncBar.className === 's-off') {
-      syncBar.className = 's-on'; document.getElementById('sync-txt').textContent = 'متصل بـ Firebase';
+    if (CU && syncBar) syncBar.className = 's-on';
+    if (CU && syncTxt) syncTxt.textContent = 'متصل بـ Firebase';
+    if (_offlineQueue.length) {
+      toast('تم استعادة الاتصال — تنفيذ ' + _offlineQueue.length + ' عملية...', 'info');
+      _flushOfflineQueue();
+    } else {
+      toast('تم استعادة الاتصال ✅', 'success');
     }
   }
 }
-window.addEventListener('online',  () => { updateOnlineStatus(); toast('تم استعادة الاتصال بالإنترنت ✅','success'); });
-window.addEventListener('offline', () => { updateOnlineStatus(); toast('انقطع الاتصال — وضع أوفلاين 📶','info'); });
-updateOnlineStatus(); // initial check
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', () => { updateOnlineStatus(); toast('انقطع الاتصال — وضع أوفلاين 📶', 'info'); });
+updateOnlineStatus();
 
 // ══════════════════════════════════════════════
 // REAL-TIME PRESENCE ENHANCEMENT
