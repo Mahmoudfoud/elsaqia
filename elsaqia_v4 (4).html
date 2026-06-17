@@ -1802,6 +1802,7 @@ window.renderCompare = () => {
     + (onlyB.length ? '<div><div style="font-size:10px;font-weight:700;color:#16a34a;margin-bottom:5px">فقط في ' + b.name + ' (' + onlyB.length + ')</div>' + onlyBPills + '</div>' : '')
     + (!elemsA.size && !elemsB.size ? '<p style="font-size:12px;color:var(--e400)">لا توجد عناصر غذائية محددة في المنتجين</p>' : '')
     + '</div></div>';
+};
 
 window.exportProducts = () => {
   if(!hasPerm('export_products')){toast('ليس لديك صلاحية تصدير المنتجات','error');return;}
@@ -2933,34 +2934,6 @@ window.installPWA = async () => {
     }, 1000);
   }
 };
-
-// ══════════════════════════════════════════════
-// OFFLINE MODE DETECTION + BANNER
-// ══════════════════════════════════════════════
-function updateOnlineStatus() {
-  _isOnline = navigator.onLine;
-  const banner  = document.getElementById('offline-banner');
-  const syncBar = document.getElementById('sync-bar');
-  const syncTxt = document.getElementById('sync-txt');
-  if (!_isOnline) {
-    banner?.classList.add('show');
-    if (syncBar) syncBar.className = 's-off';
-    if (syncTxt) syncTxt.textContent = '⚠️ وضع Offline — لا يوجد اتصال';
-  } else {
-    banner?.classList.remove('show');
-    if (CU && syncBar) syncBar.className = 's-on';
-    if (CU && syncTxt) syncTxt.textContent = 'متصل بـ Firebase';
-    if (_offlineQueue.length) {
-      toast('تم استعادة الاتصال — تنفيذ ' + _offlineQueue.length + ' عملية...', 'info');
-      _flushOfflineQueue();
-    } else {
-      toast('تم استعادة الاتصال ✅', 'success');
-    }
-  }
-}
-window.addEventListener('online',  updateOnlineStatus);
-window.addEventListener('offline', () => { updateOnlineStatus(); toast('انقطع الاتصال — وضع أوفلاين 📶', 'info'); });
-updateOnlineStatus();
 
 
 window.exportMatDetail = id => {
