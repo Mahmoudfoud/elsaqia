@@ -356,115 +356,11 @@ textarea.fc{resize:vertical;min-height:68px}
 
 @media(max-width:900px){:root{--sidebar:200px}.dash2col,.c3,.c4{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.auth-card{grid-template-columns:1fr}.auth-brand{display:none}:root{--sidebar:0px}.sidebar{display:none}.page{padding:14px}}
-
-/* ── GLOBAL SEARCH ── */
-#gs-overlay{position:fixed;inset:0;background:rgba(10,20,12,.6);z-index:8000;display:flex;align-items:flex-start;justify-content:center;padding-top:80px;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(6px)}
-#gs-overlay.open{opacity:1;pointer-events:all}
-#gs-box{background:var(--surface);border-radius:16px;width:min(620px,95%);max-height:70vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.3);border:1px solid var(--border);transform:scale(.95) translateY(-10px);transition:transform .2s}
-#gs-overlay.open #gs-box{transform:scale(1) translateY(0)}
-#gs-inp-wrap{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
-#gs-inp-wrap i{font-size:16px;color:var(--e400)}
-#gs-inp{flex:1;border:none;background:transparent;font-family:'Cairo',sans-serif;font-size:15px;color:var(--e800);outline:none}
-#gs-inp::placeholder{color:var(--e400)}
-#gs-shortcut{font-size:11px;color:var(--e400);background:var(--bg);border:1px solid var(--border);border-radius:5px;padding:2px 7px;white-space:nowrap}
-#gs-results{overflow-y:auto;max-height:calc(70vh - 60px);padding:8px}
-.gs-section{margin-bottom:10px}
-.gs-section-lbl{font-size:10px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:1px;padding:6px 10px}
-.gs-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:background .12s}
-.gs-item:hover,.gs-item.gs-active{background:var(--g50)}
-.gs-item-ic{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
-.gs-item-name{font-size:13px;font-weight:700;color:var(--g900)}
-.gs-item-sub{font-size:11px;color:var(--e400)}
-.gs-item-badge{margin-right:auto}
-.gs-empty{text-align:center;padding:30px;color:var(--e400);font-size:13px}
-#gs-kbd-hint{padding:8px 16px;border-top:1px solid var(--border);background:#fafcf9;display:flex;gap:14px;font-size:11px;color:var(--e400)}
-.gs-kbd{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-family:monospace;font-size:11px}
-
-/* ── UNDO TOAST ── */
-.t-undo{background:linear-gradient(135deg,#374151,#6b7280)}
-
-/* ── SHORTCUT HINT in header ── */
-#gs-header-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:var(--rs);padding:5px 10px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
-#gs-header-btn:hover{background:rgba(255,255,255,.18);color:#fff}
-
-/* ── COMPARE MODAL ── */
-.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
-.cmp-col{padding:14px}
-.cmp-col:first-child{border-left:1px solid var(--border);background:#fafcf9}
-.cmp-col-head{font-size:14px;font-weight:900;color:var(--g900);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--g200);display:flex;align-items:center;gap:7px}
-.cmp-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid #f0f5f0;font-size:12px}
-.cmp-row:last-child{border-bottom:none}
-.cmp-lbl{color:var(--e400);font-weight:600}
-.cmp-val{font-weight:700;color:var(--g900)}
-.cmp-diff-a{color:#dc2626;font-weight:700}
-.cmp-diff-b{color:#16a34a;font-weight:700}
-.cmp-same{color:var(--e400)}
-.cmp-elem-pill{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;margin:2px}
-.cmp-only-a{background:#fee2e2;color:#dc2626}
-.cmp-only-b{background:#dcfce7;color:#16a34a}
-.cmp-shared{background:var(--g100);color:var(--g700)}
-.cmp-section{margin-top:12px}
-.cmp-section-lbl{font-size:10px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
-
-/* ── VERSION HISTORY ── */
-.ver-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #edf3ee;align-items:flex-start;cursor:pointer;transition:background .12s}
-.ver-item:hover{background:#f8fcf8}
-.ver-item:last-child{border-bottom:none}
-.ver-num{width:28px;height:28px;border-radius:50%;background:var(--g100);color:var(--g700);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
-.ver-body{flex:1}
-.ver-txt{font-size:12px;color:var(--e700);font-weight:600}
-.ver-meta{font-size:10px;color:var(--e400);margin-top:2px;display:flex;gap:10px}
-.ver-restore{font-size:11px;color:var(--g600);font-weight:700;cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid var(--g300);background:#fff;transition:all .12s}
-.ver-restore:hover{background:var(--g100)}
-
-/* ── OFFLINE BANNER ── */
-#offline-banner{position:fixed;bottom:0;left:0;right:0;background:#1f2937;color:#f9fafb;text-align:center;padding:9px 16px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;z-index:9999;display:none;align-items:center;justify-content:center;gap:10px;border-top:2px solid #f59e0b}
-#offline-banner.show{display:flex}
-#offline-banner i{color:#f59e0b}
-#offline-banner .ob-retry{background:#f59e0b;color:#1f2937;border:none;border-radius:6px;padding:3px 12px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s}
-#offline-banner .ob-retry:hover{opacity:.85}
-
-/* ── PRESENCE DOTS in sidebar ── */
-.presence-row{display:flex;align-items:center;gap:5px;padding:3px 0;font-size:11px;color:var(--e700)}
-.presence-dot{width:7px;height:7px;border-radius:50%;background:#22c55e;flex-shrink:0;animation:pulse-green 2s infinite}
-@keyframes pulse-green{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* ── API LAYER STATUS ── */
-#api-status-bar{background:#0f172a;color:#94a3b8;font-size:11px;padding:5px 14px;display:flex;align-items:center;gap:8px;font-family:monospace;border-top:1px solid #1e293b}
-.api-method{padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700}
-.api-get{background:#0284c7;color:#fff}
-.api-post{background:#16a34a;color:#fff}
-.api-put{background:#d97706;color:#fff}
-.api-del{background:#dc2626;color:#fff}
 </style>
 </head>
 <body>
 <div id="toasts"></div>
 <div id="sync-bar" class="s-off"><div class="sync-led"></div><span id="sync-txt">جاري الاتصال...</span></div>
-
-<!-- OFFLINE BANNER -->
-<div id="offline-banner">
-  <i class="fas fa-wifi-slash"></i>
-  <span>أنت غير متصل بالإنترنت — البيانات المحفوظة متاحة للعرض</span>
-  <button class="ob-retry" onclick="window.location.reload()"><i class="fas fa-redo" style="margin-left:4px"></i>إعادة الاتصال</button>
-</div>
-
-<!-- GLOBAL SEARCH OVERLAY -->
-<div id="gs-overlay">
-  <div id="gs-box">
-    <div id="gs-inp-wrap">
-      <i class="fas fa-search"></i>
-      <input id="gs-inp" type="text" placeholder="ابحث في المنتجات والخامات والسجل..." autocomplete="off" oninput="gsSearch(this.value)" onkeydown="gsKey(event)">
-      <span id="gs-shortcut"><span class="gs-kbd">Ctrl+F</span></span>
-    </div>
-    <div id="gs-results"><div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div></div>
-    <div id="gs-kbd-hint">
-      <span><span class="gs-kbd">&#x2191;&#x2193;</span> تنقل</span>
-      <span><span class="gs-kbd">Enter</span> فتح</span>
-      <span><span class="gs-kbd">Esc</span> إغلاق</span>
-    </div>
-  </div>
-</div>
 
 <!-- AUTH -->
 <div id="auth-screen">
@@ -505,11 +401,6 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="sb-user">
         <div class="sb-av" id="sb-av">A</div>
         <div><div class="sb-av-name" id="sb-name">—</div><div class="sb-av-role"><span class="online-dot"></span><span id="sb-role">—</span></div></div>
-      </div>
-      <div style="margin-top:10px">
-        <button id="gs-header-btn" onclick="openGS()" title="بحث عام (Ctrl+F)">
-          <i class="fas fa-search"></i> بحث سريع <span style="font-size:10px;opacity:.6">Ctrl+F</span>
-        </button>
       </div>
     </div>
     <nav class="sb-nav">
@@ -573,7 +464,6 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">🧪 المنتجات</div><div class="ph-sub">إدارة تركيبات المنتجات الزراعية</div></div>
         <div class="ph-acts">
-          <button class="btn btn-ghost btn-sm" onclick="openCompare()"><i class="fas fa-balance-scale"></i>مقارنة</button>
           <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_products" onclick="exportProducts()"><i class="fas fa-file-excel"></i>Excel</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_products" onclick="openPModal()"><i class="fas fa-plus"></i>منتج جديد</button>
         </div>
@@ -686,36 +576,6 @@ textarea.fc{resize:vertical;min-height:68px}
   <div class="modal lg"><div class="mh"><span class="mh-title">تفاصيل المنتج</span><button class="mclose" onclick="closeM('mo-pdetail')">×</button></div><div class="mb" id="pd-body"></div><div class="mf" id="pd-foot"></div></div>
 </div>
 
-<!-- Compare Modal -->
-<div class="overlay" id="mo-compare">
-  <div class="modal xl">
-    <div class="mh"><span class="mh-title" id="cmp-title">🔀 مقارنة المنتجات</span><button class="mclose" onclick="closeM('mo-compare')">×</button></div>
-    <div class="mb">
-      <div class="frow c2" style="margin-bottom:16px">
-        <div class="fg">
-          <label class="fl">المنتج الأول</label>
-          <select class="fc" id="cmp-a" onchange="renderCompare()"><option value="">— اختر —</option></select>
-        </div>
-        <div class="fg">
-          <label class="fl">المنتج الثاني</label>
-          <select class="fc" id="cmp-b" onchange="renderCompare()"><option value="">— اختر —</option></select>
-        </div>
-      </div>
-      <div id="cmp-body"></div>
-    </div>
-    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-compare')">إغلاق</button></div>
-  </div>
-</div>
-
-<!-- Version History Modal -->
-<div class="overlay" id="mo-versions">
-  <div class="modal lg">
-    <div class="mh"><span class="mh-title" id="ver-title">📜 سجل التعديلات</span><button class="mclose" onclick="closeM('mo-versions')">×</button></div>
-    <div class="mb" id="ver-body" style="padding:0"></div>
-    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-versions')">إغلاق</button></div>
-  </div>
-</div>
-
 <!-- Material Add/Edit -->
 <div class="overlay" id="mo-mat">
   <div class="modal">
@@ -820,7 +680,7 @@ textarea.fc{resize:vertical;min-height:68px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ══════════════════════════════════════════════
 // FIREBASE CONFIG
@@ -950,7 +810,6 @@ onAuthStateChanged(auth, async user => {
     setupUI();
     startListeners();
     goPage('dashboard');
-    startPresenceHeartbeat();
   } else {
     CU = null;
     _unsubs.forEach(u=>u()); _unsubs=[];
@@ -1229,13 +1088,14 @@ function renderDashStats() {
   const el = document.getElementById('dash-stats');
   if (!el) return;
   const onl = Object.values(_presence).filter(p=>p.status==='online'&&(Date.now()-p.lastSeen)<120000).length;
+  // Count unique elements across all products
   const allProdElems = new Set(_products.flatMap(p=>[...(p.elements||[]),...(p.ingredients||[]).flatMap(ing=>{const m=_materials.find(x=>x.id===ing.matId);return m?.elements||[];})]));
   el.innerHTML = [
-    {ic:'🧪',lbl:'المنتجات',     val:_products.length, bg:'#e8f7ec',c:'var(--g700)'},
-    {ic:'📦',lbl:'الخامات',      val:_materials.length,bg:'#fef8e8',c:'var(--gold)'},
-    {ic:'📋',lbl:'الطلبات',      val:_history.length,  bg:'#f3f0fb',c:'#7c3aed'},
+    {ic:'🧪',lbl:'المنتجات',    val:_products.length, bg:'#e8f7ec',c:'var(--g700)'},
+    {ic:'📦',lbl:'الخامات',     val:_materials.length,bg:'#fef8e8',c:'var(--gold)'},
+    {ic:'📋',lbl:'الطلبات',     val:_history.length,  bg:'#f3f0fb',c:'#7c3aed'},
     {ic:'🔬',lbl:'عناصر مستخدمة',val:allProdElems.size,bg:'#e0f2fe',c:'#0891b2'},
-    {ic:'👥',lbl:'متصل الآن',    val:onl,              bg:'#f0fdf4',c:'#15803d'},
+    {ic:'👥',lbl:'المستخدمين',   val:_users.length,    bg:'#f0fdf4',c:'#15803d'},
   ].map(s=>`<div class="stat-card"><div class="stat-ic" style="background:${s.bg};font-size:20px">${s.ic}</div><div><div class="stat-val" style="color:${s.c}">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div></div>`).join('');
 }
 
@@ -1245,120 +1105,6 @@ function renderDash() {
   document.getElementById('dash-greet').textContent=`${h<12?'☀️ صباح الخير':h<18?'🌤 مساء الخير':'🌙 مساء الخير'}، ${CU.displayName||CU.email}!`;
   document.getElementById('dash-date').textContent=new Date().toLocaleDateString('ar-EG',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   renderDashStats();
-  renderDashSmartSection();
-}
-
-// ══════════════════════════════════════════════
-// DASHBOARD SMART SECTION — Top 5 + Chart + Presence
-// ══════════════════════════════════════════════
-function renderDashSmartSection() {
-  const el = document.getElementById('dash-products-features');
-  if (!el) return;
-
-  // ── 1. Top 5 most used products ──
-  const usageMap = {};
-  _history.forEach(h => {
-    if (!h.productId) return;
-    usageMap[h.productId] = (usageMap[h.productId]||0) + 1;
-  });
-  const top5 = Object.entries(usageMap)
-    .sort((a,b)=>b[1]-a[1]).slice(0,5)
-    .map(([pid,cnt]) => {
-      const p = _products.find(x=>x.id===pid);
-      return p ? {p,cnt} : null;
-    }).filter(Boolean);
-
-  const topHtml = top5.length ? top5.map((item,i) => {
-    const maxCnt = top5[0].cnt;
-    const barW = Math.round((item.cnt/maxCnt)*100);
-    const medals = ['🥇','🥈','🥉','4️⃣','5️⃣'];
-    return `<div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f0f5f0;cursor:pointer" onclick="showPDetail('${item.p.id}')">
-      <span style="font-size:16px;width:22px;text-align:center">${medals[i]}</span>
-      <div style="flex:1">
-        <div style="font-size:12px;font-weight:700;color:var(--g900)">${item.p.name}</div>
-        <div style="height:5px;background:#e8f3ec;border-radius:3px;margin-top:4px">
-          <div style="height:5px;background:var(--g500);border-radius:3px;width:${barW}%;transition:width .5s"></div>
-        </div>
-      </div>
-      <span style="font-size:11px;font-weight:700;color:var(--g600);min-width:32px;text-align:center">${item.cnt}</span>
-    </div>`;
-  }).join('') : `<div style="font-size:12px;color:var(--e400);text-align:center;padding:16px 0">لا يوجد سجل طلبات بعد</div>`;
-
-  // ── 2. Activity bar chart — last 7 days (CSS only) ──
-  const today = new Date(); today.setHours(0,0,0,0);
-  const days = Array.from({length:7},(_,i)=>{
-    const d = new Date(today); d.setDate(d.getDate()-6+i);
-    return {
-      label: d.toLocaleDateString('ar-EG',{weekday:'short'}),
-      dateStr: d.toISOString().slice(0,10),
-      count: 0
-    };
-  });
-  _history.forEach(h=>{
-    if(!h.ts) return;
-    const ds = new Date(h.ts).toISOString().slice(0,10);
-    const day = days.find(d=>d.dateStr===ds);
-    if (day) day.count++;
-  });
-  const maxDay = Math.max(...days.map(d=>d.count), 1);
-  const chartBars = days.map(d=>{
-    const pct = Math.round((d.count/maxDay)*100);
-    const isToday = d.dateStr===today.toISOString().slice(0,10);
-    return `<div style="display:flex;flex-direction:column;align-items:center;gap:4px;flex:1">
-      <span style="font-size:9px;color:var(--e400);font-weight:700">${d.count||''}</span>
-      <div style="flex:1;width:100%;display:flex;align-items:flex-end;min-height:60px">
-        <div style="width:100%;height:${Math.max(pct,4)}%;background:${isToday?'var(--g500)':'var(--g200)'};border-radius:4px 4px 0 0;transition:height .4s;min-height:4px;position:relative">
-          ${isToday?'<div style="position:absolute;top:-14px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-radius:50%;background:var(--g500)"></div>':''}
-        </div>
-      </div>
-      <span style="font-size:9px;color:${isToday?'var(--g700)':'var(--e400)'};font-weight:${isToday?'700':'400'}">${d.label}</span>
-    </div>`;
-  }).join('');
-
-  // ── 3. Online users presence ──
-  const onlineUsers = Object.values(_presence)
-    .filter(p=>p.status==='online'&&(Date.now()-p.lastSeen)<120000);
-  const onlineHtml = onlineUsers.length ? onlineUsers.map(p=>{
-    const u = _users.find(x=>x.id===p.uid);
-    const name = u?.displayName || u?.email || 'مستخدم';
-    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 0">
-      <div style="width:28px;height:28px;border-radius:50%;background:var(--g100);color:var(--g700);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:12px">${name[0].toUpperCase()}</div>
-      <div>
-        <div style="font-size:12px;font-weight:700;color:var(--g900)">${name}</div>
-        <div style="font-size:10px;color:var(--g500)"><span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#22c55e;margin-left:4px;vertical-align:middle"></span>متصل الآن</div>
-      </div>
-    </div>`;
-  }).join('') : `<div style="font-size:12px;color:var(--e400);text-align:center;padding:10px 0">لا يوجد مستخدمون متصلون</div>`;
-
-  el.innerHTML = `
-  <div style="display:grid;grid-template-columns:1fr 1fr 280px;gap:16px;margin-bottom:20px">
-
-    <!-- Top 5 products -->
-    <div class="card">
-      <div class="card-head"><span class="card-title"><i class="fas fa-trophy" style="color:#f59e0b;margin-left:6px"></i>أكثر 5 منتجات طلباً</span>
-        <button class="btn btn-ghost btn-xs" onclick="goPage('history')"><i class="fas fa-arrow-left"></i>السجل</button>
-      </div>
-      <div class="card-body" style="padding:6px 18px">${topHtml}</div>
-    </div>
-
-    <!-- Activity chart -->
-    <div class="card">
-      <div class="card-head"><span class="card-title"><i class="fas fa-chart-bar" style="color:var(--g500);margin-left:6px"></i>نشاط آخر 7 أيام</span></div>
-      <div class="card-body" style="padding:10px 18px 6px">
-        <div style="display:flex;gap:4px;align-items:flex-end;height:90px">${chartBars}</div>
-        <div style="font-size:10px;color:var(--e400);text-align:center;margin-top:8px">عدد الطلبات يومياً</div>
-      </div>
-    </div>
-
-    <!-- Online users -->
-    <div class="card">
-      <div class="card-head"><span class="card-title"><i class="fas fa-circle" style="color:#22c55e;font-size:8px;margin-left:6px"></i>المتصلون الآن</span></div>
-      <div class="card-body" style="padding:6px 18px">${onlineHtml}</div>
-    </div>
-
-  </div>`;
-
-  // append product features below
   renderDashProducts();
 }
 
@@ -1458,7 +1204,6 @@ function renderProducts() {
         <div class="pcard-acts">
           <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();showPDetail('${p.id}')"><i class="fas fa-eye"></i></button>
           ${cE?`<button class="btn btn-gold btn-xs" onclick="event.stopPropagation();openPModal('${p.id}')"><i class="fas fa-edit"></i></button>`:''}
-          ${cE?`<button class="btn btn-ghost btn-xs" title="نسخ المنتج" onclick="event.stopPropagation();duplicateProd('${p.id}')"><i class="fas fa-copy"></i></button>`:''}
           ${cD?`<button class="btn btn-red btn-xs" onclick="event.stopPropagation();confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')"><i class="fas fa-trash"></i></button>`:''}
         </div>
       </div>
@@ -1497,8 +1242,6 @@ window.showPDetail = id => {
   document.getElementById('pd-foot').innerHTML=`
     ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProduct('${p.id}')"><i class="fas fa-print"></i>طباعة</button>`:''}
     ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-excel"></i>Excel</button>`:''}
-    <button class="btn btn-ghost" onclick="showVersions('${p.id}')"><i class="fas fa-history"></i>السجل</button>
-    ${cE?`<button class="btn btn-ghost" onclick="duplicateProd('${p.id}')"><i class="fas fa-copy"></i>نسخ</button>`:''}
     ${cE?`<button class="btn btn-gold" onclick="closeM('mo-pdetail');openPModal('${p.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
     ${cD?`<button class="btn btn-red" onclick="closeM('mo-pdetail');confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')"><i class="fas fa-trash"></i>حذف</button>`:''}
     <button class="btn btn-ghost" onclick="closeM('mo-pdetail')">إغلاق</button>`;
@@ -1592,16 +1335,6 @@ window.saveProd = async () => {
   SS('save');
   try {
     if (_editPid) {
-      // حفظ نسخة قديمة في versions قبل التعديل
-      const oldSnap = _products.find(x=>x.id===_editPid);
-      if (oldSnap) {
-        await addDoc(collection(db,'products',_editPid,'versions'), {
-          ...oldSnap,
-          savedAt: Date.now(),
-          savedBy: CU.displayName||CU.email,
-          versionNote: 'قبل تعديل ' + new Date().toLocaleString('ar-EG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
-        });
-      }
       await updateDoc(doc(db,'products',_editPid),data);
       await audit('edit',`عدّل ${CU.displayName||CU.email} المنتج: ${name}`);
       toast('تم تعديل المنتج','success');
@@ -1613,195 +1346,6 @@ window.saveProd = async () => {
   } catch(e){toast('خطأ: '+e.message,'error');}
   window._prodImgUrl=null; window._prodShapeUrl=null;
   SS('on'); closeM('mo-prod');
-};
-
-// ══════════════════════════════════════════════
-// DUPLICATE PRODUCT
-// ══════════════════════════════════════════════
-window.duplicateProd = async id => {
-  if (!hasPerm('add_products')) { toast('ليس لديك صلاحية إضافة منتجات','error'); return; }
-  const p = _products.find(x=>x.id===id);
-  if (!p) return;
-  SS('save');
-  try {
-    const newCode = await nextCode('products');
-    const newData = {
-      name: 'نسخة من ' + p.name,
-      type: p.type||'سماد',
-      baseQty: p.baseQty||1000,
-      unit: p.unit||'لتر',
-      ph: p.ph||'',
-      density: p.density||'',
-      solubility: p.solubility||'',
-      recommendations: p.recommendations||'',
-      elements: p.elements||[],
-      ingredients: p.ingredients||[],
-      imageUrl: p.imageUrl||'',
-      shapeImageUrl: p.shapeImageUrl||'',
-      code: newCode,
-      createdAt: Date.now(),
-      createdBy: CU.email,
-      updatedAt: Date.now(),
-      updatedBy: CU.email,
-      duplicatedFrom: id
-    };
-    const newRef = await addDoc(collection(db,'products'), newData);
-    await audit('add', 'نسخ ' + (CU.displayName||CU.email) + ' المنتج: ' + p.name + ' => نسخة من ' + p.name);
-    SS('on');
-    toast('تم نسخ المنتج — يمكنك تعديله الآن','success');
-    // Open edit modal for new copy after short delay for data to arrive
-    setTimeout(() => {
-      closeM('mo-pdetail');
-      openPModal(newRef.id);
-    }, 600);
-  } catch(e) { SS('on'); toast('خطأ: '+e.message,'error'); }
-};
-
-// ══════════════════════════════════════════════
-// VERSION HISTORY
-// ══════════════════════════════════════════════
-window.showVersions = async id => {
-  const p = _products.find(x=>x.id===id);
-  if (!p) return;
-  document.getElementById('ver-title').textContent = 'سجل تعديلات: ' + p.name;
-  document.getElementById('ver-body').innerHTML = '<div style="padding:20px;text-align:center"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:var(--g500)"></i></div>';
-  openM('mo-versions');
-  try {
-    const snap = await getDocs(query(collection(db,'products',id,'versions'), orderBy('savedAt','desc')));
-    const versions = snap.docs.map((d,i)=>({id:d.id,...d.data(),num:snap.docs.length-i}));
-    if (!versions.length) {
-      document.getElementById('ver-body').innerHTML = '<div class="empty"><i class="fas fa-history"></i><p>لا توجد نسخ محفوظة بعد<br><small>ستُحفظ نسخة تلقائياً في كل تعديل</small></p></div>';
-      return;
-    }
-    document.getElementById('ver-body').innerHTML = versions.map(v => {
-      const ingCount = (v.ingredients||[]).length;
-      const elemCount = (v.elements||[]).length;
-      return '<div class="ver-item">'
-        + '<div class="ver-num">v' + v.num + '</div>'
-        + '<div class="ver-body">'
-        + '<div class="ver-txt">' + (v.versionNote||'نسخة محفوظة') + '</div>'
-        + '<div class="ver-meta">'
-        + '<span><i class="fas fa-user" style="margin-left:3px"></i>' + (v.savedBy||'—') + '</span>'
-        + '<span><i class="fas fa-clock" style="margin-left:3px"></i>' + fmtDate(v.savedAt) + '</span>'
-        + '<span>' + ingCount + ' خامة — ' + elemCount + ' عنصر</span>'
-        + '</div></div>'
-        + '<button class="ver-restore" onclick="restoreVersion(\'' + id + '\',\'' + v.id + '\')" title="استعادة هذه النسخة"><i class="fas fa-undo" style="margin-left:4px"></i>استعادة</button>'
-        + '</div>';
-    }).join('');
-  } catch(e) {
-    document.getElementById('ver-body').innerHTML = '<div class="empty"><p>خطأ في تحميل السجل: ' + e.message + '</p></div>';
-  }
-};
-
-window.restoreVersion = async (prodId, verId) => {
-  const p = _products.find(x=>x.id===prodId); if (!p) return;
-  if (!hasPerm('edit_products')) { toast('ليس لديك صلاحية التعديل','error'); return; }
-  SS('save');
-  try {
-    const verSnap = await getDoc(doc(db,'products',prodId,'versions',verId));
-    if (!verSnap.exists()) { toast('النسخة غير موجودة','error'); SS('on'); return; }
-    const vData = verSnap.data();
-    // Save current as version before restoring
-    await addDoc(collection(db,'products',prodId,'versions'), {
-      ...p, savedAt:Date.now(), savedBy:CU.displayName||CU.email,
-      versionNote: 'نسخة احتياطية قبل الاستعادة ' + new Date().toLocaleString('ar-EG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
-    });
-    const restoreData = {
-      name:vData.name, type:vData.type, baseQty:vData.baseQty, unit:vData.unit,
-      ph:vData.ph, density:vData.density, solubility:vData.solubility,
-      recommendations:vData.recommendations, elements:vData.elements||[],
-      ingredients:vData.ingredients||[], imageUrl:vData.imageUrl||'',
-      shapeImageUrl:vData.shapeImageUrl||'',
-      updatedAt:Date.now(), updatedBy:CU.email
-    };
-    await updateDoc(doc(db,'products',prodId), restoreData);
-    await audit('edit', 'استعاد ' + (CU.displayName||CU.email) + ' نسخة قديمة من المنتج: ' + p.name);
-    SS('on');
-    toast('تم استعادة النسخة بنجاح','success');
-    closeM('mo-versions');
-  } catch(e) { SS('on'); toast('خطأ: '+e.message,'error'); }
-};
-
-// ══════════════════════════════════════════════
-// COMPARE PRODUCTS
-// ══════════════════════════════════════════════
-window.openCompare = (preselect=null) => {
-  const selA = document.getElementById('cmp-a');
-  const selB = document.getElementById('cmp-b');
-  const opts = _products.map(p => '<option value="' + p.id + '">' + p.name + ' (#' + (p.code||p.id) + ')</option>').join('');
-  selA.innerHTML = '<option value="">— اختر المنتج الأول —</option>' + opts;
-  selB.innerHTML = '<option value="">— اختر المنتج الثاني —</option>' + opts;
-  if (preselect) selA.value = preselect;
-  document.getElementById('cmp-body').innerHTML = '<div class="empty"><i class="fas fa-balance-scale"></i><p>اختر منتجين للمقارنة</p></div>';
-  openM('mo-compare');
-};
-
-window.renderCompare = () => {
-  const idA = document.getElementById('cmp-a').value;
-  const idB = document.getElementById('cmp-b').value;
-  if (!idA || !idB) { document.getElementById('cmp-body').innerHTML = '<div class="empty"><i class="fas fa-balance-scale"></i><p>اختر منتجين للمقارنة</p></div>'; return; }
-  if (idA === idB) { document.getElementById('cmp-body').innerHTML = '<div class="empty"><p>اختر منتجين مختلفين</p></div>'; return; }
-  const a = _products.find(x=>x.id===idA);
-  const b = _products.find(x=>x.id===idB);
-  if (!a||!b) return;
-
-  const anaA = analyzeProduct(a);
-  const anaB = analyzeProduct(b);
-  const elemsA = new Set(anaA ? anaA.found : (a.elements||[]));
-  const elemsB = new Set(anaB ? anaB.found : (b.elements||[]));
-  const shared = [...elemsA].filter(k=>elemsB.has(k));
-  const onlyA  = [...elemsA].filter(k=>!elemsB.has(k));
-  const onlyB  = [...elemsB].filter(k=>!elemsA.has(k));
-
-  const field = (lbl, va, vb) => {
-    const diff = va !== vb;
-    return '<div class="cmp-row"><span class="cmp-lbl">' + lbl + '</span>'
-      + '<span style="display:flex;gap:20px">'
-      + '<span class="' + (diff?'cmp-diff-a':'cmp-same') + '">' + (va||'—') + '</span>'
-      + '<span class="' + (diff?'cmp-diff-b':'cmp-same') + '">' + (vb||'—') + '</span>'
-      + '</span></div>';
-  };
-
-  const ingCountA = (a.ingredients||[]).length;
-  const ingCountB = (b.ingredients||[]).length;
-
-  // Elements pills
-  const sharedPills = shared.map(k => '<span class="cmp-elem-pill cmp-shared">' + (ELEMENTS[k]?ELEMENTS[k].sym:k) + '</span>').join('');
-  const onlyAPills  = onlyA.map(k  => '<span class="cmp-elem-pill cmp-only-a">' + (ELEMENTS[k]?ELEMENTS[k].sym:k) + '</span>').join('');
-  const onlyBPills  = onlyB.map(k  => '<span class="cmp-elem-pill cmp-only-b">' + (ELEMENTS[k]?ELEMENTS[k].sym:k) + '</span>').join('');
-
-  document.getElementById('cmp-title').textContent = 'مقارنة: ' + a.name + ' vs ' + b.name;
-  document.getElementById('cmp-body').innerHTML =
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-    + '<div style="display:flex;gap:14px;font-size:12px">'
-    + '<span style="display:flex;align-items:center;gap:5px"><span class="cmp-elem-pill cmp-only-a" style="margin:0">●</span> فقط في ' + a.name + '</span>'
-    + '<span style="display:flex;align-items:center;gap:5px"><span class="cmp-elem-pill cmp-only-b" style="margin:0">●</span> فقط في ' + b.name + '</span>'
-    + '<span style="display:flex;align-items:center;gap:5px"><span class="cmp-elem-pill cmp-shared" style="margin:0">●</span> مشترك</span>'
-    + '</div></div>'
-    + '<div class="cmp-grid">'
-    + '<div class="cmp-col"><div class="cmp-col-head">🧪 ' + a.name + ' <span style="font-family:monospace;font-size:10px;color:var(--e400)">#' + (a.code||a.id) + '</span></div>'
-    + field('النوع', a.type||'—', b.type||'—').replace(/<\/div>$/, '') + '<br>'
-    + '</div>'
-    + '<div class="cmp-col"><div class="cmp-col-head">🧪 ' + b.name + ' <span style="font-family:monospace;font-size:10px;color:var(--e400)">#' + (b.code||b.id) + '</span></div></div>'
-    + '</div>'
-    + '<div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:12px">'
-    + '<div style="background:#f3f7f3;padding:8px 14px;font-size:11px;font-weight:700;color:var(--g800);border-bottom:1px solid var(--border)">مقارنة الخصائص</div>'
-    + '<div style="padding:8px 14px">'
-    + field('النوع', a.type||'—', b.type||'—')
-    + field('الكمية الأساسية', (a.baseQty||1000)+' '+(a.unit||'لتر'), (b.baseQty||1000)+' '+(b.unit||'لتر'))
-    + field('عدد الخامات', ingCountA+' خامة', ingCountB+' خامة')
-    + field('pH', a.ph||'—', b.ph||'—')
-    + field('الكثافة', a.density?a.density+' g/cm³':'—', b.density?b.density+' g/cm³':'—')
-    + field('الذوبانية', a.solubility?a.solubility+'%':'—', b.solubility?b.solubility+'%':'—')
-    + '</div></div>'
-    + '<div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-top:12px">'
-    + '<div style="background:#f3f7f3;padding:8px 14px;font-size:11px;font-weight:700;color:var(--g800);border-bottom:1px solid var(--border)">مقارنة العناصر الغذائية</div>'
-    + '<div style="padding:12px 14px">'
-    + (shared.length ? '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--g600);margin-bottom:5px">عناصر مشتركة (' + shared.length + ')</div>' + sharedPills + '</div>' : '')
-    + (onlyA.length ? '<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#dc2626;margin-bottom:5px">فقط في ' + a.name + ' (' + onlyA.length + ')</div>' + onlyAPills + '</div>' : '')
-    + (onlyB.length ? '<div><div style="font-size:10px;font-weight:700;color:#16a34a;margin-bottom:5px">فقط في ' + b.name + ' (' + onlyB.length + ')</div>' + onlyBPills + '</div>' : '')
-    + (!elemsA.size && !elemsB.size ? '<p style="font-size:12px;color:var(--e400)">لا توجد عناصر غذائية محددة في المنتجين</p>' : '')
-    + '</div></div>';
 };
 
 window.exportProducts = () => {
@@ -2677,241 +2221,26 @@ window.printMatDetail = id => {
   setTimeout(()=>w.print(),600);
 };
 
-// ══════════════════════════════════════════════
-// API LAYER — .NET CRM wrapper (مستقبلي)
-// ══════════════════════════════════════════════
-const API = (() => {
-  const getBase  = () => window.SAQIA_API_URL   || null;
-  const getToken = () => window.SAQIA_API_TOKEN  || null;
 
-  async function _req(method, path, body=null) {
-    const BASE = getBase();
-    if (!BASE) {
-      console.warn('[API] SAQIA_API_URL غير مضبوط — يعمل بوضع Firebase فقط');
-      return null;
-    }
-    const headers = { 'Content-Type': 'application/json' };
-    const token = getToken();
-    if (token) headers['Authorization'] = 'Bearer ' + token;
-    const opts = { method, headers };
-    if (body) opts.body = JSON.stringify(body);
-    try {
-      const res = await fetch(BASE + path, opts);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return await res.json();
-    } catch(e) {
-      console.error('[API]', method, path, e.message);
-      return null;
-    }
-  }
 
-  return {
-    getProducts:    ()           => _req('GET',    '/api/products'),
-    getProduct:     id           => _req('GET',    '/api/products/'  + id),
-    createProduct:  data         => _req('POST',   '/api/products',  data),
-    updateProduct:  (id, data)   => _req('PUT',    '/api/products/'  + id, data),
-    deleteProduct:  id           => _req('DELETE', '/api/products/'  + id),
-    getMaterials:   ()           => _req('GET',    '/api/materials'),
-    createMaterial: data         => _req('POST',   '/api/materials', data),
-    updateMaterial: (id, data)   => _req('PUT',    '/api/materials/' + id, data),
-    getOrders:      ()           => _req('GET',    '/api/orders'),
-    createOrder:    data         => _req('POST',   '/api/orders',    data),
-    login:          (email, pw)  => _req('POST',   '/api/auth/login', { email, password: pw }),
-    setToken:       t            => { window.SAQIA_API_TOKEN = t; },
-    setBase:        url          => { window.SAQIA_API_URL   = url; },
-    isConnected:    ()           => !!getBase(),
-  };
-})();
-window.API = API;
+</script>
 
-// ══════════════════════════════════════════════
-// OFFLINE MODE — network detection + pending queue
-// ══════════════════════════════════════════════
-let _isOnline = navigator.onLine;
-const _offlineQueue = [];
-
-async function _flushOfflineQueue() {
-  while (_offlineQueue.length && _isOnline) {
-    const { fn, label } = _offlineQueue.shift();
-    try {
-      await fn();
-      toast('تم تنفيذ: ' + label, 'success');
-    } catch(e) {
-      console.error('[OfflineQueue]', label, e);
-    }
-  }
-}
-
-function _updateOnlineUI() {
-  _isOnline = navigator.onLine;
-  const bar = document.getElementById('sync-bar');
-  const txt = document.getElementById('sync-txt');
-  if (!_isOnline) {
-    if (bar) bar.className = 's-off';
-    if (txt) txt.textContent = '⚠️ وضع Offline — لا يوجد اتصال';
-    toast('انقطع الاتصال بالإنترنت', 'info');
-  } else {
-    if (CU && bar) bar.className = 's-on';
-    if (txt && CU) txt.textContent = 'متصل بـ Firebase';
-    if (_offlineQueue.length) {
-      toast('تم استعادة الاتصال — تنفيذ ' + _offlineQueue.length + ' عملية معلقة...', 'info');
-      _flushOfflineQueue();
-    } else {
-      toast('تم استعادة الاتصال', 'success');
-    }
-  }
-}
-
-// Public: queue a write for when back online (or run now if online)
-window.queueOfflineOp = (fn, label = 'عملية') => {
-  if (_isOnline) { fn(); return; }
-  _offlineQueue.push({ fn, label });
-  toast('تم حفظ "' + label + '" مؤقتاً — سيُنفَّذ عند الاتصال', 'info');
-};
-
-// ══════════════════════════════════════════════
-// OFFLINE MODE DETECTION + BANNER
-// ══════════════════════════════════════════════
-function updateOnlineStatus() {
-  _isOnline = navigator.onLine;
-  const banner  = document.getElementById('offline-banner');
-  const syncBar = document.getElementById('sync-bar');
-  const syncTxt = document.getElementById('sync-txt');
-  if (!_isOnline) {
-    banner?.classList.add('show');
-    if (syncBar) syncBar.className = 's-off';
-    if (syncTxt) syncTxt.textContent = '⚠️ وضع Offline';
-  } else {
-    banner?.classList.remove('show');
-    if (CU && syncBar) syncBar.className = 's-on';
-    if (CU && syncTxt) syncTxt.textContent = 'متصل بـ Firebase';
-    if (_offlineQueue.length) { _flushOfflineQueue(); }
-  }
-}
-window.addEventListener('online',  updateOnlineStatus);
-window.addEventListener('offline', () => { updateOnlineStatus(); toast('انقطع الاتصال 📶','info'); });
-updateOnlineStatus();
-
-// ══════════════════════════════════════════════
-// PRESENCE HEARTBEAT
-// ══════════════════════════════════════════════
-let _presenceInterval = null;
-function startPresenceHeartbeat() {
-  if (_presenceInterval) clearInterval(_presenceInterval);
-  _presenceInterval = setInterval(async () => {
-    if (!CU || !navigator.onLine) return;
-    try { await setPresence(CU.id, 'online'); if (_page==='dashboard') renderDashStats(); } catch(e) {}
-  }, 30000);
-}
-window.addEventListener('beforeunload', () => {
-  if (CU && navigator.onLine) setPresence(CU.id, 'offline').catch(()=>{});
-});
-
-// ══════════════════════════════════════════════
-// UNDO / REDO
-// ══════════════════════════════════════════════
-const _undoStack = [], _redoStack = [];
-window.pushUndo = (label, undoFn, redoFn) => {
-  _undoStack.push({ label, undoFn, redoFn });
-  if (_undoStack.length > 10) _undoStack.shift();
-  _redoStack.length = 0;
-};
-window.doUndo = async () => {
-  const op = _undoStack.pop();
-  if (!op) { toast('لا توجد عمليات للتراجع عنها','info'); return; }
-  try { await op.undoFn(); _redoStack.push(op); toast('تم التراجع عن: '+op.label,'info'); }
-  catch(e) { toast('خطأ في التراجع: '+e.message,'error'); }
-};
-window.doRedo = async () => {
-  const op = _redoStack.pop();
-  if (!op) { toast('لا توجد عمليات للإعادة','info'); return; }
-  try { await op.redoFn(); _undoStack.push(op); toast('تمت الإعادة: '+op.label,'info'); }
-  catch(e) { toast('خطأ في الإعادة: '+e.message,'error'); }
-};
-
-// ══════════════════════════════════════════════
-// GLOBAL SEARCH
-// ══════════════════════════════════════════════
-let _gsIdx = -1;
-window.openGS = () => {
-  document.getElementById('gs-overlay').classList.add('open');
-  const inp = document.getElementById('gs-inp');
-  inp.value = ''; _gsIdx = -1;
-  document.getElementById('gs-results').innerHTML = '<div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div>';
-  setTimeout(() => inp.focus(), 50);
-};
-window.closeGS = () => { document.getElementById('gs-overlay').classList.remove('open'); _gsIdx = -1; };
-document.getElementById('gs-overlay').addEventListener('click', e => { if (e.target===document.getElementById('gs-overlay')) closeGS(); });
-
-window.gsSearch = q => {
-  _gsIdx = -1;
-  q = (q||'').trim().toLowerCase();
-  if (!q) { document.getElementById('gs-results').innerHTML = '<div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div>'; return; }
-  const prods = _products.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.code||'').includes(q)).slice(0,6);
-  const mats  = _materials.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.code||'').includes(q)).slice(0,6);
-  const hist  = _history.filter(h=>(h.productName||'').toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q)).slice(0,4);
-  let html = '';
-  if (prods.length) {
-    html += '<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-flask" style="margin-left:5px;color:var(--g500)"></i>المنتجات ('+prods.length+')</div>';
-    prods.forEach(p => { html += '<div class="gs-item" data-action="prod" data-id="'+p.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:var(--g100);color:var(--g700)">🧪</div><div><div class="gs-item-name">'+p.name+'</div><div class="gs-item-sub">#'+(p.code||p.id)+'</div></div></div>'; });
-    html += '</div>';
-  }
-  if (mats.length) {
-    html += '<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-box-open" style="margin-left:5px;color:var(--gold)"></i>الخامات ('+mats.length+')</div>';
-    mats.forEach(m => { html += '<div class="gs-item" data-action="mat" data-id="'+m.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:var(--gold-pale);color:var(--gold)">📦</div><div><div class="gs-item-name">'+m.name+'</div><div class="gs-item-sub">#'+(m.code||m.id)+'</div></div></div>'; });
-    html += '</div>';
-  }
-  if (hist.length) {
-    html += '<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-history" style="margin-left:5px;color:#7c3aed"></i>السجل ('+hist.length+')</div>';
-    hist.forEach(h => { html += '<div class="gs-item" data-action="hist" data-id="'+h.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:#ede9fe;color:#7c3aed">📋</div><div><div class="gs-item-name">'+(h.productName||'—')+'</div><div class="gs-item-sub">'+fmtDate(h.ts)+'</div></div></div>'; });
-    html += '</div>';
-  }
-  if (!html) html = '<div class="gs-empty">لا توجد نتائج لـ "'+q+'"</div>';
-  document.getElementById('gs-results').innerHTML = html;
-};
-window.gsGo = el => {
-  const action=el.dataset.action, id=el.dataset.id; closeGS();
-  if (action==='prod') { goPage('products'); setTimeout(()=>showPDetail(id),200); }
-  else if (action==='mat') { goPage('materials'); setTimeout(()=>showMDetail(id),200); }
-  else if (action==='hist') { goPage('history'); }
-};
-// ── Inline Service Worker via Blob ──
-const _swLines = [
-  "const CACHE='saqia-v6';",
-  "const STATIC=['./','https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap'];",
-  "self.addEventListener('install',e=>{self.skipWaiting();e.waitUntil(caches.open(CACHE).then(c=>c.addAll(STATIC).catch(()=>{})));});",
-  "self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});",
-  "self.addEventListener('fetch',e=>{",
-  "  if(e.request.method!=='GET')return;",
-  "  const u=e.request.url;",
-  "  if(u.includes('firestore.googleapis.com')||u.includes('firebase')||u.includes('imgbb.com')||u.includes('identitytoolkit')||u.includes('securetoken'))return;",
-  "  if(u.endsWith('.html')||u.endsWith('/')){",
-  "    e.respondWith(fetch(e.request).then(r=>{const c=r.clone();caches.open(CACHE).then(ca=>ca.put(e.request,c));return r;}).catch(()=>caches.match(e.request)));",
-  "    return;",
-  "  }",
-  "  e.respondWith(caches.match(e.request).then(cached=>{",
-  "    if(cached)return cached;",
-  "    return fetch(e.request).then(r=>{if(r&&r.status===200){const c=r.clone();caches.open(CACHE).then(ca=>ca.put(e.request,c));}return r;}).catch(()=>cached);",
-  "  }));",
-  "});",
-  "self.addEventListener('message',e=>{if(e.data==='skipWaiting')self.skipWaiting();});"
-];
-const _swCode = _swLines.join('\n');
-
+<!-- PWA Service Worker Registration -->
+<script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    const blob = new Blob([_swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(blob);
-    navigator.serviceWorker.register(swUrl)
-      .then(reg => { console.log('[SW] registered:', reg.scope); URL.revokeObjectURL(swUrl); })
-      .catch(err => console.warn('[SW] failed:', err));
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW error:', err));
   });
 }
 
+// PWA Install prompt
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   deferredPrompt = e;
+  // Show install button after login
   const btn = document.getElementById('pwa-install-btn');
   if (btn) btn.style.display = 'flex';
 });
@@ -2934,7 +2263,6 @@ window.installPWA = async () => {
     }, 1000);
   }
 };
-
 
 window.exportMatDetail = id => {
   const m = _materials.find(x=>x.id===id); if(!m)return;
