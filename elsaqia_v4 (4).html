@@ -2768,11 +2768,112 @@ window.queueOfflineOp = (fn, label = 'عملية') => {
   toast('تم حفظ "' + label + '" مؤقتاً — سيُنفَّذ عند الاتصال', 'info');
 };
 
+// ══════════════════════════════════════════════
+// OFFLINE MODE DETECTION + BANNER
+// ══════════════════════════════════════════════
+function updateOnlineStatus() {
+  _isOnline = navigator.onLine;
+  const banner  = document.getElementById('offline-banner');
+  const syncBar = document.getElementById('sync-bar');
+  const syncTxt = document.getElementById('sync-txt');
+  if (!_isOnline) {
+    banner?.classList.add('show');
+    if (syncBar) syncBar.className = 's-off';
+    if (syncTxt) syncTxt.textContent = '⚠️ وضع Offline';
+  } else {
+    banner?.classList.remove('show');
+    if (CU && syncBar) syncBar.className = 's-on';
+    if (CU && syncTxt) syncTxt.textContent = 'متصل بـ Firebase';
+    if (_offlineQueue.length) { _flushOfflineQueue(); }
+  }
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', () => { updateOnlineStatus(); toast('انقطع الاتصال 📶','info'); });
+updateOnlineStatus();
 
-</script>
+// ══════════════════════════════════════════════
+// PRESENCE HEARTBEAT
+// ══════════════════════════════════════════════
+let _presenceInterval = null;
+function startPresenceHeartbeat() {
+  if (_presenceInterval) clearInterval(_presenceInterval);
+  _presenceInterval = setInterval(async () => {
+    if (!CU || !navigator.onLine) return;
+    try { await setPresence(CU.id, 'online'); if (_page==='dashboard') renderDashStats(); } catch(e) {}
+  }, 30000);
+}
+window.addEventListener('beforeunload', () => {
+  if (CU && navigator.onLine) setPresence(CU.id, 'offline').catch(()=>{});
+});
 
-<!-- PWA Service Worker Registration -->
-<script>
+// ══════════════════════════════════════════════
+// UNDO / REDO
+// ══════════════════════════════════════════════
+const _undoStack = [], _redoStack = [];
+window.pushUndo = (label, undoFn, redoFn) => {
+  _undoStack.push({ label, undoFn, redoFn });
+  if (_undoStack.length > 10) _undoStack.shift();
+  _redoStack.length = 0;
+};
+window.doUndo = async () => {
+  const op = _undoStack.pop();
+  if (!op) { toast('لا توجد عمليات للتراجع عنها','info'); return; }
+  try { await op.undoFn(); _redoStack.push(op); toast('تم التراجع عن: '+op.label,'info'); }
+  catch(e) { toast('خطأ في التراجع: '+e.message,'error'); }
+};
+window.doRedo = async () => {
+  const op = _redoStack.pop();
+  if (!op) { toast('لا توجد عمليات للإعادة','info'); return; }
+  try { await op.redoFn(); _undoStack.push(op); toast('تمت الإعادة: '+op.label,'info'); }
+  catch(e) { toast('خطأ في الإعادة: '+e.message,'error'); }
+};
+
+// ══════════════════════════════════════════════
+// GLOBAL SEARCH
+// ══════════════════════════════════════════════
+let _gsIdx = -1;
+window.openGS = () => {
+  document.getElementById('gs-overlay').classList.add('open');
+  const inp = document.getElementById('gs-inp');
+  inp.value = ''; _gsIdx = -1;
+  document.getElementById('gs-results').innerHTML = '<div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div>';
+  setTimeout(() => inp.focus(), 50);
+};
+window.closeGS = () => { document.getElementById('gs-overlay').classList.remove('open'); _gsIdx = -1; };
+document.getElementById('gs-overlay').addEventListener('click', e => { if (e.target===document.getElementById('gs-overlay')) closeGS(); });
+
+window.gsSearch = q => {
+  _gsIdx = -1;
+  q = (q||'').trim().toLowerCase();
+  if (!q) { document.getElementById('gs-results').innerHTML = '<div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div>'; return; }
+  const prods = _products.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.code||'').includes(q)).slice(0,6);
+  const mats  = _materials.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.code||'').includes(q)).slice(0,6);
+  const hist  = _history.filter(h=>(h.productName||'').toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q)).slice(0,4);
+  let html = '';
+  if (prods.length) {
+    html += '<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-flask" style="margin-left:5px;color:var(--g500)"></i>المنتجات ('+prods.length+')</div>';
+    prods.forEach(p => { html += '<div class="gs-item" data-action="prod" data-id="'+p.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:var(--g100);color:var(--g700)">🧪</div><div><div class="gs-item-name">'+p.name+'</div><div class="gs-item-sub">#'+(p.code||p.id)+'</div></div></div>'; });
+    html += '</div>';
+  }
+  if (mats.length) {
+    html += '<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-box-open" style="margin-left:5px;color:var(--gold)"></i>الخامات ('+mats.length+')</div>';
+    mats.forEach(m => { html += '<div class="gs-item" data-action="mat" data-id="'+m.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:var(--gold-pale);color:var(--gold)">📦</div><div><div class="gs-item-name">'+m.name+'</div><div class="gs-item-sub">#'+(m.code||m.id)+'</div></div></div>'; });
+    html += '</div>';
+  }
+  if (hist.length) {
+    html += '<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-history" style="margin-left:5px;color:#7c3aed"></i>السجل ('+hist.length+')</div>';
+    hist.forEach(h => { html += '<div class="gs-item" data-action="hist" data-id="'+h.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:#ede9fe;color:#7c3aed">📋</div><div><div class="gs-item-name">'+(h.productName||'—')+'</div><div class="gs-item-sub">'+fmtDate(h.ts)+'</div></div></div>'; });
+    html += '</div>';
+  }
+  if (!html) html = '<div class="gs-empty">لا توجد نتائج لـ "'+q+'"</div>';
+  document.getElementById('gs-results').innerHTML = html;
+};
+window.gsGo = el => {
+  const action=el.dataset.action, id=el.dataset.id; closeGS();
+  if (action==='prod') { goPage('products'); setTimeout(()=>showPDetail(id),200); }
+  else if (action==='mat') { goPage('materials'); setTimeout(()=>showMDetail(id),200); }
+  else if (action==='hist') { goPage('history'); }
+};
 // ── Inline Service Worker via Blob ──
 const _swLines = [
   "const CACHE='saqia-v6';",
