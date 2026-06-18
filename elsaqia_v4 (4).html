@@ -356,11 +356,87 @@ textarea.fc{resize:vertical;min-height:68px}
 
 @media(max-width:900px){:root{--sidebar:200px}.dash2col,.c3,.c4{grid-template-columns:1fr 1fr}}
 @media(max-width:650px){.auth-card{grid-template-columns:1fr}.auth-brand{display:none}:root{--sidebar:0px}.sidebar{display:none}.page{padding:14px}}
+
+/* ── GLOBAL SEARCH ── */
+#gs-overlay{position:fixed;inset:0;background:rgba(10,20,12,.6);z-index:8000;display:flex;align-items:flex-start;justify-content:center;padding-top:80px;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(4px)}
+#gs-overlay.open{opacity:1;pointer-events:all}
+#gs-box{background:var(--surface);border-radius:16px;width:min(620px,95%);max-height:70vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 24px 80px rgba(0,0,0,.3);border:1px solid var(--border);transform:scale(.96) translateY(-8px);transition:transform .2s}
+#gs-overlay.open #gs-box{transform:scale(1) translateY(0)}
+#gs-inp-wrap{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid var(--border)}
+#gs-inp-wrap i{font-size:16px;color:var(--e400)}
+#gs-inp{flex:1;border:none;background:transparent;font-family:'Cairo',sans-serif;font-size:15px;color:var(--e800);outline:none}
+#gs-inp::placeholder{color:var(--e400)}
+#gs-results{overflow-y:auto;max-height:calc(70vh - 100px);padding:8px}
+.gs-section{margin-bottom:8px}
+.gs-section-lbl{font-size:10px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:1px;padding:6px 10px}
+.gs-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;transition:background .12s}
+.gs-item:hover,.gs-item.gs-active{background:var(--g50)}
+.gs-item-ic{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.gs-item-name{font-size:13px;font-weight:700;color:var(--g900)}
+.gs-item-sub{font-size:11px;color:var(--e400)}
+.gs-empty{text-align:center;padding:30px;color:var(--e400);font-size:13px}
+#gs-kbd-hint{padding:8px 16px;border-top:1px solid var(--border);background:#fafcf9;display:flex;gap:14px;font-size:11px;color:var(--e400)}
+.gs-kbd{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px}
+#gs-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:var(--rs);padding:5px 11px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;color:rgba(255,255,255,.75);display:flex;align-items:center;gap:5px;transition:all .15s}
+#gs-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+
+/* ── OFFLINE BANNER ── */
+#offline-banner{position:fixed;bottom:0;left:0;right:0;background:#1f2937;color:#f9fafb;text-align:center;padding:9px 16px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;z-index:9999;display:none;align-items:center;justify-content:center;gap:10px;border-top:2px solid #f59e0b}
+#offline-banner.show{display:flex}
+#offline-banner i{color:#f59e0b}
+.ob-retry{background:#f59e0b;color:#1f2937;border:none;border-radius:6px;padding:3px 12px;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;cursor:pointer}
+
+/* ── COMPARE ── */
+.cmp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.cmp-col-head{font-size:13px;font-weight:900;color:var(--g900);margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--g200)}
+.cmp-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #f0f5f0;font-size:12px}
+.cmp-lbl{color:var(--e400);font-weight:600}
+.cmp-diff-a{color:#dc2626;font-weight:700}
+.cmp-diff-b{color:#16a34a;font-weight:700}
+.cmp-same{color:var(--e600)}
+.cmp-pill{display:inline-flex;padding:2px 7px;border-radius:5px;font-size:10px;font-weight:700;margin:2px}
+.cmp-only-a{background:#fee2e2;color:#dc2626}
+.cmp-only-b{background:#dcfce7;color:#16a34a}
+.cmp-shared{background:var(--g100);color:var(--g700)}
+
+/* ── VERSION HISTORY ── */
+.ver-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #edf3ee;align-items:flex-start}
+.ver-item:last-child{border-bottom:none}
+.ver-num{width:28px;height:28px;border-radius:50%;background:var(--g100);color:var(--g700);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
+.ver-body{flex:1}
+.ver-txt{font-size:12px;color:var(--e700);font-weight:600}
+.ver-meta{font-size:10px;color:var(--e400);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap}
+.ver-restore{font-size:11px;color:var(--g600);font-weight:700;cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid var(--g300);background:#fff;transition:all .12s;white-space:nowrap}
+.ver-restore:hover{background:var(--g100)}
 </style>
 </head>
 <body>
 <div id="toasts"></div>
 <div id="sync-bar" class="s-off"><div class="sync-led"></div><span id="sync-txt">جاري الاتصال...</span></div>
+
+<!-- OFFLINE BANNER -->
+<div id="offline-banner">
+  <i class="fas fa-wifi"></i>
+  <span>أنت غير متصل — البيانات المحفوظة متاحة للعرض</span>
+  <button class="ob-retry" onclick="location.reload()"><i class="fas fa-redo" style="margin-left:4px"></i>إعادة الاتصال</button>
+</div>
+
+<!-- GLOBAL SEARCH -->
+<div id="gs-overlay">
+  <div id="gs-box">
+    <div id="gs-inp-wrap">
+      <i class="fas fa-search"></i>
+      <input id="gs-inp" type="text" placeholder="ابحث في المنتجات والخامات والسجل..." autocomplete="off" oninput="gsSearch(this.value)" onkeydown="gsKey(event)">
+    </div>
+    <div id="gs-results"><div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div></div>
+    <div id="gs-kbd-hint">
+      <span><span class="gs-kbd">↑↓</span> تنقل</span>
+      <span><span class="gs-kbd">Enter</span> فتح</span>
+      <span><span class="gs-kbd">Esc</span> إغلاق</span>
+      <span><span class="gs-kbd">Ctrl+F</span> فتح/إغلاق</span>
+    </div>
+  </div>
+</div>
 
 <!-- AUTH -->
 <div id="auth-screen">
@@ -401,6 +477,11 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="sb-user">
         <div class="sb-av" id="sb-av">A</div>
         <div><div class="sb-av-name" id="sb-name">—</div><div class="sb-av-role"><span class="online-dot"></span><span id="sb-role">—</span></div></div>
+      </div>
+      <div style="margin-top:8px">
+        <button id="gs-btn" onclick="openGS()" title="بحث عام Ctrl+F" style="width:100%;justify-content:center">
+          <i class="fas fa-search"></i> بحث سريع <span style="opacity:.5;font-size:10px">Ctrl+F</span>
+        </button>
       </div>
     </div>
     <nav class="sb-nav">
@@ -464,7 +545,8 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">🧪 المنتجات</div><div class="ph-sub">إدارة تركيبات المنتجات الزراعية</div></div>
         <div class="ph-acts">
-          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_products" onclick="exportProducts()"><i class="fas fa-file-excel"></i>Excel</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="compare_products" onclick="openCompare()"><i class="fas fa-balance-scale"></i>مقارنة</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-excel"></i>Excel</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_products" onclick="openPModal()"><i class="fas fa-plus"></i>منتج جديد</button>
         </div>
       </div>
@@ -680,7 +762,7 @@ textarea.fc{resize:vertical;min-height:68px}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc, onSnapshot, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ══════════════════════════════════════════════
 // FIREBASE CONFIG
@@ -729,18 +811,23 @@ SS('off');
 // PERMISSIONS
 // ══════════════════════════════════════════════
 const PERMS_DEF = [
-  {k:'view_products',   l:'عرض المنتجات'},
-  {k:'add_products',    l:'إضافة منتجات'},
-  {k:'edit_products',   l:'تعديل منتجات'},
-  {k:'delete_products', l:'حذف منتجات'},
-  {k:'view_materials',  l:'عرض الخامات'},
-  {k:'edit_materials',  l:'تعديل الخامات'},
-  {k:'use_calc',        l:'استخدام الحاسبة'},
-  {k:'print',           l:'الطباعة'},
-  {k:'export_excel',    l:'تصدير Excel'},
-  {k:'manage_users',    l:'إدارة المستخدمين'},
+  {k:'view_products',    l:'عرض المنتجات'},
+  {k:'add_products',     l:'إضافة منتجات'},
+  {k:'edit_products',    l:'تعديل منتجات'},
+  {k:'delete_products',  l:'حذف منتجات'},
+  {k:'duplicate_products',l:'نسخ منتج'},
+  {k:'compare_products', l:'مقارنة منتجات'},
+  {k:'view_versions',    l:'عرض سجل التعديلات'},
+  {k:'view_materials',   l:'عرض الخامات'},
+  {k:'edit_materials',   l:'تعديل الخامات'},
+  {k:'use_calc',         l:'استخدام الحاسبة'},
+  {k:'print',            l:'الطباعة'},
+  {k:'export_excel',     l:'تصدير Excel'},
+  {k:'manage_users',     l:'إدارة المستخدمين'},
   {k:'view_formulations',l:'عرض التركيبات'},
   {k:'edit_formulations',l:'تعديل التركيبات'},
+  {k:'global_search',    l:'البحث العام'},
+  {k:'view_history',     l:'عرض السجل'},
 ];
 const ADMIN_PERMS = Object.fromEntries(PERMS_DEF.map(p=>[p.k,true]));
 
@@ -1242,10 +1329,11 @@ window.showPDetail = id => {
   document.getElementById('pd-foot').innerHTML=`
     ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProduct('${p.id}')"><i class="fas fa-print"></i>طباعة</button>`:''}
     ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-excel"></i>Excel</button>`:''}
+    ${hasPerm('view_versions')?`<button class="btn btn-ghost" onclick="showVersions('${p.id}')"><i class="fas fa-history"></i>السجل</button>`:''}
+    ${hasPerm('duplicate_products')?`<button class="btn btn-ghost" onclick="duplicateProd('${p.id}')"><i class="fas fa-copy"></i>نسخ</button>`:''}
     ${cE?`<button class="btn btn-gold" onclick="closeM('mo-pdetail');openPModal('${p.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
-    ${cD?`<button class="btn btn-red" onclick="closeM('mo-pdetail');confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')"><i class="fas fa-trash"></i>حذف</button>`:''}
+    ${cD?`<button class="btn btn-red" onclick="closeM('mo-pdetail');confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')" ><i class="fas fa-trash"></i>حذف</button>`:''}
     <button class="btn btn-ghost" onclick="closeM('mo-pdetail')">إغلاق</button>`;
-  openM('mo-pdetail');
 };
 
 window.openPModal = (id=null) => {
@@ -1335,6 +1423,14 @@ window.saveProd = async () => {
   SS('save');
   try {
     if (_editPid) {
+      // حفظ نسخة قديمة قبل التعديل
+      const oldSnap = _products.find(x=>x.id===_editPid);
+      if (oldSnap) {
+        await addDoc(collection(db,'products',_editPid,'versions'), {
+          ...oldSnap, savedAt:Date.now(), savedBy:CU.displayName||CU.email,
+          versionNote:'قبل تعديل '+new Date().toLocaleString('ar-EG',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})
+        });
+      }
       await updateDoc(doc(db,'products',_editPid),data);
       await audit('edit',`عدّل ${CU.displayName||CU.email} المنتج: ${name}`);
       toast('تم تعديل المنتج','success');
@@ -2221,7 +2317,264 @@ window.printMatDetail = id => {
   setTimeout(()=>w.print(),600);
 };
 
+// ══════════════════════════════════════════════
+// UNDO / REDO
+// ══════════════════════════════════════════════
+const _undoStack = [], _redoStack = [];
+window.pushUndo = (label, undoFn, redoFn) => {
+  _undoStack.push({label,undoFn,redoFn});
+  if(_undoStack.length>10) _undoStack.shift();
+  _redoStack.length=0;
+};
+window.doUndo = async () => {
+  const op=_undoStack.pop();
+  if(!op){toast('لا توجد عمليات للتراجع عنها','info');return;}
+  try{await op.undoFn();_redoStack.push(op);toast('تم التراجع عن: '+op.label,'info');}
+  catch(e){toast('خطأ في التراجع: '+e.message,'error');}
+};
+window.doRedo = async () => {
+  const op=_redoStack.pop();
+  if(!op){toast('لا توجد عمليات للإعادة','info');return;}
+  try{await op.redoFn();_undoStack.push(op);toast('تمت الإعادة: '+op.label,'info');}
+  catch(e){toast('خطأ في الإعادة: '+e.message,'error');}
+};
 
+// ══════════════════════════════════════════════
+// GLOBAL SEARCH
+// ══════════════════════════════════════════════
+let _gsIdx=-1;
+window.openGS = () => {
+  if(!hasPerm('global_search')){toast('ليس لديك صلاحية البحث العام','error');return;}
+  document.getElementById('gs-overlay').classList.add('open');
+  const inp=document.getElementById('gs-inp');
+  inp.value='';_gsIdx=-1;
+  document.getElementById('gs-results').innerHTML='<div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div>';
+  setTimeout(()=>inp.focus(),50);
+};
+window.closeGS = () => {document.getElementById('gs-overlay').classList.remove('open');_gsIdx=-1;};
+document.getElementById('gs-overlay').addEventListener('click',e=>{if(e.target===document.getElementById('gs-overlay'))closeGS();});
+
+window.gsSearch = q => {
+  _gsIdx=-1;
+  q=(q||'').trim().toLowerCase();
+  if(!q){document.getElementById('gs-results').innerHTML='<div class="gs-empty"><i class="fas fa-search" style="font-size:28px;display:block;margin-bottom:8px;opacity:.2"></i>ابدأ الكتابة للبحث...</div>';return;}
+  const prods=_products.filter(p=>(p.name||'').toLowerCase().includes(q)||(p.code||'').includes(q)).slice(0,6);
+  const mats=_materials.filter(m=>(m.name||'').toLowerCase().includes(q)||(m.code||'').includes(q)).slice(0,6);
+  const hist=_history.filter(h=>(h.productName||'').toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q)).slice(0,4);
+  let html='';
+  if(prods.length){
+    html+='<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-flask" style="margin-left:5px;color:var(--g500)"></i>المنتجات ('+prods.length+')</div>';
+    prods.forEach(p=>{html+='<div class="gs-item" data-action="prod" data-id="'+p.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:var(--g100);color:var(--g700)">🧪</div><div><div class="gs-item-name">'+p.name+'</div><div class="gs-item-sub">#'+(p.code||p.id)+'</div></div></div>';});
+    html+='</div>';
+  }
+  if(mats.length){
+    html+='<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-box-open" style="margin-left:5px;color:var(--gold)"></i>الخامات ('+mats.length+')</div>';
+    mats.forEach(m=>{html+='<div class="gs-item" data-action="mat" data-id="'+m.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:#fef9c3;color:#ca8a04">📦</div><div><div class="gs-item-name">'+m.name+'</div><div class="gs-item-sub">#'+(m.code||m.id)+'</div></div></div>';});
+    html+='</div>';
+  }
+  if(hist.length){
+    html+='<div class="gs-section"><div class="gs-section-lbl"><i class="fas fa-history" style="margin-left:5px;color:#7c3aed"></i>السجل ('+hist.length+')</div>';
+    hist.forEach(h=>{html+='<div class="gs-item" data-action="hist" data-id="'+h.id+'" onclick="gsGo(this)"><div class="gs-item-ic" style="background:#ede9fe;color:#7c3aed">📋</div><div><div class="gs-item-name">'+(h.productName||'—')+'</div><div class="gs-item-sub">'+fmtDate(h.ts)+'</div></div></div>';});
+    html+='</div>';
+  }
+  if(!html) html='<div class="gs-empty">لا توجد نتائج لـ "'+q+'"</div>';
+  document.getElementById('gs-results').innerHTML=html;
+};
+window.gsGo = el => {
+  const action=el.dataset.action,id=el.dataset.id;closeGS();
+  if(action==='prod'){goPage('products');setTimeout(()=>showPDetail(id),250);}
+  else if(action==='mat'){goPage('materials');setTimeout(()=>showMDetail(id),250);}
+  else if(action==='hist'){goPage('history');}
+};
+window.gsKey = e => {
+  const items=[...document.querySelectorAll('#gs-results .gs-item')];
+  if(e.key==='ArrowDown'){e.preventDefault();_gsIdx=Math.min(_gsIdx+1,items.length-1);}
+  else if(e.key==='ArrowUp'){e.preventDefault();_gsIdx=Math.max(_gsIdx-1,0);}
+  else if(e.key==='Enter'){if(_gsIdx>=0&&items[_gsIdx])gsGo(items[_gsIdx]);return;}
+  else if(e.key==='Escape'){closeGS();return;}
+  items.forEach((it,i)=>it.classList.toggle('gs-active',i===_gsIdx));
+  if(items[_gsIdx])items[_gsIdx].scrollIntoView({block:'nearest'});
+};
+
+// ══════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ══════════════════════════════════════════════
+document.addEventListener('keydown', e => {
+  const tag=document.activeElement?.tagName?.toLowerCase();
+  const inInput=(tag==='input'||tag==='textarea'||tag==='select');
+  const gsOpen=document.getElementById('gs-overlay').classList.contains('open');
+  if((e.ctrlKey||e.metaKey)&&e.key==='f'){e.preventDefault();gsOpen?closeGS():openGS();return;}
+  if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){if(!inInput){e.preventDefault();doUndo();}return;}
+  if((e.ctrlKey||e.metaKey)&&(e.key==='y'||(e.key==='z'&&e.shiftKey))){if(!inInput){e.preventDefault();doRedo();}return;}
+  if(e.key==='Escape'){
+    if(gsOpen){closeGS();return;}
+    const op=document.querySelector('.overlay.open');if(op){op.classList.remove('open');return;}
+  }
+  if(document.querySelector('.overlay.open')||inInput||gsOpen)return;
+  if((e.ctrlKey||e.metaKey)&&e.key==='s'){
+    e.preventDefault();
+    if(document.getElementById('mo-prod')?.classList.contains('open'))saveProd();
+    else if(document.getElementById('mo-mat')?.classList.contains('open'))saveMat();
+    else if(document.getElementById('mo-user')?.classList.contains('open'))saveUser();
+    return;
+  }
+  if(e.key==='n'||e.key==='N'){
+    if(_page==='products'&&hasPerm('add_products'))openPModal();
+    else if(_page==='materials'&&hasPerm('edit_materials'))openMModal();
+    return;
+  }
+  if(e.key==='/'){
+    e.preventDefault();
+    const m={products:'p-q',materials:'m-q',history:'h-q'};
+    const s=m[_page];if(s){document.getElementById(s)?.focus();document.getElementById(s)?.select();}
+  }
+});
+
+// ══════════════════════════════════════════════
+// OFFLINE MODE
+// ══════════════════════════════════════════════
+function updateOnlineStatus(){
+  const banner=document.getElementById('offline-banner');
+  const bar=document.getElementById('sync-bar');
+  const txt=document.getElementById('sync-txt');
+  if(!navigator.onLine){
+    banner?.classList.add('show');
+    if(bar)bar.className='s-off';
+    if(txt)txt.textContent='⚠️ وضع Offline';
+  } else {
+    banner?.classList.remove('show');
+    if(CU&&bar)bar.className='s-on';
+    if(CU&&txt)txt.textContent='متصل بـ Firebase';
+  }
+}
+window.addEventListener('online',()=>{updateOnlineStatus();toast('تم استعادة الاتصال ✅','success');});
+window.addEventListener('offline',()=>{updateOnlineStatus();toast('انقطع الاتصال 📶','info');});
+updateOnlineStatus();
+
+// ══════════════════════════════════════════════
+// DUPLICATE PRODUCT
+// ══════════════════════════════════════════════
+window.duplicateProd = async id => {
+  if(!hasPerm('duplicate_products')){toast('ليس لديك صلاحية نسخ المنتجات','error');return;}
+  const p=_products.find(x=>x.id===id);if(!p)return;
+  SS('save');
+  try{
+    const newCode=await nextCode('products');
+    const newData={
+      name:'نسخة من '+p.name, type:p.type||'', baseQty:p.baseQty||1000, unit:p.unit||'لتر',
+      ph:p.ph||'', density:p.density||'', solubility:p.solubility||'',
+      recommendations:p.recommendations||'', elements:p.elements||[],
+      ingredients:p.ingredients||[], imageUrl:p.imageUrl||'', shapeImageUrl:p.shapeImageUrl||'',
+      code:newCode, createdAt:Date.now(), createdBy:CU.email, updatedAt:Date.now(), updatedBy:CU.email, duplicatedFrom:id
+    };
+    const newRef=await addDoc(collection(db,'products'),newData);
+    await audit('add','نسخ '+(CU.displayName||CU.email)+' المنتج: '+p.name);
+    SS('on');toast('تم نسخ المنتج — يمكنك تعديله الآن','success');
+    setTimeout(()=>{closeM('mo-pdetail');openPModal(newRef.id);},500);
+  }catch(e){SS('on');toast('خطأ: '+e.message,'error');}
+};
+
+// ══════════════════════════════════════════════
+// VERSION HISTORY
+// ══════════════════════════════════════════════
+window.showVersions = async id => {
+  if(!hasPerm('view_versions')){toast('ليس لديك صلاحية عرض سجل التعديلات','error');return;}
+  const p=_products.find(x=>x.id===id);if(!p)return;
+  document.getElementById('ver-title').textContent='سجل تعديلات: '+p.name;
+  document.getElementById('ver-body').innerHTML='<div style="padding:20px;text-align:center"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:var(--g500)"></i></div>';
+  openM('mo-versions');
+  try{
+    const snap=await getDocs(query(collection(db,'products',id,'versions'),orderBy('savedAt','desc')));
+    const vers=snap.docs.map((d,i)=>({id:d.id,...d.data(),num:snap.docs.length-i}));
+    if(!vers.length){document.getElementById('ver-body').innerHTML='<div class="empty"><i class="fas fa-history"></i><p>لا توجد نسخ محفوظة بعد<br><small>ستُحفظ نسخة تلقائياً في كل تعديل</small></p></div>';return;}
+    document.getElementById('ver-body').innerHTML=vers.map(v=>{
+      return '<div class="ver-item">'
+        +'<div class="ver-num">v'+v.num+'</div>'
+        +'<div class="ver-body"><div class="ver-txt">'+(v.versionNote||'نسخة محفوظة')+'</div>'
+        +'<div class="ver-meta"><span><i class="fas fa-user" style="margin-left:3px"></i>'+(v.savedBy||'—')+'</span>'
+        +'<span><i class="fas fa-clock" style="margin-left:3px"></i>'+fmtDate(v.savedAt)+'</span>'
+        +'<span>'+(v.ingredients||[]).length+' خامة</span></div></div>'
+        +(hasPerm('edit_products')?'<button class="ver-restore" onclick="restoreVersion(\''+id+'\',\''+v.id+'\')"><i class="fas fa-undo" style="margin-left:4px"></i>استعادة</button>':'')
+        +'</div>';
+    }).join('');
+  }catch(e){document.getElementById('ver-body').innerHTML='<div class="empty"><p>خطأ: '+e.message+'</p></div>';}
+};
+
+window.restoreVersion = async (prodId,verId) => {
+  if(!hasPerm('edit_products')){toast('ليس لديك صلاحية التعديل','error');return;}
+  SS('save');
+  try{
+    const p=_products.find(x=>x.id===prodId);
+    if(p) await addDoc(collection(db,'products',prodId,'versions'),{...p,savedAt:Date.now(),savedBy:CU.displayName||CU.email,versionNote:'نسخة احتياطية قبل الاستعادة'});
+    const vSnap=await getDoc(doc(db,'products',prodId,'versions',verId));
+    if(!vSnap.exists()){toast('النسخة غير موجودة','error');SS('on');return;}
+    const v=vSnap.data();
+    await updateDoc(doc(db,'products',prodId),{
+      name:v.name,type:v.type,baseQty:v.baseQty,unit:v.unit,ph:v.ph,density:v.density,
+      solubility:v.solubility,recommendations:v.recommendations,elements:v.elements||[],
+      ingredients:v.ingredients||[],imageUrl:v.imageUrl||'',shapeImageUrl:v.shapeImageUrl||'',
+      updatedAt:Date.now(),updatedBy:CU.email
+    });
+    await audit('edit','استعاد '+(CU.displayName||CU.email)+' نسخة قديمة من: '+(p?.name||prodId));
+    SS('on');toast('تم استعادة النسخة بنجاح','success');closeM('mo-versions');
+  }catch(e){SS('on');toast('خطأ: '+e.message,'error');}
+};
+
+// ══════════════════════════════════════════════
+// COMPARE PRODUCTS
+// ══════════════════════════════════════════════
+window.openCompare = (preselect=null) => {
+  if(!hasPerm('compare_products')){toast('ليس لديك صلاحية مقارنة المنتجات','error');return;}
+  const opts=_products.map(p=>'<option value="'+p.id+'">'+p.name+' (#'+(p.code||p.id)+')</option>').join('');
+  document.getElementById('cmp-a').innerHTML='<option value="">— اختر المنتج الأول —</option>'+opts;
+  document.getElementById('cmp-b').innerHTML='<option value="">— اختر المنتج الثاني —</option>'+opts;
+  if(preselect) document.getElementById('cmp-a').value=preselect;
+  document.getElementById('cmp-body').innerHTML='<div class="empty"><i class="fas fa-balance-scale"></i><p>اختر منتجين للمقارنة</p></div>';
+  openM('mo-compare');
+};
+
+window.renderCompare = () => {
+  const idA=document.getElementById('cmp-a').value, idB=document.getElementById('cmp-b').value;
+  if(!idA||!idB){document.getElementById('cmp-body').innerHTML='<div class="empty"><i class="fas fa-balance-scale"></i><p>اختر منتجين للمقارنة</p></div>';return;}
+  if(idA===idB){document.getElementById('cmp-body').innerHTML='<div class="empty"><p>اختر منتجين مختلفين</p></div>';return;}
+  const a=_products.find(x=>x.id===idA), b=_products.find(x=>x.id===idB);
+  if(!a||!b)return;
+  const allElems=Object.assign({},ELEMENTS,window._customElements||{});
+  const elemsA=new Set(a.elements||[]), elemsB=new Set(b.elements||[]);
+  const shared=[...elemsA].filter(k=>elemsB.has(k));
+  const onlyA=[...elemsA].filter(k=>!elemsB.has(k));
+  const onlyB=[...elemsB].filter(k=>!elemsA.has(k));
+  const fld=(lbl,va,vb)=>{
+    const diff=va!==vb;
+    return '<div class="cmp-row"><span class="cmp-lbl">'+lbl+'</span><span style="display:flex;gap:16px">'
+      +'<span class="'+(diff?'cmp-diff-a':'cmp-same')+'">'+( va||'—')+'</span>'
+      +'<span class="'+(diff?'cmp-diff-b':'cmp-same')+'">'+( vb||'—')+'</span>'
+      +'</span></div>';
+  };
+  document.getElementById('cmp-title').textContent='مقارنة: '+a.name+' vs '+b.name;
+  document.getElementById('cmp-body').innerHTML=
+    '<div style="display:flex;gap:10px;margin-bottom:10px;font-size:11px">'
+    +'<span><span class="cmp-pill cmp-only-a">●</span> فقط في '+a.name+'</span>'
+    +'<span><span class="cmp-pill cmp-only-b">●</span> فقط في '+b.name+'</span>'
+    +'<span><span class="cmp-pill cmp-shared">●</span> مشترك</span></div>'
+    +'<div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:12px">'
+    +'<div style="background:#f3f7f3;padding:7px 14px;font-size:11px;font-weight:700;color:var(--g800);border-bottom:1px solid var(--border)">مقارنة الخصائص</div>'
+    +'<div style="padding:6px 14px">'
+    +fld('النوع',a.type||'—',b.type||'—')
+    +fld('الكمية الأساسية',(a.baseQty||1000)+' '+(a.unit||'لتر'),(b.baseQty||1000)+' '+(b.unit||'لتر'))
+    +fld('عدد الخامات',(a.ingredients||[]).length+' خامة',(b.ingredients||[]).length+' خامة')
+    +fld('pH',a.ph||'—',b.ph||'—')
+    +fld('الكثافة',a.density?a.density+' g/cm³':'—',b.density?b.density+' g/cm³':'—')
+    +'</div></div>'
+    +'<div style="border:1px solid var(--border);border-radius:var(--r);overflow:hidden">'
+    +'<div style="background:#f3f7f3;padding:7px 14px;font-size:11px;font-weight:700;color:var(--g800);border-bottom:1px solid var(--border)">العناصر الغذائية</div>'
+    +'<div style="padding:12px 14px">'
+    +(shared.length?'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:var(--g600);margin-bottom:4px">مشتركة ('+shared.length+')</div>'+shared.map(k=>'<span class="cmp-pill cmp-shared">'+(allElems[k]?allElems[k].sym:k)+'</span>').join('')+'</div>':'')
+    +(onlyA.length?'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;color:#dc2626;margin-bottom:4px">فقط في '+a.name+' ('+onlyA.length+')</div>'+onlyA.map(k=>'<span class="cmp-pill cmp-only-a">'+(allElems[k]?allElems[k].sym:k)+'</span>').join('')+'</div>':'')
+    +(onlyB.length?'<div><div style="font-size:10px;font-weight:700;color:#16a34a;margin-bottom:4px">فقط في '+b.name+' ('+onlyB.length+')</div>'+onlyB.map(k=>'<span class="cmp-pill cmp-only-b">'+(allElems[k]?allElems[k].sym:k)+'</span>').join('')+'</div>':'')
+    +(!elemsA.size&&!elemsB.size?'<p style="font-size:12px;color:var(--e400)">لا توجد عناصر محددة</p>':'')
+    +'</div></div>';
+};
 
 </script>
 
@@ -2299,5 +2652,29 @@ window.exportMatDetail = id => {
   toast('تم تصدير مواصفات الخامة','success');
 };
 </script>
+<!-- Compare Modal -->
+<div class="overlay" id="mo-compare">
+  <div class="modal xl">
+    <div class="mh"><span class="mh-title" id="cmp-title">🔀 مقارنة المنتجات</span><button class="mclose" onclick="closeM('mo-compare')">×</button></div>
+    <div class="mb">
+      <div class="frow c2" style="margin-bottom:14px">
+        <div class="fg"><label class="fl">المنتج الأول</label><select class="fc" id="cmp-a" onchange="renderCompare()"><option value="">— اختر —</option></select></div>
+        <div class="fg"><label class="fl">المنتج الثاني</label><select class="fc" id="cmp-b" onchange="renderCompare()"><option value="">— اختر —</option></select></div>
+      </div>
+      <div id="cmp-body"><div class="empty"><i class="fas fa-balance-scale"></i><p>اختر منتجين للمقارنة</p></div></div>
+    </div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-compare')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- Version History Modal -->
+<div class="overlay" id="mo-versions">
+  <div class="modal lg">
+    <div class="mh"><span class="mh-title" id="ver-title">📜 سجل التعديلات</span><button class="mclose" onclick="closeM('mo-versions')">×</button></div>
+    <div class="mb" id="ver-body" style="padding:0;min-height:200px"></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-versions')">إغلاق</button></div>
+  </div>
+</div>
+
 </body>
 </html>
