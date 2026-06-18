@@ -1291,6 +1291,7 @@ function renderProducts() {
         <div class="pcard-acts">
           <button class="btn btn-ghost btn-xs" onclick="event.stopPropagation();showPDetail('${p.id}')"><i class="fas fa-eye"></i></button>
           ${cE?`<button class="btn btn-gold btn-xs" onclick="event.stopPropagation();openPModal('${p.id}')"><i class="fas fa-edit"></i></button>`:''}
+          ${hasPerm('duplicate_products')?`<button class="btn btn-ghost btn-xs" title="نسخ" onclick="event.stopPropagation();duplicateProd('${p.id}')"><i class="fas fa-copy"></i></button>`:''}
           ${cD?`<button class="btn btn-red btn-xs" onclick="event.stopPropagation();confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')"><i class="fas fa-trash"></i></button>`:''}
         </div>
       </div>
@@ -1334,6 +1335,7 @@ window.showPDetail = id => {
     ${cE?`<button class="btn btn-gold" onclick="closeM('mo-pdetail');openPModal('${p.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
     ${cD?`<button class="btn btn-red" onclick="closeM('mo-pdetail');confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')" ><i class="fas fa-trash"></i>حذف</button>`:''}
     <button class="btn btn-ghost" onclick="closeM('mo-pdetail')">إغلاق</button>`;
+  openM('mo-pdetail');
 };
 
 window.openPModal = (id=null) => {
