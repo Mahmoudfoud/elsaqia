@@ -545,7 +545,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="sb-grp-lbl" style="margin-top:6px">التصنيع</div>
       <div class="nav-link perm-nav" data-perm="view_products" data-page="products" onclick="goPage('products')"><i class="fas fa-flask"></i>المنتجات</div>
       <div class="nav-link perm-nav" data-perm="view_materials" data-page="materials" onclick="goPage('materials')"><i class="fas fa-box-open"></i>الخامات</div>
-      <div class="nav-link perm-nav" data-perm="view_products" data-page="batches" onclick="goPage('batches')"><i class="fas fa-industry"></i>سجل الدُفعات</div>
+      <div class="nav-link perm-nav" data-perm="view_batches" data-page="batches" onclick="goPage('batches')"><i class="fas fa-industry"></i>سجل الدُفعات</div>
 
       <div class="sb-grp-lbl" style="margin-top:6px">الإدارة</div>
       <div class="nav-link admin-only" data-page="users" onclick="goPage('users')"><i class="fas fa-users-cog"></i>المستخدمين</div>
@@ -619,7 +619,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">🏭 سجل الدُفعات</div><div class="ph-sub">تتبع دفعات الإنتاج والتصنيع</div></div>
         <div class="ph-acts">
-          <button class="btn btn-g btn-sm" onclick="openBatchModal()"><i class="fas fa-plus"></i>دفعة جديدة</button>
+          <button class="btn btn-g btn-sm perm-btn" data-perm="add_batches" onclick="openBatchModal()"><i class="fas fa-plus"></i>دفعة جديدة</button>
         </div>
       </div>
       <div class="sbar">
@@ -639,8 +639,8 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">📦 الخامات</div><div class="ph-sub">المواد الخام والعناصر الكيميائية</div></div>
         <div class="ph-acts">
-          <button class="btn btn-ghost btn-sm" onclick="showMatReport()"><i class="fas fa-chart-bar"></i>تقرير الاستهلاك</button>
-          <button class="btn btn-ghost btn-sm" onclick="showCalendar()"><i class="fas fa-calendar-alt"></i>تقويم الرش</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="view_mat_report" onclick="showMatReport()"><i class="fas fa-chart-bar"></i>تقرير الاستهلاك</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="view_calendar" onclick="showCalendar()"><i class="fas fa-calendar-alt"></i>تقويم الرش</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="edit_materials" onclick="openMModal()"><i class="fas fa-plus"></i>خامة جديدة</button>
         </div>
       </div>
@@ -907,6 +907,12 @@ const PERMS_DEF = [
   {k:'edit_formulations',l:'تعديل التركيبات'},
   {k:'global_search',    l:'البحث العام'},
   {k:'view_history',     l:'عرض السجل'},
+  {k:'view_batches',     l:'عرض سجل الدفعات'},
+  {k:'add_batches',      l:'إضافة دفعات'},
+  {k:'edit_batches',     l:'تعديل دفعات'},
+  {k:'delete_batches',   l:'حذف دفعات'},
+  {k:'view_mat_report',  l:'عرض تقرير الخامات'},
+  {k:'view_calendar',    l:'عرض تقويم الرش'},
 ];
 const ADMIN_PERMS = Object.fromEntries(PERMS_DEF.map(p=>[p.k,true]));
 
@@ -2406,7 +2412,8 @@ function renderBatches() {
   const el = document.getElementById('batches-list');
   if (!el) return;
   if (!items.length) {
-    el.innerHTML = emptyState('🏭','لا توجد دفعات بعد','سجّل دفعات الإنتاج لمتابعة التصنيع','أضف دفعة الآن','openBatchModal()');
+    el.innerHTML = emptyState('🏭','لا توجد دفعات بعد','سجّل دفعات الإنتاج لمتابعة التصنيع',
+      hasPerm('add_batches')?'أضف دفعة الآن':'', hasPerm('add_batches')?'openBatchModal()':'');
     return;
   }
   const statusMap = {
@@ -2493,8 +2500,8 @@ window.showBatchDetail = id => {
       ${b.note?`<div style="grid-column:1/-1"><div class="dp-lbl">ملاحظة</div><div class="dp-val">${b.note}</div></div>`:''}
     </div>`;
   document.getElementById('bd-foot').innerHTML = `
-    <button class="btn btn-gold" onclick="closeM('mo-bdetail');openBatchModal('${id}')"><i class="fas fa-edit"></i>تعديل</button>
-    <button class="btn btn-red" onclick="closeM('mo-bdetail');confirmDel('batch','${id}','هذه الدفعة')"><i class="fas fa-trash"></i>حذف</button>
+    ${hasPerm('edit_batches')?`<button class="btn btn-gold" onclick="closeM('mo-bdetail');openBatchModal('${id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
+    ${hasPerm('delete_batches')?`<button class="btn btn-red" onclick="closeM('mo-bdetail');confirmDel('batch','${id}','هذه الدفعة')"><i class="fas fa-trash"></i>حذف</button>`:''}
     <button class="btn btn-ghost" onclick="closeM('mo-bdetail')">إغلاق</button>`;
   openM('mo-bdetail');
 };
