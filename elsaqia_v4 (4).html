@@ -534,7 +534,7 @@ textarea.fc{resize:vertical;min-height:68px}
     <div class="page" id="page-history">
       <div class="ph">
         <div class="ph-left"><div class="ph-title">📋 سجل الطلبات</div><div class="ph-sub">كل الحسابات السابقة</div></div>
-        <div class="ph-acts"><button class="btn btn-ghost btn-sm" onclick="exportHistory()"><i class="fas fa-file-excel"></i>Excel</button></div>
+        <div class="ph-acts"><button class="btn btn-ghost btn-sm" onclick="exportHistory()"><i class="fas fa-file-csv"></i>Excel</button></div>
       </div>
       <div class="sbar"><input class="sinput" id="h-q" type="text" placeholder="بحث..." oninput="renderHistory()"></div>
       <div class="card"><table class="tbl"><thead><tr><th>#</th><th>التاريخ</th><th>المنتج</th><th>الكمية</th><th>المستخدم</th><th>ملاحظة</th><th></th></tr></thead><tbody id="h-body"></tbody></table></div>
@@ -546,15 +546,12 @@ textarea.fc{resize:vertical;min-height:68px}
         <div class="ph-left"><div class="ph-title">🧪 المنتجات</div><div class="ph-sub">إدارة تركيبات المنتجات الزراعية</div></div>
         <div class="ph-acts">
           <button class="btn btn-ghost btn-sm perm-btn" data-perm="compare_products" onclick="openCompare()"><i class="fas fa-balance-scale"></i>مقارنة</button>
-          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-excel"></i>Excel</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-csv"></i>Excel</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_products" onclick="openPModal()"><i class="fas fa-plus"></i>منتج جديد</button>
         </div>
       </div>
       <div class="sbar">
         <input class="sinput" id="p-q" type="text" placeholder="بحث بالاسم أو الكود..." oninput="renderProducts()">
-        <select class="fc" id="p-type-f" style="width:140px" onchange="renderProducts()">
-          <option value="">كل الأنواع</option><option>سماد</option><option>مقوي</option><option>رش ورقي</option><option>هرمون</option><option>حشري</option><option>أخرى</option>
-        </select>
       </div>
       <div class="pgrid" id="pgrid"></div>
     </div>
@@ -603,7 +600,7 @@ textarea.fc{resize:vertical;min-height:68px}
         </div>
       </div>
       <div class="frow c4">
-        <div class="fg"><label class="fl">النوع</label><select class="fc" id="pp-type"><option>سماد</option><option>مقوي</option><option>رش ورقي</option><option>هرمون</option><option>حشري</option><option>أخرى</option></select></div>
+        <div class="fg"><label class="fl">اللون</label><input class="fc" id="pp-color" placeholder="مثال: أخضر، شفاف، أبيض..."></div>
         <div class="fg"><label class="fl">الكمية الأساسية</label><input type="number" class="fc" id="pp-bq" value="1000"></div>
         <div class="fg"><label class="fl">الوحدة</label><select class="fc" id="pp-unit"><option>لتر</option><option>كجم</option><option>جالون</option></select></div>
         <div class="fg"><label class="fl">pH</label><input type="number" class="fc" id="pp-ph" placeholder="7.0" step="0.1" min="0" max="14"></div>
@@ -1267,8 +1264,7 @@ function renderDashProducts() {
 // ══════════════════════════════════════════════
 function renderProducts() {
   const q=(document.getElementById('p-q')?.value||'').toLowerCase();
-  const tf=document.getElementById('p-type-f')?.value||'';
-  const items=_products.filter(p=>(!q||(p.name||'').toLowerCase().includes(q)||(p.code||'').includes(q))&&(!tf||p.type===tf));
+  const items=_products.filter(p=>(!q||(p.name||'').toLowerCase().includes(q)||(p.code||'').includes(q)));
   const cE=hasPerm('edit_products'), cD=hasPerm('delete_products');
 
   if (!items.length) {
@@ -1315,7 +1311,7 @@ window.showPDetail = id => {
         <div style="font-size:20px;font-weight:900;margin-bottom:7px;color:var(--g900)">${p.name}</div>
         <div class="dp">
           <div><div class="dp-lbl">الكود</div><div class="dp-val" style="font-family:monospace">#${p.code||p.id}</div></div>
-          <div><div class="dp-lbl">النوع</div><div class="dp-val"><span class="badge bg-green">${p.type||'—'}</span></div></div>
+          <div><div class="dp-lbl">اللون</div><div class="dp-val">${p.color||'—'}</div></div>
           <div><div class="dp-lbl">الكمية الأساسية</div><div class="dp-val">${p.baseQty||1000} ${p.unit||'لتر'}</div></div>
           <div><div class="dp-lbl">pH</div><div class="dp-val">${p.ph||'—'}</div></div>
           <div><div class="dp-lbl">الكثافة</div><div class="dp-val">${p.density||'—'} g/cm³</div></div>
@@ -1329,7 +1325,7 @@ window.showPDetail = id => {
   const cE=hasPerm('edit_products'),cD=hasPerm('delete_products');
   document.getElementById('pd-foot').innerHTML=`
     ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProduct('${p.id}')"><i class="fas fa-print"></i>طباعة</button>`:''}
-    ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-excel"></i>Excel</button>`:''}
+    ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-csv"></i>Excel</button>`:''}
     ${hasPerm('view_versions')?`<button class="btn btn-ghost" onclick="showVersions('${p.id}')"><i class="fas fa-history"></i>السجل</button>`:''}
     ${hasPerm('duplicate_products')?`<button class="btn btn-ghost" onclick="duplicateProd('${p.id}')"><i class="fas fa-copy"></i>نسخ</button>`:''}
     ${cE?`<button class="btn btn-gold" onclick="closeM('mo-pdetail');openPModal('${p.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
@@ -1351,7 +1347,7 @@ window.openPModal = (id=null) => {
     const p=_products.find(x=>x.id===id); if(!p)return;
     document.getElementById('pp-code').value=p.code||'';
     document.getElementById('pp-name').value=p.name||'';
-    document.getElementById('pp-type').value=p.type||'سماد';
+    document.getElementById('pp-color').value=p.color||'';
     document.getElementById('pp-bq').value=p.baseQty||1000;
     document.getElementById('pp-unit').value=p.unit||'لتر';
     document.getElementById('pp-ph').value=p.ph||'';
@@ -1365,7 +1361,7 @@ window.openPModal = (id=null) => {
     nextCode('products').then(c=>document.getElementById('pp-code').value=c);
     ['pp-name','pp-ph','pp-den','pp-sol','pp-rec'].forEach(f=>document.getElementById(f).value='');
     document.getElementById('pp-bq').value=1000;
-    document.getElementById('pp-type').value='سماد';
+    document.getElementById('pp-color').value='';
     document.getElementById('pp-unit').value='لتر';
     addIngRow();
   }
@@ -1412,7 +1408,7 @@ window.saveProd = async () => {
 
   const elements=[...document.querySelectorAll('#pp-elem-cbs .ecb:checked')].map(x=>x.value);
   const data={
-    name, type:document.getElementById('pp-type').value,
+    name, color:document.getElementById('pp-color').value,
     baseQty:parseFloat(document.getElementById('pp-bq').value)||1000,
     unit:document.getElementById('pp-unit').value,
     ph:document.getElementById('pp-ph').value,
@@ -1620,7 +1616,7 @@ window.showMDetail = id => {
   foot.innerHTML = '';
   const btns = [];
   if(hasPerm('print_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-print',     fn:()=>printMatDetail(mid2),  txt:'طباعة'});
-  if(hasPerm('export_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-file-excel', fn:()=>exportMatDetail(mid2), txt:'Excel'});
+  if(hasPerm('export_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-file-csv', fn:()=>exportMatDetail(mid2), txt:'Excel'});
   if(cE) btns.push({cls:'btn btn-gold', icon:'fa-edit', fn:()=>{closeM('mo-mdetail');openMModal(mid2);}, txt:'تعديل'});
   btns.push({cls:'btn btn-ghost', icon:'', fn:()=>closeM('mo-mdetail'), txt:'إغلاق'});
   btns.forEach(b=>{
@@ -1755,7 +1751,7 @@ window.doCalc = async () => {
         <div><div style="font-size:16px;font-weight:900">📊 نتيجة الحساب — ${p.name}</div><div style="font-size:12px;opacity:.7;margin-top:2px">${qty} ${p.unit||'لتر'} ${note?'| '+note:''}</div></div>
         <div style="display:flex;gap:6px">
           ${hasPerm('print_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="printCalc()"><i class="fas fa-print"></i>طباعة</button>`:''}
-          ${hasPerm('export_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportCalc()"><i class="fas fa-file-excel"></i>Excel</button>`:''}
+          ${hasPerm('export_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportCalc()"><i class="fas fa-file-csv"></i>Excel</button>`:''}
         </div>
       </div>
       <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية المطلوبة</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table>
@@ -1823,7 +1819,7 @@ window.showHDetail = id => {
   const hfoot=document.getElementById('hdetail-foot');
   hfoot.innerHTML='';
   if(hasPerm('print_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-print"></i>طباعة';b.onclick=printH;hfoot.insertBefore(b,hfoot.firstChild);}
-  if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-excel"></i>Excel';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
+  if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-csv"></i>Excel';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
   const closeBtn=document.createElement('button');closeBtn.className='btn btn-ghost';closeBtn.textContent='إغلاق';closeBtn.onclick=()=>closeM('mo-hdetail');hfoot.appendChild(closeBtn);
   openM('mo-hdetail');
 };
