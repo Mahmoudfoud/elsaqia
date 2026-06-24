@@ -19,6 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
 :root{
   --g900:#0d2818;--g800:#1a4a2e;--g700:#22622e;--g600:#2d7d42;--g500:#38a157;
@@ -403,11 +404,63 @@ textarea.fc{resize:vertical;min-height:68px}
 .ver-item{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid #edf3ee;align-items:flex-start}
 .ver-item:last-child{border-bottom:none}
 .ver-num{width:28px;height:28px;border-radius:50%;background:var(--g100);color:var(--g700);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;flex-shrink:0}
-.ver-body{flex:1}
-.ver-txt{font-size:12px;color:var(--e700);font-weight:600}
+.ver-body{flex:1}.ver-txt{font-size:12px;color:var(--e700);font-weight:600}
 .ver-meta{font-size:10px;color:var(--e400);margin-top:2px;display:flex;gap:10px;flex-wrap:wrap}
 .ver-restore{font-size:11px;color:var(--g600);font-weight:700;cursor:pointer;padding:2px 8px;border-radius:4px;border:1px solid var(--g300);background:#fff;transition:all .12s;white-space:nowrap}
 .ver-restore:hover{background:var(--g100)}
+/* ── SKELETON ── */
+.skeleton{background:linear-gradient(90deg,#f0f0f0 25%,#e0e0e0 50%,#f0f0f0 75%);background-size:200% 100%;animation:shimmer 1.4s infinite;border-radius:6px}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.sk-card{background:#fff;border:1px solid var(--border);border-radius:var(--r);overflow:hidden}
+.sk-img{height:120px}.sk-body{padding:11px 13px}.sk-line{height:12px;margin-bottom:8px}
+.sk-line.wide{width:80%}.sk-line.med{width:60%}.sk-line.short{width:40%}
+/* ── TOAST UNDO ── */
+.toast-undo-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.4);color:#fff;border-radius:5px;padding:2px 10px;font-family:'Cairo',sans-serif;font-size:11px;font-weight:700;cursor:pointer;margin-right:8px}
+.toast-undo-btn:hover{background:rgba(255,255,255,.35)}
+/* ── VIEW TOGGLE ── */
+.view-toggle{display:flex;border:1.5px solid var(--border);border-radius:var(--rs);overflow:hidden}
+.view-btn{padding:5px 9px;background:#fff;border:none;cursor:pointer;font-size:13px;color:var(--e400);transition:all .15s}
+.view-btn.active{background:var(--g700);color:#fff}
+.pgrid.compact{grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.pgrid.compact .pcard-img{height:80px}.pgrid.compact .pcard-body{padding:7px 9px}
+.pgrid.compact .pcard-name{font-size:12px}
+.pgrid.compact .pcard-elems,.pgrid.compact .pcard-meta{display:none}
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:48px 24px;color:var(--e400)}
+.empty-state-ic{font-size:52px;margin-bottom:14px;opacity:.3}
+.empty-state-title{font-size:16px;font-weight:700;color:var(--e600);margin-bottom:6px}
+.empty-state-sub{font-size:13px;margin-bottom:18px;line-height:1.6}
+/* ── BATCHES ── */
+.batch-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:all .18s;box-shadow:var(--shadow)}
+.batch-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);border-color:var(--g300)}
+.batch-ic{width:42px;height:42px;border-radius:10px;background:var(--g100);color:var(--g700);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.batch-info{flex:1}.batch-name{font-weight:700;font-size:14px;color:var(--g900)}
+.batch-meta{font-size:11px;color:var(--e400);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap}
+.batch-status{padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700}
+.bs-done{background:#dcfce7;color:#15803d}.bs-wip{background:#fef9c3;color:#ca8a04}.bs-plan{background:var(--blue-lt);color:var(--blue)}
+/* ── MATERIALS REPORT ── */
+.mat-report-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.mat-report-name{font-size:13px;font-weight:700;color:var(--g900);min-width:140px}
+.mat-report-track{flex:1;height:10px;background:#e8e4de;border-radius:5px;overflow:hidden}
+.mat-report-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--g600),var(--g400));transition:width .6s ease}
+.mat-report-val{font-size:12px;font-weight:700;color:var(--g600);min-width:50px;text-align:left}
+/* ── CALENDAR ── */
+.cal-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:0;border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px}
+.cal-month{border-left:1px solid var(--border);padding:4px 2px;text-align:center;font-size:10px;font-weight:700;color:var(--e400);background:#f8fcf8}
+.cal-month:first-child{border-left:none}
+.cal-cell{border-left:1px solid var(--border);border-top:1px solid var(--border);height:28px;cursor:pointer;transition:background .12s}
+.cal-cell:first-child{border-left:none}.cal-cell.active{background:var(--g500)}.cal-cell:hover{background:var(--g200)}
+.cal-prod-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.cal-prod-name{font-size:12px;font-weight:700;color:var(--g900);min-width:120px}
+/* ── TIMELINE ── */
+.tl-wrap{position:relative;padding-right:24px}
+.tl-wrap::before{content:'';position:absolute;right:11px;top:0;bottom:0;width:2px;background:var(--g200)}
+.tl-item{display:flex;gap:12px;margin-bottom:16px;position:relative;align-items:flex-start}
+.tl-dot{width:22px;height:22px;border-radius:50%;background:var(--g500);color:#fff;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;position:absolute;right:-11px;z-index:1;border:2px solid #fff;box-shadow:0 0 0 2px var(--g300)}
+.tl-content{flex:1;margin-right:24px;background:#fff;border:1px solid var(--border);border-radius:var(--rs);padding:10px 13px;box-shadow:var(--shadow)}
+.tl-title{font-size:13px;font-weight:700;color:var(--g900);margin-bottom:3px}
+.tl-meta{font-size:10px;color:var(--e400);display:flex;gap:10px;flex-wrap:wrap}
+.tl-badge{background:var(--g100);color:var(--g700);padding:1px 6px;border-radius:4px;font-size:10px;font-weight:700}
 </style>
 </head>
 <body>
@@ -492,6 +545,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="sb-grp-lbl" style="margin-top:6px">التصنيع</div>
       <div class="nav-link perm-nav" data-perm="view_products" data-page="products" onclick="goPage('products')"><i class="fas fa-flask"></i>المنتجات</div>
       <div class="nav-link perm-nav" data-perm="view_materials" data-page="materials" onclick="goPage('materials')"><i class="fas fa-box-open"></i>الخامات</div>
+      <div class="nav-link perm-nav" data-perm="view_products" data-page="batches" onclick="goPage('batches')"><i class="fas fa-industry"></i>سجل الدُفعات</div>
 
       <div class="sb-grp-lbl" style="margin-top:6px">الإدارة</div>
       <div class="nav-link admin-only" data-page="users" onclick="goPage('users')"><i class="fas fa-users-cog"></i>المستخدمين</div>
@@ -545,8 +599,12 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">🧪 المنتجات</div><div class="ph-sub">إدارة تركيبات المنتجات الزراعية</div></div>
         <div class="ph-acts">
+          <div class="view-toggle">
+            <button class="view-btn active" id="view-comfortable" onclick="setView('comfortable')" title="عرض مريح"><i class="fas fa-th-large"></i></button>
+            <button class="view-btn" id="view-compact" onclick="setView('compact')" title="عرض مضغوط"><i class="fas fa-th"></i></button>
+          </div>
           <button class="btn btn-ghost btn-sm perm-btn" data-perm="compare_products" onclick="openCompare()"><i class="fas fa-balance-scale"></i>مقارنة</button>
-          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-csv"></i>Excel</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-csv"></i>CSV</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_products" onclick="openPModal()"><i class="fas fa-plus"></i>منتج جديد</button>
         </div>
       </div>
@@ -556,11 +614,35 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="pgrid" id="pgrid"></div>
     </div>
 
+    <!-- BATCHES -->
+    <div class="page" id="page-batches">
+      <div class="ph">
+        <div class="ph-left"><div class="ph-title">🏭 سجل الدُفعات</div><div class="ph-sub">تتبع دفعات الإنتاج والتصنيع</div></div>
+        <div class="ph-acts">
+          <button class="btn btn-g btn-sm" onclick="openBatchModal()"><i class="fas fa-plus"></i>دفعة جديدة</button>
+        </div>
+      </div>
+      <div class="sbar">
+        <input class="sinput" id="b-q" type="text" placeholder="بحث بالمنتج..." oninput="renderBatches()">
+        <select class="fc" id="b-status-f" style="width:140px" onchange="renderBatches()">
+          <option value="">كل الحالات</option>
+          <option value="planned">مخططة</option>
+          <option value="in_progress">جاري التنفيذ</option>
+          <option value="done">مكتملة</option>
+        </select>
+      </div>
+      <div id="batches-list"></div>
+    </div>
+
     <!-- MATERIALS -->
     <div class="page" id="page-materials">
       <div class="ph">
         <div class="ph-left"><div class="ph-title">📦 الخامات</div><div class="ph-sub">المواد الخام والعناصر الكيميائية</div></div>
-        <div class="ph-acts"><button class="btn btn-g btn-sm perm-btn" data-perm="edit_materials" onclick="openMModal()"><i class="fas fa-plus"></i>خامة جديدة</button></div>
+        <div class="ph-acts">
+          <button class="btn btn-ghost btn-sm" onclick="showMatReport()"><i class="fas fa-chart-bar"></i>تقرير الاستهلاك</button>
+          <button class="btn btn-ghost btn-sm" onclick="showCalendar()"><i class="fas fa-calendar-alt"></i>تقويم الرش</button>
+          <button class="btn btn-g btn-sm perm-btn" data-perm="edit_materials" onclick="openMModal()"><i class="fas fa-plus"></i>خامة جديدة</button>
+        </div>
       </div>
       <div class="sbar"><input class="sinput" id="m-q" type="text" placeholder="بحث بالاسم أو الكود..." oninput="renderMaterials()"></div>
       <div class="card"><table class="tbl"><thead><tr><th>الكود</th><th>الاسم</th><th>الوحدة</th><th>العناصر</th><th>الكثافة</th><th>اللون</th><th></th></tr></thead><tbody id="m-body"></tbody></table></div>
@@ -1012,6 +1094,10 @@ function startListeners() {
       _auditItems = s.docs.map(d=>({id:d.id,...d.data()}));
       if(_page==='audit')     renderAudit();
       if(_page==='dashboard') renderDash();
+    }),
+    onSnapshot(query(collection(db,'batches'), orderBy('createdAt','desc')), s=>{
+      _batches = s.docs.map(d=>({id:d.id,...d.data()}));
+      if(_page==='batches') renderBatches();
     })
   );
 }
@@ -1049,6 +1135,7 @@ window.goPage = name => {
     materials:  renderMaterials,
     users:      renderUsers,
     audit:      renderAudit,
+    batches:    renderBatches,
   };
   renders[name]?.();
 };
@@ -1268,7 +1355,9 @@ function renderProducts() {
   const cE=hasPerm('edit_products'), cD=hasPerm('delete_products');
 
   if (!items.length) {
-    document.getElementById('pgrid').innerHTML=`<div class="empty" style="grid-column:1/-1"><i class="fas fa-flask"></i><p>لا توجد منتجات — أضف منتجاً جديداً</p></div>`;
+    document.getElementById('pgrid').innerHTML = _products.length===0
+      ? emptyState('🧪','لا توجد منتجات بعد','ابدأ بإضافة أول منتج للساقية','منتج جديد','openPModal()')
+      : `<div class="empty-state" style="grid-column:1/-1"><div class="empty-state-ic">🔍</div><div class="empty-state-title">لا توجد نتائج</div><div class="empty-state-sub">جرب تغيير مصطلح البحث</div></div>`;
     return;
   }
   document.getElementById('pgrid').innerHTML=items.map(p=>{
@@ -1278,7 +1367,7 @@ function renderProducts() {
       <div class="pcard-img">
         ${p.imageUrl?`<img src="${p.imageUrl}" onerror="this.style.display='none'">`:'🧪'}
         <span class="pcard-code">#${p.code||p.id}</span>
-        <span class="pcard-typetag"><span class="badge bg-green">${p.type||'—'}</span></span>
+        ${p.color?`<span class="pcard-typetag"><span class="badge bg-green">${p.color}</span></span>`:''}
       </div>
       <div class="pcard-body">
         <div class="pcard-name">${p.name}</div>
@@ -1324,9 +1413,12 @@ window.showPDetail = id => {
     ${renderAnalysis(p)}`;
   const cE=hasPerm('edit_products'),cD=hasPerm('delete_products');
   document.getElementById('pd-foot').innerHTML=`
+    ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProductCard('${p.id}')"><i class="fas fa-id-card"></i>PDF</button>`:''}
     ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProduct('${p.id}')"><i class="fas fa-print"></i>طباعة</button>`:''}
-    ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-csv"></i>Excel</button>`:''}
+    ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-csv"></i>CSV</button>`:''}
+    <button class="btn btn-ghost" onclick="showQR('${p.id}')"><i class="fas fa-qrcode"></i>QR</button>
     ${hasPerm('view_versions')?`<button class="btn btn-ghost" onclick="showVersions('${p.id}')"><i class="fas fa-history"></i>السجل</button>`:''}
+    ${hasPerm('view_versions')?`<button class="btn btn-ghost" onclick="closeM('mo-pdetail');showTimeline('${p.id}')"><i class="fas fa-stream"></i>Timeline</button>`:''}
     ${hasPerm('duplicate_products')?`<button class="btn btn-ghost" onclick="duplicateProd('${p.id}')"><i class="fas fa-copy"></i>نسخ</button>`:''}
     ${cE?`<button class="btn btn-gold" onclick="closeM('mo-pdetail');openPModal('${p.id}')"><i class="fas fa-edit"></i>تعديل</button>`:''}
     ${cD?`<button class="btn btn-red" onclick="closeM('mo-pdetail');confirmDel('product','${p.id}','${p.name.replace(/'/g,'')}')" ><i class="fas fa-trash"></i>حذف</button>`:''}
@@ -2145,6 +2237,369 @@ window.renderAudit     = renderAudit;
 window.renderDash      = renderDash;
 window.renderCalcOpts  = renderCalcOpts;
 window.renderDashProducts = renderDashProducts;
+window.renderBatches   = renderBatches;
+
+// ══════════════════════════════════════════════
+// SKELETON
+// ══════════════════════════════════════════════
+function showSkeleton(containerId, count=6) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = Array(count).fill(0).map(()=>`
+    <div class="sk-card">
+      <div class="sk-img skeleton"></div>
+      <div class="sk-body">
+        <div class="sk-line wide skeleton"></div>
+        <div class="sk-line med skeleton"></div>
+        <div class="sk-line short skeleton"></div>
+      </div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// TOAST UNDO
+// ══════════════════════════════════════════════
+window.toastUndo = (msg, undoFn) => {
+  const tc = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast t-ok';
+  t.innerHTML = `<i class="fas fa-check-circle"></i>${msg}<button class="toast-undo-btn">تراجع</button>`;
+  tc.appendChild(t);
+  let done = false;
+  t.querySelector('.toast-undo-btn').onclick = async () => {
+    if (done) return;
+    done = true;
+    t.remove();
+    await undoFn();
+    toast('تم التراجع', 'info');
+  };
+  setTimeout(() => { if (!done) t.remove(); }, 5000);
+};
+
+// ══════════════════════════════════════════════
+// COMPACT / COMFORTABLE VIEW
+// ══════════════════════════════════════════════
+let _viewMode = 'comfortable';
+window.setView = mode => {
+  _viewMode = mode;
+  const grid = document.getElementById('pgrid');
+  if (!grid) return;
+  if (mode === 'compact') {
+    grid.classList.add('compact');
+    document.getElementById('view-compact')?.classList.add('active');
+    document.getElementById('view-comfortable')?.classList.remove('active');
+  } else {
+    grid.classList.remove('compact');
+    document.getElementById('view-comfortable')?.classList.add('active');
+    document.getElementById('view-compact')?.classList.remove('active');
+  }
+};
+
+// ══════════════════════════════════════════════
+// EMPTY STATE
+// ══════════════════════════════════════════════
+function emptyState(icon, title, sub, btnLabel, btnFn) {
+  return `<div class="empty-state">
+    <div class="empty-state-ic">${icon}</div>
+    <div class="empty-state-title">${title}</div>
+    <div class="empty-state-sub">${sub}</div>
+    ${btnLabel ? `<button class="btn btn-g" onclick="${btnFn}"><i class="fas fa-plus"></i>${btnLabel}</button>` : ''}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// QR CODE
+// ══════════════════════════════════════════════
+window._qrProd = null;
+window.showQR = id => {
+  const p = _products.find(x=>x.id===id); if (!p) return;
+  window._qrProd = p;
+  document.getElementById('qr-title').textContent = 'QR — ' + p.name;
+  document.getElementById('qr-info').innerHTML = `<strong>${p.name}</strong><br>#${p.code||p.id}`;
+  const cont = document.getElementById('qr-container');
+  cont.innerHTML = '';
+  const url = `${location.origin}${location.pathname}?product=${p.code||p.id}`;
+  try {
+    new QRCode(cont, { text: url, width: 200, height: 200, colorDark:'#0d2818', colorLight:'#ffffff' });
+  } catch(e) {
+    cont.innerHTML = `<div style="font-size:11px;padding:16px;color:var(--e400)">${url}</div>`;
+  }
+  openM('mo-qr');
+};
+
+window.printQR = () => {
+  const p = window._qrProd; if (!p) return;
+  const canvas = document.getElementById('qr-container').querySelector('canvas');
+  const imgSrc = canvas ? canvas.toDataURL() : '';
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>QR — ${p.name}</title>
+  <style>body{font-family:Arial,sans-serif;text-align:center;padding:40px;direction:rtl}h2{color:#1a4a2e}img{border:1px solid #ddd;border-radius:8px;margin:16px auto;display:block}</style></head>
+  <body><h2>${p.name}</h2><p>#${p.code||p.id}</p>${imgSrc?`<img src="${imgSrc}" width="220">`:''}
+  <p style="font-size:11px;color:#888">الساقية — نظام إدارة التركيبات الزراعية</p></body></html>`);
+  w.document.close(); setTimeout(()=>w.print(),500);
+};
+
+// ══════════════════════════════════════════════
+// PDF CARD
+// ══════════════════════════════════════════════
+window.printProductCard = id => {
+  const p = _products.find(x=>x.id===id); if (!p) return;
+  const allElems = Object.assign({}, ELEMENTS, window._customElements||{});
+  const elemKeys = [...new Set([
+    ...(p.elements||[]),
+    ...(p.ingredients||[]).flatMap(ing=>{ const m=_materials.find(x=>x.id===ing.matId); return m?.elements||[]; })
+  ])].filter(k=>allElems[k]);
+  const elemHtml = elemKeys.map(k=>{
+    const el=allElems[k];
+    return `<span style="display:inline-block;background:${el.bg};color:${el.c};padding:3px 10px;border-radius:6px;font-size:12px;font-weight:700;margin:3px">${el.sym} ${el.name}</span>`;
+  }).join('');
+  const ingRows = (p.ingredients||[]).map(ing=>{
+    const m = _materials.find(x=>x.id===ing.matId);
+    return `<tr><td style="font-family:monospace">#${m?m.code||m.id:'—'}</td><td>${m?m.name:ing.matId}</td><td style="font-weight:700">${ing.qty}</td><td>${m?m.unit||'—':'—'}</td></tr>`;
+  }).join('');
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><title>بطاقة — ${p.name}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;direction:rtl;padding:20px}
+.card{border:2px solid #1a4a2e;border-radius:8px;padding:20px;max-width:700px;margin:0 auto}
+.header{display:flex;align-items:center;gap:16px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e8f5e9}
+.logo{width:50px;height:50px;border-radius:10px;background:linear-gradient(135deg,#22622e,#38a157);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.title{font-size:20px;font-weight:900;color:#1a4a2e}.code{font-size:12px;color:#666;margin-top:2px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.cell{background:#f5f9f5;border-radius:6px;padding:8px 10px}.cl{font-size:9px;color:#888}.cv{font-size:14px;font-weight:700;color:#1a4a2e}
+table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+th{background:#1a4a2e;color:#fff;padding:7px 10px;text-align:right}td{padding:6px 10px;border-bottom:1px solid #e8f5e9}
+.sec{font-size:11px;font-weight:700;color:#1a4a2e;margin:12px 0 6px}
+.footer{margin-top:16px;padding-top:10px;border-top:1px solid #e8f5e9;display:flex;justify-content:space-between;font-size:10px;color:#888}
+@media print{@page{size:A5 landscape;margin:10mm}}</style></head>
+<body><div class="card">
+  <div class="header">
+    <div class="logo">🌿</div>
+    <div><div class="title">${p.name}</div><div class="code">#${p.code||p.id} ${p.color?'| '+p.color:''}</div></div>
+    ${p.imageUrl?`<img src="${p.imageUrl}" style="width:55px;height:55px;border-radius:8px;object-fit:cover;border:1px solid #ddd;margin-right:auto">` :''}
+  </div>
+  <div class="grid">
+    <div class="cell"><div class="cl">الكمية الأساسية</div><div class="cv">${p.baseQty||1000} ${p.unit||'لتر'}</div></div>
+    <div class="cell"><div class="cl">pH</div><div class="cv">${p.ph||'—'}</div></div>
+    <div class="cell"><div class="cl">الكثافة</div><div class="cv">${p.density||'—'} g/cm³</div></div>
+    <div class="cell"><div class="cl">اللون</div><div class="cv">${p.color||'—'}</div></div>
+    <div class="cell"><div class="cl">عدد الخامات</div><div class="cv">${(p.ingredients||[]).length} خامة</div></div>
+    <div class="cell"><div class="cl">تاريخ الإنشاء</div><div class="cv">${p.createdAt?new Date(p.createdAt).toLocaleDateString('ar-EG'):'—'}</div></div>
+  </div>
+  ${elemHtml?`<div class="sec">العناصر الغذائية</div><div>${elemHtml}</div>`:''}
+  ${ingRows?`<div class="sec">التركيبة</div><table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>شكل الخامة</th></tr></thead><tbody>${ingRows}</tbody></table>`:''}
+  <div class="footer"><span>الساقية — نظام إدارة التركيبات الزراعية</span><span>طُبع: ${new Date().toLocaleString('ar-EG')}</span></div>
+</div></body></html>`);
+  w.document.close(); setTimeout(()=>w.print(),600);
+};
+
+// ══════════════════════════════════════════════
+// BATCHES
+// ══════════════════════════════════════════════
+
+function renderBatches() {
+  const q = (document.getElementById('b-q')?.value||'').toLowerCase();
+  const sf = document.getElementById('b-status-f')?.value||'';
+  const items = _batches.filter(b =>
+    (!q || (b.productName||'').toLowerCase().includes(q) || (b.note||'').toLowerCase().includes(q)) &&
+    (!sf || b.status===sf)
+  );
+  const el = document.getElementById('batches-list');
+  if (!el) return;
+  if (!items.length) {
+    el.innerHTML = emptyState('🏭','لا توجد دفعات بعد','سجّل دفعات الإنتاج لمتابعة التصنيع','أضف دفعة الآن','openBatchModal()');
+    return;
+  }
+  const statusMap = {
+    planned:{lbl:'مخططة',cls:'bs-plan'},
+    in_progress:{lbl:'جاري',cls:'bs-wip'},
+    done:{lbl:'مكتملة',cls:'bs-done'}
+  };
+  el.innerHTML = items.map(b => {
+    const s = statusMap[b.status||'done']||statusMap.done;
+    return `<div class="batch-card" onclick="showBatchDetail('${b.id}')">
+      <div class="batch-ic">🏭</div>
+      <div class="batch-info">
+        <div class="batch-name">${b.productName||'—'}</div>
+        <div class="batch-meta">
+          <span><i class="fas fa-weight" style="margin-left:3px"></i>${b.qty||0} ${b.unit||'لتر'}</span>
+          <span><i class="fas fa-calendar" style="margin-left:3px"></i>${b.date||fmtDate(b.ts||b.createdAt)}</span>
+          ${b.cost?`<span><i class="fas fa-pound-sign" style="margin-left:3px"></i>${b.cost} جنيه</span>`:''}
+          ${b.note?`<span>${b.note}</span>`:''}
+        </div>
+      </div>
+      <span class="batch-status ${s.cls}">${s.lbl}</span>
+    </div>`;
+  }).join('');
+}
+
+window.openBatchModal = (id=null) => {
+  _editBid = id;
+  document.getElementById('mb-title').textContent = id ? 'تعديل الدفعة' : 'دفعة إنتاج جديدة';
+  const opts = _products.map(p=>`<option value="${p.id}">${p.name} (#${p.code||p.id})</option>`).join('');
+  document.getElementById('mb-prod').innerHTML = '<option value="">— اختر منتج —</option>' + opts;
+  if (id) {
+    const b = _batches.find(x=>x.id===id); if (!b) return;
+    document.getElementById('mb-prod').value = b.productId||'';
+    document.getElementById('mb-qty').value = b.qty||'';
+    document.getElementById('mb-date').value = b.date||'';
+    document.getElementById('mb-status').value = b.status||'done';
+    document.getElementById('mb-note').value = b.note||'';
+    document.getElementById('mb-cost').value = b.cost||'';
+  } else {
+    ['mb-qty','mb-note','mb-cost'].forEach(f=>document.getElementById(f).value='');
+    document.getElementById('mb-date').value = new Date().toISOString().split('T')[0];
+    document.getElementById('mb-status').value = 'done';
+  }
+  openM('mo-batch');
+};
+
+window.saveBatch = async () => {
+  const prodId = document.getElementById('mb-prod').value;
+  const qty = parseFloat(document.getElementById('mb-qty').value);
+  if (!prodId) { toast('اختر المنتج','error'); return; }
+  if (!qty||qty<=0) { toast('أدخل كمية صحيحة','error'); return; }
+  const prod = _products.find(x=>x.id===prodId);
+  const data = {
+    productId:prodId, productName:prod?.name||'—', unit:prod?.unit||'لتر',
+    qty, date:document.getElementById('mb-date').value,
+    status:document.getElementById('mb-status').value,
+    note:document.getElementById('mb-note').value,
+    cost:parseFloat(document.getElementById('mb-cost').value)||0,
+    updatedAt:Date.now(), updatedBy:CU.email
+  };
+  SS('save');
+  try {
+    if (_editBid) {
+      await updateDoc(doc(db,'batches',_editBid), data);
+      toast('تم تعديل الدفعة','success');
+    } else {
+      await addDoc(collection(db,'batches'), {...data, createdAt:Date.now(), createdBy:CU.email});
+      toast('تم حفظ الدفعة','success');
+    }
+  } catch(e) { toast('خطأ: '+e.message,'error'); }
+  SS('on'); closeM('mo-batch');
+};
+
+window.showBatchDetail = id => {
+  const b = _batches.find(x=>x.id===id); if (!b) return;
+  const statusMap = {planned:'مخططة',in_progress:'جاري التنفيذ',done:'مكتملة'};
+  document.getElementById('bd-body').innerHTML = `
+    <div class="dp">
+      <div><div class="dp-lbl">المنتج</div><div class="dp-val">${b.productName||'—'}</div></div>
+      <div><div class="dp-lbl">الكمية</div><div class="dp-val">${b.qty} ${b.unit||'لتر'}</div></div>
+      <div><div class="dp-lbl">التاريخ</div><div class="dp-val">${b.date||'—'}</div></div>
+      <div><div class="dp-lbl">الحالة</div><div class="dp-val">${statusMap[b.status]||'—'}</div></div>
+      ${b.cost?`<div><div class="dp-lbl">التكلفة</div><div class="dp-val">${b.cost} جنيه</div></div>`:''}
+      ${b.note?`<div style="grid-column:1/-1"><div class="dp-lbl">ملاحظة</div><div class="dp-val">${b.note}</div></div>`:''}
+    </div>`;
+  document.getElementById('bd-foot').innerHTML = `
+    <button class="btn btn-gold" onclick="closeM('mo-bdetail');openBatchModal('${id}')"><i class="fas fa-edit"></i>تعديل</button>
+    <button class="btn btn-red" onclick="closeM('mo-bdetail');confirmDel('batch','${id}','هذه الدفعة')"><i class="fas fa-trash"></i>حذف</button>
+    <button class="btn btn-ghost" onclick="closeM('mo-bdetail')">إغلاق</button>`;
+  openM('mo-bdetail');
+};
+
+// ══════════════════════════════════════════════
+// MATERIALS REPORT
+// ══════════════════════════════════════════════
+window.showMatReport = () => {
+  const usage = {};
+  _products.forEach(p => {
+    (p.ingredients||[]).forEach(ing => {
+      const m = _materials.find(x=>x.id===ing.matId); if (!m) return;
+      if (!usage[m.id]) usage[m.id] = {name:m.name, code:m.code||m.id, total:0, prods:new Set()};
+      usage[m.id].total += ing.qty;
+      usage[m.id].prods.add(p.name);
+    });
+  });
+  const sorted = Object.values(usage).sort((a,b)=>b.total-a.total);
+  if (!sorted.length) {
+    document.getElementById('mat-report-body').innerHTML = emptyState('📊','لا توجد بيانات','أضف منتجات بخامات أولاً','','');
+    openM('mo-mat-report'); return;
+  }
+  const max = sorted[0].total;
+  document.getElementById('mat-report-body').innerHTML = `<div style="padding:16px">
+    <div style="font-size:12px;color:var(--e400);margin-bottom:14px">مجموع الكميات لكل خامة في تركيبات ${_products.length} منتج</div>
+    ${sorted.slice(0,20).map((m,i)=>`
+      <div class="mat-report-bar">
+        <div style="min-width:20px;font-size:11px;color:var(--e400);font-weight:700">${i+1}</div>
+        <div class="mat-report-name">${m.name}<br><span style="font-size:10px;color:var(--e400)">#${m.code} — ${m.prods.size} منتج</span></div>
+        <div class="mat-report-track"><div class="mat-report-fill" style="width:${Math.round(m.total/max*100)}%"></div></div>
+        <div class="mat-report-val">${m.total.toLocaleString()}</div>
+      </div>`).join('')}
+    </div>`;
+  openM('mo-mat-report');
+};
+
+// ══════════════════════════════════════════════
+// SEASONAL CALENDAR
+// ══════════════════════════════════════════════
+const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const _calSeasons = {};
+
+window.showCalendar = () => {
+  const types = [...new Set(_products.map(p=>p.color||'عام'))];
+  const monthHeader = `<div class="cal-grid">${MONTHS_AR.map(m=>`<div class="cal-month">${m.slice(0,3)}</div>`).join('')}</div>`;
+  const rows = types.map(type => {
+    if (!_calSeasons[type]) _calSeasons[type] = [3,4,5,9,10];
+    const cells = Array.from({length:12},(_,i)=>{
+      const on = _calSeasons[type].includes(i+1);
+      return `<div class="cal-cell${on?' active':''}" title="${MONTHS_AR[i]}" onclick="toggleCalCell(this,'${type}',${i+1})"></div>`;
+    }).join('');
+    return `<div class="cal-prod-row">
+      <div class="cal-prod-name">${type}</div>
+      <div class="cal-grid" style="flex:1;border:none">${cells}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('calendar-body').innerHTML = `<div style="padding:16px">
+    <div style="font-size:12px;color:var(--e400);margin-bottom:12px">اضغط على الخلية لتفعيل/إلغاء شهر الرش</div>
+    ${monthHeader}${rows||emptyState('🌱','لا توجد منتجات','','',' ')}
+    </div>`;
+  openM('mo-calendar');
+};
+
+window.toggleCalCell = (cell, type, month) => {
+  cell.classList.toggle('active');
+  if (!_calSeasons[type]) _calSeasons[type] = [];
+  const idx = _calSeasons[type].indexOf(month);
+  if (idx>=0) _calSeasons[type].splice(idx,1);
+  else _calSeasons[type].push(month);
+};
+
+// ══════════════════════════════════════════════
+// TIMELINE
+// ══════════════════════════════════════════════
+window.showTimeline = async id => {
+  const p = _products.find(x=>x.id===id); if (!p) return;
+  document.getElementById('tl-title').textContent = '📅 تطور المنتج: ' + p.name;
+  document.getElementById('tl-body').innerHTML = '<div style="text-align:center;padding:30px"><i class="fas fa-spinner fa-spin" style="font-size:22px;color:var(--g500)"></i></div>';
+  openM('mo-timeline');
+  try {
+    const snap = await getDocs(query(collection(db,'products',id,'versions'), orderBy('savedAt','desc')));
+    const vers = snap.docs.map(d=>({id:d.id,...d.data()}));
+    const all = [
+      {savedAt:p.updatedAt||p.createdAt, savedBy:p.updatedBy||p.createdBy||'—', versionNote:'الإصدار الحالي', isCurrent:true},
+      ...vers
+    ];
+    document.getElementById('tl-body').innerHTML = `<div class="tl-wrap">` +
+      all.map((v,i) => {
+        const icon = v.isCurrent ? 'fa-check-circle' : i===all.length-1 ? 'fa-plus-circle' : 'fa-edit';
+        const color = v.isCurrent ? 'var(--g700)' : '#6b7280';
+        return `<div class="tl-item">
+          <div class="tl-dot" style="background:${color}"><i class="fas ${icon}" style="font-size:9px"></i></div>
+          <div class="tl-content">
+            <div class="tl-title">${v.versionNote||'تعديل'} ${v.isCurrent?'<span class="tl-badge">الحالي</span>':''}</div>
+            <div class="tl-meta">
+              <span><i class="fas fa-user" style="margin-left:3px"></i>${v.savedBy||'—'}</span>
+              <span><i class="fas fa-clock" style="margin-left:3px"></i>${fmtDate(v.savedAt)}</span>
+            </div>
+          </div>
+        </div>`;
+      }).join('') + `</div>`;
+  } catch(e) {
+    document.getElementById('tl-body').innerHTML = emptyState('⚠️','خطأ في التحميل',e.message,'','');
+  }
+};
 
 // ══════════════════════════════════════════════
 // AUTOCOMPLETE — اسم الخامة
@@ -2671,6 +3126,86 @@ window.exportMatDetail = id => {
     <div class="mh"><span class="mh-title" id="ver-title">📜 سجل التعديلات</span><button class="mclose" onclick="closeM('mo-versions')">×</button></div>
     <div class="mb" id="ver-body" style="padding:0;min-height:200px"></div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-versions')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- QR Modal -->
+<div class="overlay" id="mo-qr">
+  <div class="modal" style="max-width:340px">
+    <div class="mh"><span class="mh-title" id="qr-title">QR كود المنتج</span><button class="mclose" onclick="closeM('mo-qr')">×</button></div>
+    <div class="mb" style="text-align:center">
+      <div id="qr-container" style="display:inline-block;padding:16px;background:#fff;border-radius:12px;border:1px solid var(--border)"></div>
+      <div id="qr-info" style="margin-top:12px;font-size:12px;color:var(--e400)"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="printQR()"><i class="fas fa-print"></i>طباعة</button>
+      <button class="btn btn-ghost" onclick="closeM('mo-qr')">إغلاق</button>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Modal -->
+<div class="overlay" id="mo-batch">
+  <div class="modal lg">
+    <div class="mh"><span class="mh-title" id="mb-title">دفعة إنتاج جديدة</span><button class="mclose" onclick="closeM('mo-batch')">×</button></div>
+    <div class="mb">
+      <div class="frow c2">
+        <div class="fg"><label class="fl">المنتج *</label><select class="fc" id="mb-prod"><option value="">— اختر —</option></select></div>
+        <div class="fg"><label class="fl">الكمية المنتجة *</label><input type="number" class="fc" id="mb-qty" placeholder="1000" min="1"></div>
+      </div>
+      <div class="frow c2">
+        <div class="fg"><label class="fl">تاريخ الإنتاج</label><input type="date" class="fc" id="mb-date"></div>
+        <div class="fg"><label class="fl">الحالة</label>
+          <select class="fc" id="mb-status">
+            <option value="planned">مخططة</option>
+            <option value="in_progress">جاري التنفيذ</option>
+            <option value="done">مكتملة</option>
+          </select>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">رقم الدفعة / ملاحظة</label><input class="fc" id="mb-note" placeholder="BATCH-001..."></div>
+      <div class="fg"><label class="fl">تكلفة الدفعة (جنيه)</label><input type="number" class="fc" id="mb-cost" placeholder="0" min="0"></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeM('mo-batch')">إلغاء</button>
+      <button class="btn btn-g" onclick="saveBatch()"><i class="fas fa-save"></i>حفظ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Batch Detail Modal -->
+<div class="overlay" id="mo-bdetail">
+  <div class="modal lg">
+    <div class="mh"><span class="mh-title">تفاصيل الدفعة</span><button class="mclose" onclick="closeM('mo-bdetail')">×</button></div>
+    <div class="mb" id="bd-body"></div>
+    <div class="mf" id="bd-foot"></div>
+  </div>
+</div>
+
+<!-- Materials Report Modal -->
+<div class="overlay" id="mo-mat-report">
+  <div class="modal lg">
+    <div class="mh"><span class="mh-title">📊 تقرير استهلاك الخامات</span><button class="mclose" onclick="closeM('mo-mat-report')">×</button></div>
+    <div class="mb" id="mat-report-body" style="min-height:200px"></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-mat-report')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- Seasonal Calendar Modal -->
+<div class="overlay" id="mo-calendar">
+  <div class="modal xl">
+    <div class="mh"><span class="mh-title">🌱 تقويم الرش الموسمي</span><button class="mclose" onclick="closeM('mo-calendar')">×</button></div>
+    <div class="mb" id="calendar-body" style="min-height:300px"></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-calendar')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- Timeline Modal -->
+<div class="overlay" id="mo-timeline">
+  <div class="modal lg">
+    <div class="mh"><span class="mh-title" id="tl-title">📅 Timeline المنتج</span><button class="mclose" onclick="closeM('mo-timeline')">×</button></div>
+    <div class="mb" id="tl-body" style="min-height:200px;padding:20px 24px"></div>
+    <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-timeline')">إغلاق</button></div>
   </div>
 </div>
 
