@@ -1324,7 +1324,7 @@ window.showPDetail = id => {
       </div>
     </div>
     ${p.recommendations?`<div style="margin-bottom:14px"><div class="dp-lbl" style="margin-bottom:4px">التوصيات الزراعية</div><p style="font-size:13px;line-height:1.7;color:var(--e700)">${p.recommendations}</p></div>`:''}
-    ${rows?`<div style="margin-bottom:14px"><div class="dp-lbl" style="margin-bottom:7px">التركيبة (${(p.ingredients||[]).length} خامة)</div><table class="tbl" style="border:1px solid var(--border);border-radius:8px"><thead><tr><th>الكود</th><th>الخامة</th><th>شكل الخامة</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
+    ${rows?`<div style="margin-bottom:14px"><div class="dp-lbl" style="margin-bottom:7px">التركيبة (${(p.ingredients||[]).length} خامة)</div><table class="tbl" style="border:1px solid var(--border);border-radius:8px"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>شكل الخامة</th></tr></thead><tbody>${rows}</tbody></table></div>`:''}
     ${renderAnalysis(p)}`;
   const cE=hasPerm('edit_products'),cD=hasPerm('delete_products');
   document.getElementById('pd-foot').innerHTML=`
