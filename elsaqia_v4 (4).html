@@ -1916,15 +1916,16 @@ window.doCalc = async () => {
 
   SS('save');
   try {
-    for(const it of _calcItems) {
-      const r=allResults.find(x=>x.prod.id===it.prodId); if(!r) continue;
-      await addDoc(collection(db,'history'),{
-        productId:r.prod.id, productName:r.prod.name, qty:it.qty,
-        unit:r.prod.unit||'لتر', note, result:r.rows,
-        user:CU.email, userName:CU.displayName||CU.email, ts:Date.now()
-      });
-    }
-    const names=_calcItems.map(x=>x.prodName).join(' + ');
+    const names = _calcItems.map(x=>`${x.prodName} (${x.qty} ${x.unit})`).join(' + ');
+    await addDoc(collection(db,'history'),{
+      productName: names,
+      qty: _calcItems.length,
+      unit: 'منتج',
+      note,
+      result: Object.values(merged).map(m=>({name:m.name, code:m.code, unit:m.unit, needed:m.total.toFixed(3)})),
+      items: _calcItems.map(it=>({prodName:it.prodName, qty:it.qty, unit:it.unit})),
+      user: CU.email, userName: CU.displayName||CU.email, ts: Date.now()
+    });
     await audit('calc',`حسب ${CU.displayName||CU.email}: ${names}`);
   } catch(e){}
   SS('on');
@@ -2054,12 +2055,27 @@ function renderHistory() {
 window.showHDetail = id => {
   const h=_history.find(x=>x.id===id); if(!h)return;
   const rows=(h.result||[]).map(r=>`<tr><td style="font-family:monospace;color:var(--g500)">#${r.code}</td><td style="font-weight:600">${r.name}</td><td style="font-weight:900;color:var(--g700);font-size:15px">${r.needed}</td><td>${r.unit}</td></tr>`).join('');
-  document.getElementById('hd-body').innerHTML=`<div style="margin-bottom:14px"><div style="font-size:18px;font-weight:900">${h.productName}</div><div style="font-size:11px;color:var(--e400);margin-top:3px">${fmtDate(h.ts)} | ${h.userName||h.user} | ${h.qty} ${h.unit} ${h.note?'| '+h.note:''}</div></div><table class="tbl" style="border:1px solid var(--border);border-radius:8px"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table>`;
+  // لو طلب مجمع من أكثر من منتج
+  const itemsHtml = h.items?.length>0
+    ? `<div style="background:#f0f7f0;border:1px solid var(--g200);border-radius:8px;padding:10px 14px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">المنتجات المكوّنة للطلبية:</div>
+        ${h.items.map(it=>`<span style="display:inline-block;background:#fff;border:1px solid var(--g300);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--g800);margin:2px">${it.prodName} — ${it.qty} ${it.unit}</span>`).join('')}
+      </div>` : '';
+  document.getElementById('hd-body').innerHTML=`
+    <div style="margin-bottom:14px">
+      <div style="font-size:18px;font-weight:900">${h.productName}</div>
+      <div style="font-size:11px;color:var(--e400);margin-top:3px">${fmtDate(h.ts)} | ${h.userName||h.user} ${h.note?'| '+h.note:''}</div>
+    </div>
+    ${itemsHtml}
+    <table class="tbl" style="border:1px solid var(--border);border-radius:8px">
+      <thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
   window._printH=h;
   const hfoot=document.getElementById('hdetail-foot');
   hfoot.innerHTML='';
   if(hasPerm('print_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-print"></i>طباعة';b.onclick=printH;hfoot.insertBefore(b,hfoot.firstChild);}
-  if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-csv"></i>Excel';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
+  if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-csv"></i>CSV';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
   const closeBtn=document.createElement('button');closeBtn.className='btn btn-ghost';closeBtn.textContent='إغلاق';closeBtn.onclick=()=>closeM('mo-hdetail');hfoot.appendChild(closeBtn);
   openM('mo-hdetail');
 };
