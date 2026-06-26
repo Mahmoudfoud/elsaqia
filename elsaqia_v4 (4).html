@@ -20,6 +20,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --g900:#0d2818;--g800:#1a4a2e;--g700:#22622e;--g600:#2d7d42;--g500:#38a157;
@@ -596,7 +597,7 @@ textarea.fc{resize:vertical;min-height:68px}
     <div class="page" id="page-history">
       <div class="ph">
         <div class="ph-left"><div class="ph-title">📋 سجل الطلبات</div><div class="ph-sub">كل الحسابات السابقة</div></div>
-        <div class="ph-acts"><button class="btn btn-ghost btn-sm" onclick="exportHistory()"><i class="fas fa-file-csv"></i>Excel</button></div>
+        <div class="ph-acts"><button class="btn btn-ghost btn-sm" onclick="exportHistory()"><i class="fas fa-file-excel"></i>Excel</button></div>
       </div>
       <div class="sbar"><input class="sinput" id="h-q" type="text" placeholder="بحث..." oninput="renderHistory()"></div>
       <div class="card"><table class="tbl"><thead><tr><th>#</th><th>التاريخ</th><th>المنتج</th><th>الكمية</th><th>المستخدم</th><th>ملاحظة</th><th></th></tr></thead><tbody id="h-body"></tbody></table></div>
@@ -612,7 +613,7 @@ textarea.fc{resize:vertical;min-height:68px}
             <button class="view-btn" id="view-compact" onclick="setView('compact')" title="عرض مضغوط"><i class="fas fa-th"></i></button>
           </div>
           <button class="btn btn-ghost btn-sm perm-btn" data-perm="compare_products" onclick="openCompare()"><i class="fas fa-balance-scale"></i>مقارنة</button>
-          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-csv"></i>CSV</button>
+          <button class="btn btn-ghost btn-sm perm-btn" data-perm="export_excel" onclick="exportProducts()"><i class="fas fa-file-excel"></i>Excel</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_products" onclick="openPModal()"><i class="fas fa-plus"></i>منتج جديد</button>
         </div>
       </div>
@@ -921,6 +922,14 @@ const PERMS_DEF = [
   {k:'delete_batches',   l:'حذف دفعات'},
   {k:'view_mat_report',  l:'عرض تقرير الخامات'},
   {k:'view_calendar',    l:'عرض تقويم الرش'},
+  {k:'print_products',   l:'طباعة المنتجات'},
+  {k:'export_products',  l:'تصدير المنتجات'},
+  {k:'print_materials',  l:'طباعة الخامات'},
+  {k:'export_materials', l:'تصدير الخامات'},
+  {k:'print_calc',       l:'طباعة الحاسبة'},
+  {k:'export_calc',      l:'تصدير الحاسبة'},
+  {k:'print_history',    l:'طباعة السجل'},
+  {k:'export_history',   l:'تصدير السجل'},
 ];
 const ADMIN_PERMS = Object.fromEntries(PERMS_DEF.map(p=>[p.k,true]));
 
@@ -1067,12 +1076,14 @@ function startListeners() {
   _unsubs.push(
     onSnapshot(query(collection(db,'products'), orderBy('createdAt','desc')), s=>{
       _products = s.docs.map(d=>({id:d.id,...d.data()}));
+      _analyzeCache.clear();
       if(_page==='products') renderProducts();
       if(_page==='calc')     renderCalcOpts();
       renderDashStats();
     }),
     onSnapshot(query(collection(db,'materials'), orderBy('createdAt','desc')), s=>{
       _materials = s.docs.map(d=>({id:d.id,...d.data()}));
+      _analyzeCache.clear();
       if(_page==='materials') renderMaterials();
       renderDashStats();
     }),
@@ -1192,7 +1203,21 @@ const INCOMPAT = [
   ['Cu','Zn','تنافس بين النحاس والزنك على الامتصاص'],
 ];
 
+// Cache للتحليل الزراعي — يتمسح لما تتغير المواد
+const _analyzeCache = new Map();
+window._clearAnalyzeCache = () => _analyzeCache.clear();
+
 function analyzeProduct(prod) {
+  if (!prod) return null;
+  // مفتاح الكاش = id + آخر تعديل + عدد الخامات
+  const cacheKey = (prod.id||prod.name) + '_' + (prod.updatedAt||0) + '_' + (prod.ingredients||[]).length;
+  if (_analyzeCache.has(cacheKey)) return _analyzeCache.get(cacheKey);
+  const _result = _analyzeProductRaw(prod);
+  _analyzeCache.set(cacheKey, _result);
+  return _result;
+}
+
+function _analyzeProductRaw(prod) {
   const qty = {}, used = new Set();
   let total = 0;
   (prod.ingredients||[]).forEach(ing=>{
@@ -1429,7 +1454,7 @@ window.showPDetail = id => {
   document.getElementById('pd-foot').innerHTML=`
     ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProductCard('${p.id}')"><i class="fas fa-id-card"></i>PDF</button>`:''}
     ${hasPerm('print_products')?`<button class="btn btn-ghost" onclick="printProduct('${p.id}')"><i class="fas fa-print"></i>طباعة</button>`:''}
-    ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-csv"></i>CSV</button>`:''}
+    ${hasPerm('export_products')?`<button class="btn btn-ghost" onclick="exportProduct('${p.id}')"><i class="fas fa-file-excel"></i>Excel</button>`:''}
     <button class="btn btn-ghost" onclick="showQR('${p.id}')"><i class="fas fa-qrcode"></i>QR</button>
     ${hasPerm('view_versions')?`<button class="btn btn-ghost" onclick="showVersions('${p.id}')"><i class="fas fa-history"></i>السجل</button>`:''}
     ${hasPerm('view_versions')?`<button class="btn btn-ghost" onclick="closeM('mo-pdetail');showTimeline('${p.id}')"><i class="fas fa-stream"></i>Timeline</button>`:''}
@@ -1550,13 +1575,27 @@ window.saveProd = async () => {
 
 window.exportProducts = () => {
   if(!hasPerm('export_products')){toast('ليس لديك صلاحية تصدير المنتجات','error');return;}
-  let csv='الكود,الاسم,النوع,الكمية الأساسية,الوحدة,عدد الخامات,العناصر\n';
+  const wb = XLSX.utils.book_new();
+  const summaryData = [['الكود','الاسم','اللون','الكمية الأساسية','الوحدة','عدد الخامات','العناصر']];
   _products.forEach(p=>{
-    const elems=(p.ingredients||[]).flatMap(ing=>{const m=_materials.find(x=>x.id===ing.matId);return m?.elements||[];});
-    const eu=[...new Set(elems)].map(k=>ELEMENTS[k]?.name||k).join(' | ');
-    csv+=`"${p.code}","${p.name}","${p.type}","${p.baseQty}","${p.unit}","${(p.ingredients||[]).length}","${eu}"\n`;
+    const elems=[...new Set((p.ingredients||[]).flatMap(ing=>{const m=_materials.find(x=>x.id===ing.matId);return m?.elements||[];}))].map(k=>ELEMENTS[k]?.name||k).join(' | ');
+    summaryData.push([p.code||p.id, p.name, p.color||'', p.baseQty||1000, p.unit||'لتر', (p.ingredients||[]).length, elems]);
   });
-  dlCSV(csv,'products.csv');
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+  wsSummary['!cols'] = [{wch:10},{wch:30},{wch:15},{wch:15},{wch:10},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'المنتجات');
+  const ingData = [['كود المنتج','اسم المنتج','كود الخامة','اسم الخامة','الكمية','شكل الخامة']];
+  _products.forEach(p=>{
+    (p.ingredients||[]).forEach(ing=>{
+      const m=_materials.find(x=>x.id===ing.matId);
+      ingData.push([p.code||p.id, p.name, m?m.code||m.id:'—', m?m.name:ing.matId, ing.qty, m?m.unit||'—':'—']);
+    });
+  });
+  const wsIng = XLSX.utils.aoa_to_sheet(ingData);
+  wsIng['!cols'] = [{wch:10},{wch:30},{wch:12},{wch:30},{wch:10},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, wsIng, 'التركيبات');
+  XLSX.writeFile(wb, 'المنتجات_الساقية_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
+  toast('تم تصدير Excel بنجاح','success');
 };
 
 // ══════════════════════════════════════════════
@@ -1722,7 +1761,7 @@ window.showMDetail = id => {
   foot.innerHTML = '';
   const btns = [];
   if(hasPerm('print_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-print',     fn:()=>printMatDetail(mid2),  txt:'طباعة'});
-  if(hasPerm('export_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-file-csv', fn:()=>exportMatDetail(mid2), txt:'Excel'});
+  if(hasPerm('export_materials')) btns.push({cls:'btn btn-ghost', icon:'fa-file-excel', fn:()=>exportMatDetail(mid2), txt:'Excel'});
   if(cE) btns.push({cls:'btn btn-gold', icon:'fa-edit', fn:()=>{closeM('mo-mdetail');openMModal(mid2);}, txt:'تعديل'});
   btns.push({cls:'btn btn-ghost', icon:'', fn:()=>closeM('mo-mdetail'), txt:'إغلاق'});
   btns.forEach(b=>{
@@ -1821,10 +1860,15 @@ let _calcItems = []; // [{prod, qty}]
 
 function renderCalcOpts() {
   const sel=document.getElementById('c-prod');
+  if(!sel)return;
   const cur=sel.value;
   sel.innerHTML='<option value="">-- اختر المنتج --</option>'+_products.map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${p.name}</option>`).join('');
   calcPChange();
   renderCalcItemsList();
+  // استعادة نتيجة الحساب السابقة لو موجودة
+  if(window._lastCalcHtml && document.getElementById('calc-result')) {
+    document.getElementById('calc-result').innerHTML = window._lastCalcHtml;
+  }
 }
 
 window.calcPChange = () => {
@@ -1856,6 +1900,7 @@ window.clearCalcItems = () => {
   _calcItems=[];
   renderCalcItemsList();
   document.getElementById('calc-result').innerHTML='';
+  window._lastCalcHtml='';
 };
 
 function renderCalcItemsList() {
@@ -1952,7 +1997,7 @@ window.doCalc = async () => {
         <div style="font-size:12px;opacity:.7;margin-top:2px">${_calcItems.map(x=>x.prodName+' ('+x.qty+' '+x.unit+')').join(' + ')} ${note?'| '+note:''}</div></div>
         <div style="display:flex;gap:6px">
           ${hasPerm('print_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="printCalc()"><i class="fas fa-print"></i>طباعة</button>`:''}
-          ${hasPerm('export_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportCalc()"><i class="fas fa-file-csv"></i>CSV</button>`:''}
+          ${hasPerm('export_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportCalc()"><i class="fas fa-file-excel"></i>Excel</button>`:''}
         </div>
       </div>
       <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية الإجمالية</th><th>الوحدة</th><th>التفاصيل</th></tr></thead><tbody>${mRows}</tbody></table>
@@ -1977,6 +2022,7 @@ window.doCalc = async () => {
 
   document.getElementById('calc-result').innerHTML=html;
   window._lastCalc={items:_calcItems, allResults, merged:Object.values(merged), note};
+  window._lastCalcHtml=html;
   renderCalcItemsList();
   toast('تم الحساب بنجاح','success');
 };
@@ -2004,30 +2050,25 @@ window.printCalc = () => {
 window.exportCalc = () => {
   if(!hasPerm('export_calc')){toast('ليس لديك صلاحية التصدير','error');return;}
   const r=window._lastCalc; if(!r){toast('لا توجد نتيجة','error');return;}
-  const NL=String.fromCharCode(10);
-  let csv='﻿';
-  // إجمالي مجمع
-  if(r.allResults.length>1){
-    csv+=`المنتجات,${r.items.map(x=>x.prodName+' ('+x.qty+' '+x.unit+')').join(' + ')}${NL}`;
-    if(r.note) csv+=`ملاحظة,${r.note}${NL}`;
-    csv+=NL+'=== الإجمالي المجمع ==='+NL;
-    csv+='"الكود","الخامة","الكمية الإجمالية","الوحدة"'+NL;
-    r.merged.forEach(m=>{ csv+=`"#${m.code}","${m.name}","${m.total.toFixed(3)}","${m.unit}"${NL}`; });
-    csv+=NL;
-  }
-  // كل منتج
-  r.allResults.forEach(res=>{
-    csv+=`=== ${res.prod.name} — ${res.qty} ${res.prod.unit||'لتر'} ===${NL}`;
-    csv+='"الكود","الخامة","الكمية","الوحدة"'+NL;
-    res.rows.forEach(x=>{ csv+=`"#${x.code}","${x.name}","${x.needed}","${x.unit}"${NL}`; });
-    csv+=NL;
+  const wb = XLSX.utils.book_new();
+  // ورقة الإجمالي المجمع فقط
+  const mergedData = [['الكود','الخامة','الكمية الإجمالية','شكل الخامة','التفاصيل']];
+  r.merged.forEach(m=>{
+    const det = m.prods.length>1 ? m.prods.map(p=>p.name+': '+p.qty).join(' + ') : '—';
+    mergedData.push(['#'+m.code, m.name, parseFloat(m.total.toFixed(3)), m.unit, det]);
   });
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download=`حساب_${new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')}.csv`;
-  a.click();
-  toast('تم التصدير','success');
+  const wsMerged = XLSX.utils.aoa_to_sheet(mergedData);
+  wsMerged['!cols'] = [{wch:12},{wch:30},{wch:18},{wch:15},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, wsMerged, 'الإجمالي المجمع');
+  // ورقة تفاصيل المنتجات المطلوبة
+  const infoData = [['المنتجات', r.items.map(x=>x.prodName+' ('+x.qty+' '+x.unit+')').join(' + ')]];
+  if(r.note) infoData.push(['ملاحظة', r.note]);
+  infoData.push(['التاريخ', new Date().toLocaleDateString('ar-EG')]);
+  const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+  wsInfo['!cols'] = [{wch:15},{wch:60}];
+  XLSX.utils.book_append_sheet(wb, wsInfo, 'تفاصيل الطلب');
+  XLSX.writeFile(wb, 'حساب_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
+  toast('تم تصدير Excel بنجاح','success');
 };
 
 // ══════════════════════════════════════════════
@@ -2075,7 +2116,7 @@ window.showHDetail = id => {
   const hfoot=document.getElementById('hdetail-foot');
   hfoot.innerHTML='';
   if(hasPerm('print_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-print"></i>طباعة';b.onclick=printH;hfoot.insertBefore(b,hfoot.firstChild);}
-  if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-csv"></i>CSV';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
+  if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-excel"></i>Excel';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
   const closeBtn=document.createElement('button');closeBtn.className='btn btn-ghost';closeBtn.textContent='إغلاق';closeBtn.onclick=()=>closeM('mo-hdetail');hfoot.appendChild(closeBtn);
   openM('mo-hdetail');
 };
@@ -2103,26 +2144,41 @@ window.printProduct = id => {
 window.exportProduct = id => {
   if(!hasPerm('export_products')){toast('ليس لديك صلاحية التصدير','error');return;}
   const p=_products.find(x=>x.id===id); if(!p)return;
-  const NL=String.fromCharCode(10);
-  let csv='﻿';
-  csv+='"البيان","القيمة"'+NL;
-  [['الكود',p.code||p.id],['الاسم',p.name],['النوع',p.type||''],
-   ['الكمية الأساسية',(p.baseQty||1000)+' '+(p.unit||'لتر')],
-   ['pH',p.ph||''],['الكثافة',p.density||''],['الذوبانية',p.solubility||'']
-  ].forEach(([k,v])=>{ csv+='"'+k+'","'+v+'"'+NL; });
+  const wb = XLSX.utils.book_new();
+  // ورقة البيانات الأساسية
+  const infoData = [
+    ['البيان','القيمة'],
+    ['الكود', p.code||p.id],
+    ['الاسم', p.name],
+    ['اللون', p.color||''],
+    ['الكمية الأساسية', (p.baseQty||1000)+' '+(p.unit||'لتر')],
+    ['pH', p.ph||''],
+    ['الكثافة g/cm³', p.density||''],
+    ['الذوبانية %', p.solubility||''],
+  ];
+  const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+  wsInfo['!cols'] = [{wch:20},{wch:30}];
+  XLSX.utils.book_append_sheet(wb, wsInfo, 'البيانات');
+  // ورقة التركيبة — الوحدة = وحدة الكمية من المنتج (لتر/كجم)، شكل الخامة عمود منفصل
   if((p.ingredients||[]).length){
-    csv+=NL+'"كود الخامة","اسم الخامة","الكمية","الوحدة"'+NL;
+    const ingData = [['كود الخامة','اسم الخامة','الكمية','الوحدة','شكل الخامة']];
     (p.ingredients||[]).forEach(ing=>{
       const m=_materials.find(x=>x.id===ing.matId);
-      csv+='"#'+(m?m.code||m.id:'—')+'","'+(m?m.name:ing.matId)+'","'+ing.qty+'","'+(m?m.unit||'—':'—')+'"'+NL;
+      // الوحدة = وحدة المنتج (لتر/كجم)، شكل الخامة = m.unit (سائل/مسحوق/إلخ)
+      ingData.push([
+        '#'+(m?m.code||m.id:'—'),
+        m?m.name:ing.matId,
+        ing.qty,
+        p.unit||'لتر',
+        m?m.unit||'—':'—'
+      ]);
     });
+    const wsIng = XLSX.utils.aoa_to_sheet(ingData);
+    wsIng['!cols'] = [{wch:12},{wch:30},{wch:10},{wch:10},{wch:15}];
+    XLSX.utils.book_append_sheet(wb, wsIng, 'التركيبة');
   }
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='منتج_'+p.name+'_'+(p.code||p.id)+'.csv';
-  a.click();
-  toast('تم تصدير المنتج','success');
+  XLSX.writeFile(wb, 'منتج_'+p.name+'_'+(p.code||p.id)+'.xlsx');
+  toast('تم تصدير المنتج Excel','success');
 };
 
 window.printH = () => {
@@ -2137,28 +2193,36 @@ window.printH = () => {
 window.exportHistoryItem = id => {
   if(!hasPerm('export_history')){toast('ليس لديك صلاحية التصدير','error');return;}
   const h=_history.find(x=>x.id===id); if(!h)return;
-  const NL=String.fromCharCode(10);
-  let csv='﻿';
-  csv+='"المنتج","'+h.productName+'"'+NL;
-  csv+='"الكمية","'+h.qty+' '+(h.unit||'')+'"'+NL;
-  csv+='"التاريخ","'+new Date(h.ts).toLocaleDateString('ar-EG')+'"'+NL;
-  csv+='"المستخدم","'+(h.userName||h.user||'')+'"'+NL;
-  if(h.note) csv+='"ملاحظة","'+h.note+'"'+NL;
-  csv+=NL+'"الكود","الخامة","الكمية المطلوبة","الوحدة"'+NL;
-  (h.result||[]).forEach(r=>{ csv+='"#'+r.code+'","'+r.name+'","'+r.needed+'","'+r.unit+'"'+NL; });
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);
-  a.download='طلب_'+h.productName+'_'+new Date(h.ts).toLocaleDateString('ar-EG').replace(/\//g,'-')+'.csv';
-  a.click();
-  toast('تم التصدير','success');
+  const wb = XLSX.utils.book_new();
+  const infoData = [
+    ['المنتج', h.productName||''],
+    ['الكمية', (h.qty||'')+' '+(h.unit||'')],
+    ['التاريخ', new Date(h.ts).toLocaleDateString('ar-EG')],
+    ['المستخدم', h.userName||h.user||''],
+  ];
+  if(h.note) infoData.push(['ملاحظة', h.note]);
+  const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+  wsInfo['!cols'] = [{wch:15},{wch:40}];
+  XLSX.utils.book_append_sheet(wb, wsInfo, 'بيانات الطلب');
+  const resultData = [['الكود','الخامة','الكمية المطلوبة','شكل الخامة']];
+  (h.result||[]).forEach(r=>{ resultData.push(['#'+r.code, r.name, r.needed, r.unit||'']); });
+  const wsResult = XLSX.utils.aoa_to_sheet(resultData);
+  wsResult['!cols'] = [{wch:12},{wch:30},{wch:18},{wch:15}];
+  XLSX.utils.book_append_sheet(wb, wsResult, 'الخامات المطلوبة');
+  XLSX.writeFile(wb, 'طلب_'+h.productName+'_'+new Date(h.ts).toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
+  toast('تم تصدير Excel بنجاح','success');
 };
 
 window.exportHistory = () => {
   if(!hasPerm('export_history')){toast('ليس لديك صلاحية التصدير','error');return;}
-  let csv='التاريخ,المنتج,الكمية,الوحدة,المستخدم,الملاحظة\n';
-  _history.forEach(h=>{csv+=`"${fmtDate(h.ts)}","${h.productName}","${h.qty}","${h.unit}","${h.userName||h.user}","${h.note||''}"\n`;});
-  dlCSV(csv,'history.csv');
+  const wb = XLSX.utils.book_new();
+  const data = [['التاريخ','المنتج','الكمية','الوحدة','المستخدم','الملاحظة']];
+  _history.forEach(h=>{data.push([fmtDate(h.ts), h.productName||'', h.qty||'', h.unit||'', h.userName||h.user||'', h.note||'']);});
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:20},{wch:35},{wch:10},{wch:10},{wch:20},{wch:25}];
+  XLSX.utils.book_append_sheet(wb, ws, 'سجل الطلبات');
+  XLSX.writeFile(wb, 'سجل_الطلبات_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
+  toast('تم تصدير Excel بنجاح','success');
 };
 
 // ══════════════════════════════════════════════
@@ -2702,7 +2766,15 @@ window.showMatReport = () => {
 const MONTHS_AR = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 const _calSeasons = {};
 
-window.showCalendar = () => {
+window.showCalendar = async () => {
+  // تحميل التقويم من Firestore
+  try {
+    const snap = await getDoc(doc(db,'settings','calendar'));
+    if (snap.exists()) {
+      const saved = snap.data().seasons||{};
+      Object.keys(saved).forEach(k=>{ _calSeasons[k]=saved[k]; });
+    }
+  } catch(e){}
   const types = [...new Set(_products.map(p=>p.color||'عام'))];
   const monthHeader = `<div class="cal-grid">${MONTHS_AR.map(m=>`<div class="cal-month">${m.slice(0,3)}</div>`).join('')}</div>`;
   const rows = types.map(type => {
@@ -2717,10 +2789,20 @@ window.showCalendar = () => {
     </div>`;
   }).join('');
   document.getElementById('calendar-body').innerHTML = `<div style="padding:16px">
-    <div style="font-size:12px;color:var(--e400);margin-bottom:12px">اضغط على الخلية لتفعيل/إلغاء شهر الرش</div>
-    ${monthHeader}${rows||emptyState('🌱','لا توجد منتجات','','',' ')}
+    <div style="font-size:12px;color:var(--e400);margin-bottom:8px">اضغط على الخلية لتفعيل/إلغاء شهر الرش</div>
+    <div style="margin-bottom:12px;display:flex;justify-content:flex-end">
+      <button class="btn btn-g btn-sm" onclick="saveCalendar()"><i class="fas fa-save"></i>حفظ التقويم</button>
+    </div>
+    ${monthHeader}${rows||emptyState('🌱','لا توجد منتجات','','','&nbsp;')}
     </div>`;
   openM('mo-calendar');
+};
+
+window.saveCalendar = async () => {
+  try {
+    await setDoc(doc(db,'settings','calendar'), {seasons:_calSeasons, updatedAt:Date.now(), updatedBy:CU.email});
+    toast('تم حفظ التقويم','success');
+  } catch(e){toast('خطأ في الحفظ: '+e.message,'error');}
 };
 
 window.toggleCalCell = (cell, type, month) => {
@@ -3236,38 +3318,40 @@ window.installPWA = async () => {
 };
 
 window.exportMatDetail = id => {
+  if(!hasPerm('export_materials')){toast('ليس لديك صلاحية التصدير','error');return;}
   const m = _materials.find(x=>x.id===id); if(!m)return;
   const allElems = Object.assign({}, ELEMENTS, window._customElements||{});
-  const NL = String.fromCharCode(10);
-  let csv = 'البيان,القيمة' + NL;
-  const rows = [
+  const wb = XLSX.utils.book_new();
+  const infoData = [
+    ['البيان','القيمة'],
     ['الكود', m.code||m.id],
     ['الاسم', m.name],
     ['شكل الخامة', m.unit||''],
     ['الاسم العلمي / المادة الفعالة', m.activeIngredient||''],
     ['اللون', m.color||''],
     ['الرائحة', m.smell||''],
-    ['الكثافة', m.density ? m.density+' g/cm³' : ''],
+    ['الكثافة g/cm³', m.density||''],
     ['pH', m.ph||''],
-    ['الذوبانية', m.solubility ? m.solubility+'%' : ''],
-    ['الرطوبة', m.humidity ? m.humidity+'%' : ''],
+    ['الذوبانية %', m.solubility||''],
+    ['الرطوبة %', m.humidity||''],
     ['ملاحظات', m.usage||''],
   ];
-  rows.forEach(([k,v])=>{ csv+='"'+k+'","'+v+'"'+NL; });
+  const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
+  wsInfo['!cols'] = [{wch:25},{wch:35}];
+  XLSX.utils.book_append_sheet(wb, wsInfo, 'المواصفات');
   if((m.elements||[]).length){
-    csv += NL + '"العنصر","الرمز","النسبة %"' + NL;
+    const elemData = [['العنصر','الرمز','النسبة %','الفئة']];
     (m.elements||[]).forEach(k=>{
-      const el = allElems[k]; if(!el)return;
+      const el=allElems[k]; if(!el)return;
       const pct = m.elemPcts&&m.elemPcts[k] ? m.elemPcts[k] : '';
-      csv += '"'+el.name+'","'+el.sym+'","'+pct+'"'+NL;
+      elemData.push([el.name, el.sym, pct, el.cat||'']);
     });
+    const wsElem = XLSX.utils.aoa_to_sheet(elemData);
+    wsElem['!cols'] = [{wch:20},{wch:8},{wch:12},{wch:12}];
+    XLSX.utils.book_append_sheet(wb, wsElem, 'العناصر');
   }
-  const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'خامة_'+m.name+'_'+(m.code||m.id)+'.csv';
-  a.click();
-  toast('تم تصدير مواصفات الخامة','success');
+  XLSX.writeFile(wb, 'خامة_'+m.name+'_'+(m.code||m.id)+'.xlsx');
+  toast('تم تصدير مواصفات الخامة Excel','success');
 };
 </script>
 <!-- Compare Modal -->
