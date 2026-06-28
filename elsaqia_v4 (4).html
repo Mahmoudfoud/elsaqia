@@ -485,6 +485,7 @@ textarea.fc{resize:vertical;min-height:68px}
 .ins-alert-ic{font-size:15px;flex-shrink:0;margin-top:1px}
 .ins-alert-txt{font-size:12px;font-weight:600;line-height:1.7;color:var(--e700)}
 .ins-alert-txt strong{color:var(--g800)}
+.prod-line-row{background:#f8fcf8;border:1px solid var(--border);border-radius:var(--rs);padding:10px 12px;margin-bottom:8px}
 /* ── MATERIALS REPORT ── */
 .mat-report-bar{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .mat-report-name{font-size:13px;font-weight:700;color:var(--g900);min-width:140px}
@@ -2846,34 +2847,52 @@ function renderProduction() {
   const q   = (document.getElementById('prod-q')?.value||'').toLowerCase();
   const pkg = document.getElementById('prod-pkg-f')?.value||'';
   const mon = document.getElementById('prod-month-f')?.value||'';
-  const items = _production.filter(p=>
-    (!q || (p.productName||'').toLowerCase().includes(q) || (p.packaging||'').includes(q)) &&
-    (!pkg || p.packaging===pkg) &&
-    (!mon || (p.month||p.date||'').startsWith(mon))
-  );
+  const filtered = _production.filter(p=> {
+    const nameMatch = (p.productName||'').toLowerCase().includes(q) ||
+      (p.items||[]).some(it=>(it.productName||'').toLowerCase().includes(q)) ||
+      (p.packaging||'').includes(q);
+    const pkgMatch  = !pkg || p.packaging===pkg || (p.items||[]).some(it=>it.packaging===pkg);
+    const monMatch  = !mon || (p.month||p.date||'').startsWith(mon);
+    return (!q||nameMatch) && pkgMatch && monMatch;
+  });
   const el = document.getElementById('production-list'); if (!el) return;
-  if (!items.length) {
+  if (!filtered.length) {
     el.innerHTML = emptyState('🏭','لا توجد دفعات بعد','سجّل دفعات الإنتاج لتبدأ التحليلات',
       hasPerm('add_batches')?'أضف دفعة الآن':'', hasPerm('add_batches')?'openProductionModal()':'');
     return;
   }
-  el.innerHTML = items.map(p => {
+  el.innerHTML = filtered.map(p => {
     const dateLabel = p.dateType==='month'
       ? `${MONTHS_AR_S[(parseInt((p.month||'').split('-')[1])||1)-1]} ${(p.month||'').split('-')[0]}`
       : (p.date||'—');
-    const capTag = p.capColor ? `<span class="cap-tag" style="background:#e8f4e8;color:#2d7d42">${p.capColor}</span>` : '';
-    const supKeys = Object.keys(p.supplies||{});
-    const rmKeys  = Object.keys(p.rawMaterials||{});
+    const isMulti   = p.items && p.items.length > 1;
+    const totalQty  = p.totalQty || p.qty || 0;
+    const supKeys   = Object.keys(p.supplies||{});
+    const rmKeys    = Object.keys(p.rawMaterials||{});
+    // Header title
+    const titleHtml = isMulti
+      ? `<span>🏭</span><span>${p.items.length} منتجات</span><span class="pkg-tag" style="background:#f3e8ff;color:#7c3aed"><i class="fas fa-layer-group" style="font-size:10px"></i>دفعة مجمّعة</span>`
+      : `<span>🏭</span><span>${p.productName||'—'}</span><span class="pkg-tag"><i class="fas fa-box" style="font-size:10px"></i>${p.packaging||'—'}</span>${p.capColor?`<span class="cap-tag" style="background:#e8f4e8;color:#2d7d42">${p.capColor}</span>`:''}`;
+    // Items breakdown for multi
+    const itemsHtml = isMulti
+      ? `<div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">📋 المنتجات</div>
+          <table class="sup-table">
+            <thead><tr><th>المنتج</th><th>الكمية</th><th>التعبئة</th><th>الغطاء</th></tr></thead>
+            <tbody>${p.items.map(it=>`<tr><td>${it.productName}</td><td><strong>${(it.qty||0).toLocaleString()} كجم</strong></td><td>${it.packaging||'—'}</td><td>${it.capColor||'—'}</td></tr>`).join('')}</tbody>
+          </table>
+        </div>`
+      : `<div class="prod-info-grid">
+          <div class="prod-info-item"><div class="prod-info-lbl">الكمية</div><div class="prod-info-val">${totalQty.toLocaleString()} كجم</div></div>
+          <div class="prod-info-item"><div class="prod-info-lbl">التعبئة</div><div class="prod-info-val">${p.packaging||'—'}</div></div>
+          <div class="prod-info-item"><div class="prod-info-lbl">التاريخ</div><div class="prod-info-val">${dateLabel}</div></div>
+          ${p.capColor?`<div class="prod-info-item"><div class="prod-info-lbl">لون الغطاء</div><div class="prod-info-val">${p.capColor}</div></div>`:''}
+        </div>`;
     return `<div class="prod-card">
       <div class="prod-card-head" onclick="toggleProdCard(this)">
-        <div class="prod-card-title">
-          <span>🏭</span>
-          <span>${p.productName||'—'}</span>
-          <span class="pkg-tag"><i class="fas fa-box" style="font-size:10px"></i>${p.packaging||'—'}</span>
-          ${capTag}
-        </div>
+        <div class="prod-card-title">${titleHtml}</div>
         <div class="prod-card-meta">
-          <span style="font-size:12px;color:var(--e400)"><i class="fas fa-weight" style="margin-left:3px"></i><strong style="color:var(--g900)">${(p.qty||0).toLocaleString()}</strong> كجم</span>
+          <span style="font-size:12px;color:var(--e400)"><i class="fas fa-weight" style="margin-left:3px"></i><strong style="color:var(--g900)">${totalQty.toLocaleString()}</strong> كجم</span>
           <span style="font-size:12px;color:var(--e400)"><i class="fas fa-calendar" style="margin-left:3px"></i>${dateLabel}</span>
           ${supKeys.length?`<span style="font-size:11px;color:var(--e400)">${supKeys.length} مستلزم</span>`:''}
           ${rmKeys.length?`<span style="font-size:11px;color:var(--e400)">${rmKeys.length} خامة</span>`:''}
@@ -2883,22 +2902,17 @@ function renderProduction() {
         </div>
       </div>
       <div class="prod-card-body collapsed" id="pcb-${p.id}">
-        <div class="prod-info-grid">
-          <div class="prod-info-item"><div class="prod-info-lbl">الكمية</div><div class="prod-info-val">${(p.qty||0).toLocaleString()} كجم</div></div>
-          <div class="prod-info-item"><div class="prod-info-lbl">التعبئة</div><div class="prod-info-val">${p.packaging||'—'}</div></div>
-          <div class="prod-info-item"><div class="prod-info-lbl">التاريخ</div><div class="prod-info-val">${dateLabel}</div></div>
-          ${p.capColor?`<div class="prod-info-item"><div class="prod-info-lbl">لون الغطاء</div><div class="prod-info-val">${p.capColor}</div></div>`:''}
-        </div>
+        ${itemsHtml}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">📦 المستلزمات</div>
+            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">📦 المستلزمات الإجمالية</div>
             <table class="sup-table">
               <thead><tr><th>المستلزم</th><th>الكمية</th></tr></thead>
               <tbody>${Object.entries(p.supplies||{}).map(([k,v])=>`<tr><td>${k}</td><td><strong>${v.toLocaleString()}</strong></td></tr>`).join('')||'<tr><td colspan="2" style="color:var(--e400);text-align:center">—</td></tr>'}</tbody>
             </table>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">🧪 الخامات</div>
+            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">🧪 الخامات الإجمالية</div>
             <table class="sup-table">
               <thead><tr><th>الخامة</th><th>الكجم</th></tr></thead>
               <tbody>${Object.entries(p.rawMaterials||{}).map(([k,v])=>`<tr><td>${k}</td><td><strong>${v.toLocaleString()}</strong></td></tr>`).join('')||'<tr><td colspan="2" style="color:var(--e400);text-align:center">لا يوجد تركيبة</td></tr>'}</tbody>
@@ -2911,7 +2925,7 @@ function renderProduction() {
   }).join('');
 }
 window.renderProduction = renderProduction;
-window.renderBatches    = renderProduction; // backward compat
+window.renderBatches    = renderProduction;
 
 window.toggleProdCard = head => {
   const body = head.nextElementSibling;
@@ -2927,87 +2941,152 @@ window.delProduction = async id => {
 // ══════════════════════════════════════════════════════════════════
 // PRODUCTION MODAL
 // ══════════════════════════════════════════════════════════════════
+// ── PKG options HTML (reused) ──
+const PKG_OPTS = `<option value="">— التعبئة —</option>
+<option>جركن 20لتر</option><option>جركن 5لتر</option>
+<option>عبوة 1لتر</option><option>عبوة 500مل</option><option>عبوة 250مل</option><option>عبوة 100مل</option>
+<option>بستلة 20كجم</option><option>بستلة 15كجم</option><option>بستلة 5كجم</option>
+<option>شيكارة 50كجم</option><option>شيكارة 25كجم</option>
+<option>كيس 1كجم</option><option>كيس 5كجم</option>`;
+
+const CAP_OPTS = `<option value="أخضر">أخضر</option><option value="أزرق">أزرق</option>
+<option value="أحمر">أحمر</option><option value="أصفر">أصفر</option>
+<option value="أبيض">أبيض</option><option value="برتقالي">برتقالي</option>
+<option value="بنفسجي">بنفسجي</option><option value="أسود">أسود</option>`;
+
+let _prodLines = []; // [{prodId, qty, pkg, capColor}]
+
+function prodOpts() {
+  return '<option value="">— المنتج —</option>' + _products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+}
+
+function renderProdLines() {
+  const el = document.getElementById('mprod-lines'); if(!el) return;
+  if(!_prodLines.length) { el.innerHTML='<div style="color:var(--e400);font-size:13px;padding:8px 0">اضغط "إضافة منتج" لإضافة منتج للدفعة</div>'; recalcAllLines(); return; }
+  el.innerHTML = _prodLines.map((line,i)=>{
+    const needsCap = PACKAGING[line.pkg]?.needsCapColor;
+    return `<div class="prod-line-row" id="pline-${i}">
+      <div style="display:grid;grid-template-columns:1fr 120px 160px ${needsCap?'120px ':''} 36px;gap:8px;align-items:center;margin-bottom:8px">
+        <select class="fc" style="margin:0" onchange="setProdLine(${i},'prodId',this.value)">${prodOpts().replace(`value="${line.prodId}"`,`value="${line.prodId}" selected`)}</select>
+        <input type="number" class="fc" style="margin:0" placeholder="كجم" min="1" value="${line.qty||''}" oninput="setProdLine(${i},'qty',this.value)">
+        <select class="fc" style="margin:0" onchange="setProdLine(${i},'pkg',this.value)">${PKG_OPTS.replace(`>${line.pkg}<`,` selected>${line.pkg}<`)}</select>
+        ${needsCap?`<select class="fc" style="margin:0" onchange="setProdLine(${i},'capColor',this.value)">${CAP_OPTS.replace(`value="${line.capColor||'أخضر'}"`,`value="${line.capColor||'أخضر'}" selected`)}</select>`:''}
+        <button class="btn btn-red btn-sm" style="padding:6px 8px;margin:0" onclick="removeProdLine(${i})"><i class="fas fa-times"></i></button>
+      </div>
+    </div>`;
+  }).join('');
+  recalcAllLines();
+}
+
+function recalcAllLines() {
+  // Merge supplies + rawMats across all lines
+  const allSupplies = {};
+  const allRawMats  = {};
+  let hasData = false;
+  _prodLines.forEach(line => {
+    if(!line.prodId||!line.qty||!line.pkg) return;
+    hasData = true;
+    const prod = _products.find(x=>x.id===line.prodId);
+    const sup  = calcSupplies(parseFloat(line.qty)||0, line.pkg, line.capColor||'أخضر', prod?.name||'');
+    const rm   = calcRawMats(line.prodId, parseFloat(line.qty)||0);
+    Object.entries(sup).forEach(([k,v])=>{ allSupplies[k]=(allSupplies[k]||0)+v; });
+    Object.entries(rm).forEach(([k,v])=>{ allRawMats[k]=(allRawMats[k]||0)+v; });
+  });
+  const preview = document.getElementById('mprod-preview'); if(!preview) return;
+  if(!hasData) { preview.style.display='none'; return; }
+  preview.style.display='';
+  document.getElementById('mprod-supplies-preview').innerHTML =
+    `<table class="sup-table"><tbody>${Object.entries(allSupplies).map(([k,v])=>`<tr><td style="font-size:12px">${k}</td><td><strong>${v.toLocaleString()}</strong></td></tr>`).join('')||'<tr><td colspan="2">—</td></tr>'}</tbody></table>`;
+  document.getElementById('mprod-rawmats-preview').innerHTML =
+    `<table class="sup-table"><tbody>${Object.entries(allRawMats).map(([k,v])=>`<tr><td style="font-size:12px">${k}</td><td><strong>${v.toLocaleString()} كجم</strong></td></tr>`).join('')||'<tr><td colspan="2" style="color:var(--e400)">لا تركيبة مسجلة</td></tr>'}</tbody></table>`;
+}
+
+window.addProdLine = () => {
+  _prodLines.push({prodId:'', qty:'', pkg:'', capColor:'أخضر'});
+  renderProdLines();
+};
+
+window.removeProdLine = i => {
+  _prodLines.splice(i,1);
+  renderProdLines();
+};
+
+window.setProdLine = (i, field, val) => {
+  _prodLines[i][field] = val;
+  // if pkg changed, re-render to show/hide cap color
+  if(field==='pkg') renderProdLines();
+  else recalcAllLines();
+};
+
 window.openProductionModal = () => {
   _editProdId = null;
-  const opts = _products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
-  document.getElementById('mprod-prod').innerHTML = '<option value="">— اختر المنتج —</option>'+opts;
-  document.getElementById('mprod-qty').value = '';
-  document.getElementById('mprod-pkg').value = '';
+  _prodLines   = [{prodId:'', qty:'', pkg:'', capColor:'أخضر'}];
   document.getElementById('mprod-note').value = '';
   document.getElementById('mprod-preview').style.display='none';
-  document.getElementById('cap-color-row').style.display='none';
   const now = new Date();
   document.getElementById('mprod-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('mprod-date').type  = 'month';
+  document.getElementById('mprod-date-lbl').textContent = 'الشهر';
   document.getElementById('mprod-datetype').value = 'month';
+  renderProdLines();
   openM('mo-production');
 };
-window.openBatchModal = window.openProductionModal; // backward compat
+window.openBatchModal = window.openProductionModal;
 
 window.onDateTypeChange = () => {
-  const t = document.getElementById('mprod-datetype').value;
+  const t   = document.getElementById('mprod-datetype').value;
   const inp = document.getElementById('mprod-date');
   const lbl = document.getElementById('mprod-date-lbl');
-  if (t==='exact') { inp.type='date'; lbl.textContent='التاريخ'; }
-  else             { inp.type='month'; lbl.textContent='الشهر'; }
+  if(t==='exact'){ inp.type='date'; lbl.textContent='التاريخ'; }
+  else           { inp.type='month'; lbl.textContent='الشهر'; }
 };
-
-window.onProdChange = () => recalcModal();
-window.onQtyChange  = () => recalcModal();
-window.onPkgChange  = () => {
-  const pkg = document.getElementById('mprod-pkg').value;
-  const cfg = PACKAGING[pkg];
-  document.getElementById('cap-color-row').style.display = cfg?.needsCapColor ? '' : 'none';
-  recalcModal();
-};
-
-function recalcModal() {
-  const prodId  = document.getElementById('mprod-prod').value;
-  const qty     = parseFloat(document.getElementById('mprod-qty').value)||0;
-  const pkg     = document.getElementById('mprod-pkg').value;
-  const capColor= document.getElementById('mprod-capcolor').value;
-  const prod    = _products.find(x=>x.id===prodId);
-  const preview = document.getElementById('mprod-preview');
-  if (!prodId||!qty||!pkg) { preview.style.display='none'; return; }
-  preview.style.display='';
-  const supplies   = calcSupplies(qty, pkg, capColor, prod?.name||'');
-  const rawMats    = calcRawMats(prodId, qty);
-  document.getElementById('mprod-supplies-preview').innerHTML =
-    `<table class="sup-table"><tbody>${Object.entries(supplies).map(([k,v])=>`<tr><td style="font-size:12px">${k}</td><td><strong>${v.toLocaleString()}</strong></td></tr>`).join('')||'<tr><td colspan="2">—</td></tr>'}</tbody></table>`;
-  document.getElementById('mprod-rawmats-preview').innerHTML =
-    `<table class="sup-table"><tbody>${Object.entries(rawMats).map(([k,v])=>`<tr><td style="font-size:12px">${k}</td><td><strong>${v.toLocaleString()} كجم</strong></td></tr>`).join('')||'<tr><td colspan="2" style="color:var(--e400)">لا تركيبة مسجلة</td></tr>'}</tbody></table>`;
-}
-window.recalcModal = recalcModal;
 
 window.saveProduction = async () => {
-  const prodId  = document.getElementById('mprod-prod').value;
-  const qty     = parseFloat(document.getElementById('mprod-qty').value)||0;
-  const pkg     = document.getElementById('mprod-pkg').value;
-  const dateType= document.getElementById('mprod-datetype').value;
-  const dateVal = document.getElementById('mprod-date').value;
-  const capColor= document.getElementById('mprod-capcolor').value;
-  const note    = document.getElementById('mprod-note').value.trim();
-  if (!prodId) { toast('اختر المنتج','error'); return; }
-  if (!qty||qty<=0) { toast('أدخل كمية صحيحة','error'); return; }
-  if (!pkg) { toast('اختر نوع التعبئة','error'); return; }
-  if (!dateVal) { toast('حدد التاريخ','error'); return; }
-  const prod = _products.find(x=>x.id===prodId);
-  const supplies   = calcSupplies(qty, pkg, capColor, prod?.name||'');
-  const rawMaterials = calcRawMats(prodId, qty);
+  const dateType = document.getElementById('mprod-datetype').value;
+  const dateVal  = document.getElementById('mprod-date').value;
+  const note     = document.getElementById('mprod-note').value.trim();
+  if(!dateVal){ toast('حدد التاريخ','error'); return; }
+  // Validate lines
+  const validLines = _prodLines.filter(l=>l.prodId&&l.qty&&parseFloat(l.qty)>0&&l.pkg);
+  if(!validLines.length){ toast('أضف منتج واحد على الأقل بكمية وتعبئة','error'); return; }
+  // Build merged supplies + rawMaterials
+  const allSupplies={}, allRawMats={};
+  const items = validLines.map(line=>{
+    const prod = _products.find(x=>x.id===line.prodId);
+    const qty  = parseFloat(line.qty);
+    const sup  = calcSupplies(qty, line.pkg, line.capColor||'أخضر', prod?.name||'');
+    const rm   = calcRawMats(line.prodId, qty);
+    Object.entries(sup).forEach(([k,v])=>{ allSupplies[k]=(allSupplies[k]||0)+v; });
+    Object.entries(rm).forEach(([k,v])=>{ allRawMats[k]=(allRawMats[k]||0)+v; });
+    return {
+      productId:line.prodId, productName:prod?.name||'—',
+      qty, packaging:line.pkg,
+      capColor: PACKAGING[line.pkg]?.needsCapColor ? (line.capColor||'أخضر') : null
+    };
+  });
+  const totalQty = items.reduce((a,b)=>a+b.qty,0);
   const data = {
-    productId:prodId, productName:prod?.name||'—',
-    qty, packaging:pkg, capColor: PACKAGING[pkg]?.needsCapColor ? capColor : null,
-    dateType, note, supplies, rawMaterials,
-    createdAt:Date.now(), createdBy:CU.uid,
-    createdByEmail:CU.email
+    items,                          // array of products
+    totalQty,
+    // backward compat single-product fields (first item)
+    productId:   items[0].productId,
+    productName: items.length===1 ? items[0].productName : `${items.length} منتجات`,
+    qty:         items[0].qty,
+    packaging:   items[0].packaging,
+    capColor:    items[0].capColor,
+    dateType, note,
+    supplies:    allSupplies,
+    rawMaterials:allRawMats,
+    createdAt:Date.now(), createdBy:CU.id, createdByEmail:CU.email
   };
-  if (dateType==='month') data.month = dateVal;
-  else                    data.date  = dateVal;
+  if(dateType==='month') data.month = dateVal;
+  else                   data.date  = dateVal;
   SS('save');
   try {
     await addDoc(collection(db,'production'), data);
     toast('تم حفظ الدفعة','success');
     closeM('mo-production');
-  } catch(e) { toast('خطأ: '+e.message,'error'); }
+  } catch(e){ toast('خطأ: '+e.message,'error'); }
   SS('on');
 };
 
@@ -3049,11 +3128,18 @@ window.runAnalytics = () => {
   const pkgCounts = {};
 
   data.forEach(p => {
-    prodCounts[p.productName] = (prodCounts[p.productName]||0)+1;
-    prodQtys[p.productName]   = (prodQtys[p.productName]||0)+(p.qty||0);
+    // support both multi-product (items[]) and legacy single-product
+    const lines = (p.items && p.items.length) ? p.items : [{productName:p.productName, qty:p.qty||0}];
+    lines.forEach(it => {
+      prodCounts[it.productName] = (prodCounts[it.productName]||0)+1;
+      prodQtys[it.productName]   = (prodQtys[it.productName]||0)+(it.qty||0);
+    });
     const mon = (p.month||p.date||'').substring(0,7);
-    if (mon) monthlyQty[mon] = (monthlyQty[mon]||0)+(p.qty||0);
-    pkgCounts[p.packaging||'غير محدد'] = (pkgCounts[p.packaging||'غير محدد']||0)+(p.qty||0);
+    const tQty = p.totalQty || p.qty || 0;
+    if (mon) monthlyQty[mon] = (monthlyQty[mon]||0)+tQty;
+    // packaging from items or legacy
+    const pkgLines = (p.items&&p.items.length) ? p.items : [{packaging:p.packaging, qty:p.qty||0}];
+    pkgLines.forEach(it=>{ if(it.packaging) pkgCounts[it.packaging]=(pkgCounts[it.packaging]||0)+(it.qty||0); });
   });
 
   const sortedProds = Object.entries(prodQtys).sort((a,b)=>b[1]-a[1]);
@@ -3130,8 +3216,12 @@ window.runAnalytics = () => {
   data.forEach(p => {
     const d = p.date || (p.month ? p.month+'-01' : null);
     if (!d) return;
-    if (!prodBatchDates[p.productName]) prodBatchDates[p.productName]=[];
-    prodBatchDates[p.productName].push(new Date(d).getTime());
+    const lines = (p.items&&p.items.length) ? p.items : [{productName:p.productName}];
+    lines.forEach(it=>{
+      if(!it.productName) return;
+      if (!prodBatchDates[it.productName]) prodBatchDates[it.productName]=[];
+      prodBatchDates[it.productName].push(new Date(d).getTime());
+    });
   });
   Object.entries(prodBatchDates).forEach(([name,dates])=>{
     if (dates.length<2) return;
@@ -4071,14 +4161,9 @@ window.installPWA = async () => {
 <!-- Production Modal -->
 <div class="overlay" id="mo-production">
   <div class="modal xl">
-    <div class="mh"><span class="mh-title" id="mprod-title">دفعة إنتاج جديدة</span><button class="mclose" onclick="closeM('mo-production')">×</button></div>
+    <div class="mh"><span class="mh-title">دفعة إنتاج جديدة</span><button class="mclose" onclick="closeM('mo-production')">×</button></div>
     <div class="mb">
-      <!-- Step 1: Product + Qty -->
-      <div class="frow c2">
-        <div class="fg"><label class="fl">المنتج *</label><select class="fc" id="mprod-prod" onchange="onProdChange()"><option value="">— اختر المنتج —</option></select></div>
-        <div class="fg"><label class="fl">الكمية بالكجم *</label><input type="number" class="fc" id="mprod-qty" placeholder="1000" min="1" oninput="onQtyChange()"></div>
-      </div>
-      <!-- Step 2: Date type -->
+      <!-- التاريخ -->
       <div class="frow c2">
         <div class="fg">
           <label class="fl">نوع التاريخ</label>
@@ -4092,48 +4177,31 @@ window.installPWA = async () => {
           <input type="month" class="fc" id="mprod-date">
         </div>
       </div>
-      <!-- Step 3: Packaging -->
-      <div class="frow c2">
-        <div class="fg">
-          <label class="fl">نوع التعبئة *</label>
-          <select class="fc" id="mprod-pkg" onchange="onPkgChange()">
-            <option value="">— اختر التعبئة —</option>
-            <option>جركن 20لتر</option><option>جركن 5لتر</option>
-            <option>عبوة 1لتر</option><option>عبوة 500مل</option><option>عبوة 250مل</option><option>عبوة 100مل</option>
-            <option>بستلة 20كجم</option><option>بستلة 15كجم</option><option>بستلة 5كجم</option>
-            <option>شيكارة 50كجم</option><option>شيكارة 25كجم</option>
-            <option>كيس 1كجم</option><option>كيس 5كجم</option>
-          </select>
-        </div>
-        <div class="fg" id="cap-color-row" style="display:none">
-          <label class="fl">لون الغطاء</label>
-          <select class="fc" id="mprod-capcolor" onchange="recalcModal()">
-            <option value="أخضر">أخضر</option><option value="أزرق">أزرق</option>
-            <option value="أحمر">أحمر</option><option value="أصفر">أصفر</option>
-            <option value="أبيض">أبيض</option><option value="برتقالي">برتقالي</option>
-            <option value="بنفسجي">بنفسجي</option><option value="أسود">أسود</option>
-          </select>
-        </div>
+      <!-- قائمة المنتجات -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:10px 0 6px">
+        <span style="font-size:12px;font-weight:700;color:var(--e400)">المنتجات في هذه الدفعة</span>
+        <button class="btn btn-g btn-sm" onclick="addProdLine()"><i class="fas fa-plus"></i>إضافة منتج</button>
       </div>
-      <!-- Auto-calc preview -->
-      <div id="mprod-preview" style="display:none">
-        <div style="display:flex;align-items:center;gap:8px;margin:10px 0 6px">
+      <div id="mprod-lines"></div>
+      <!-- معاينة إجمالية -->
+      <div id="mprod-preview" style="display:none;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
           <div style="flex:1;height:1px;background:var(--border)"></div>
-          <span style="font-size:11px;font-weight:700;color:var(--e400)">الحساب التلقائي</span>
+          <span style="font-size:11px;font-weight:700;color:var(--e400)">إجمالي الحساب التلقائي</span>
           <div style="flex:1;height:1px;background:var(--border)"></div>
         </div>
         <div class="frow c2">
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">📦 المستلزمات</div>
+            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">📦 المستلزمات الإجمالية</div>
             <div id="mprod-supplies-preview"></div>
           </div>
           <div>
-            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">🧪 الخامات</div>
+            <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">🧪 الخامات الإجمالية</div>
             <div id="mprod-rawmats-preview"></div>
           </div>
         </div>
       </div>
-      <div class="fg"><label class="fl">ملاحظة</label><input class="fc" id="mprod-note" placeholder="ملاحظات إضافية..."></div>
+      <div class="fg" style="margin-top:10px"><label class="fl">ملاحظة</label><input class="fc" id="mprod-note" placeholder="ملاحظات إضافية..."></div>
     </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeM('mo-production')">إلغاء</button>
