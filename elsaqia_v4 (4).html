@@ -676,6 +676,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">🏭 الإنتاج والدُفعات</div><div class="ph-sub" id="prod-page-sub">سجل التصنيع والتحاليل الذكية</div></div>
         <div class="ph-acts">
+          <button class="btn btn-ghost btn-sm" onclick="exportProduction()"><i class="fas fa-file-excel"></i>Excel</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_batches" onclick="openProductionModal()"><i class="fas fa-plus"></i>دفعة جديدة</button>
         </div>
       </div>
@@ -1003,7 +1004,6 @@ let _materials = [];
 let _history   = [];
 let _batches   = [];
 let _production = [];
-let _lastAnalyticsData = [];
 let _users     = [];
 let _auditItems= [];
 let _presence  = {};
@@ -3200,40 +3200,25 @@ window.runAnalytics = () => {
   const data = _production.filter(p => {
     const ref = p.month || p.date || '';
     const mon = ref.substring(0,7);
-    if(from && mon < from) return false;
-    if(to   && mon > to)   return false;
-    if(prodFilter) {
-      // دور في items[] كلها مش بس productId الأول
-      const lines = (p.items && p.items.length) ? p.items : [{productId: p.productId}];
-      if(!lines.some(it => it.productId === prodFilter)) return false;
-    }
-    return true;
+    return (!from||mon>=from) && (!to||mon<=to) && (!prodFilter||p.productId===prodFilter);
   });
   const el = document.getElementById('analytics-body');
   if (!data.length) { el.innerHTML = emptyState('📊','لا توجد بيانات في هذه الفترة','سجّل دفعات إنتاج أولاً','',''); return; }
-  _lastAnalyticsData = data; // حفظ للـ PPTX
 
   // ── aggregations ──
-  // لو في فلتر منتج معين — نحسب فقط كميته من كل دفعة
+  const totalQty = data.reduce((a,b)=>a+(b.totalQty||b.qty||0),0);
   const prodCounts={}, prodQtys={}, monthlyQty={}, pkgCounts={};
-  let totalQty = 0;
 
   data.forEach(p => {
-    const allLines = (p.items&&p.items.length)?p.items:[{productName:p.productName,productId:p.productId,qty:p.qty||0,packaging:p.packaging}];
-    // لو في فلتر منتج — خد فقط الـ lines بتاعته
-    const lines = prodFilter ? allLines.filter(it=>it.productId===prodFilter) : allLines;
-    if(!lines.length) return;
-    const batchQty = lines.reduce((a,b)=>a+(b.qty||0),0);
-    totalQty += batchQty;
+    const lines = (p.items&&p.items.length)?p.items:[{productName:p.productName,qty:p.qty||0}];
     lines.forEach(it=>{
-      if(it.productName){
-        prodCounts[it.productName]=(prodCounts[it.productName]||0)+1;
-        prodQtys[it.productName]=(prodQtys[it.productName]||0)+(it.qty||0);
-      }
-      if(it.packaging) pkgCounts[it.packaging]=(pkgCounts[it.packaging]||0)+(it.qty||0);
+      prodCounts[it.productName]=(prodCounts[it.productName]||0)+1;
+      prodQtys[it.productName]=(prodQtys[it.productName]||0)+(it.qty||0);
     });
     const mon=(p.month||p.date||'').substring(0,7);
-    if(mon) monthlyQty[mon]=(monthlyQty[mon]||0)+batchQty;
+    if(mon) monthlyQty[mon]=(monthlyQty[mon]||0)+(p.totalQty||p.qty||0);
+    const pkgLines=(p.items&&p.items.length)?p.items:[{packaging:p.packaging,qty:p.qty||0}];
+    pkgLines.forEach(it=>{ if(it.packaging) pkgCounts[it.packaging]=(pkgCounts[it.packaging]||0)+(it.qty||0); });
   });
 
   const sortedProds  = Object.entries(prodQtys).sort((a,b)=>b[1]-a[1]);
@@ -3265,46 +3250,19 @@ window.runAnalytics = () => {
   const avgBatch={};
   Object.keys(prodCounts).forEach(n=>{avgBatch[n]=Math.round(prodQtys[n]/prodCounts[n]);});
 
-  // raw materials — لو في فلتر منتج نحسب نسبته من الدفعة
+  // raw materials
   const rmAgg={}, rmBatchCount={};
   data.forEach(p=>{
-    if(prodFilter && p.items && p.items.length) {
-      // احسب نسبة المنتج المختار من إجمالي الدفعة
-      const totalBatchQty = p.items.reduce((a,b)=>a+(b.qty||0),0);
-      const prodLines = p.items.filter(it=>it.productId===prodFilter);
-      const prodQtyInBatch = prodLines.reduce((a,b)=>a+(b.qty||0),0);
-      if(!totalBatchQty || !prodQtyInBatch) return;
-      const ratio = prodQtyInBatch / totalBatchQty;
-      Object.entries(p.rawMaterials||{}).forEach(([k,v])=>{
-        const share = v * ratio;
-        rmAgg[k]=(rmAgg[k]||0)+share;
-        rmBatchCount[k]=(rmBatchCount[k]||0)+1;
-      });
-    } else {
-      Object.entries(p.rawMaterials||{}).forEach(([k,v])=>{rmAgg[k]=(rmAgg[k]||0)+v;});
-      Object.keys(p.rawMaterials||{}).forEach(k=>{rmBatchCount[k]=(rmBatchCount[k]||0)+1;});
-    }
+    Object.entries(p.rawMaterials||{}).forEach(([k,v])=>{rmAgg[k]=(rmAgg[k]||0)+v;});
+    Object.keys(p.rawMaterials||{}).forEach(k=>{rmBatchCount[k]=(rmBatchCount[k]||0)+1;});
   });
   const sortedRm=Object.entries(rmAgg).sort((a,b)=>b[1]-a[1]);
   const sortedRmBottom=Object.entries(rmAgg).sort((a,b)=>a[1]-b[1]);
   const criticalMats=Object.entries(rmBatchCount).filter(([,c])=>c/data.length>0.5).sort((a,b)=>b[1]-a[1]);
 
-  // supplies — نفس المنطق
+  // supplies
   const supAgg={};
-  data.forEach(p=>{
-    if(prodFilter && p.items && p.items.length) {
-      const totalBatchQty = p.items.reduce((a,b)=>a+(b.qty||0),0);
-      const prodLines = p.items.filter(it=>it.productId===prodFilter);
-      const prodQtyInBatch = prodLines.reduce((a,b)=>a+(b.qty||0),0);
-      if(!totalBatchQty || !prodQtyInBatch) return;
-      const ratio = prodQtyInBatch / totalBatchQty;
-      Object.entries(p.supplies||{}).forEach(([k,v])=>{
-        supAgg[k]=(supAgg[k]||0)+(v*ratio);
-      });
-    } else {
-      Object.entries(p.supplies||{}).forEach(([k,v])=>{supAgg[k]=(supAgg[k]||0)+v;});
-    }
-  });
+  data.forEach(p=>{Object.entries(p.supplies||{}).forEach(([k,v])=>{supAgg[k]=(supAgg[k]||0)+v;});});
   const sortedSup=Object.entries(supAgg).sort((a,b)=>b[1]-a[1]);
   const sortedSupBottom=Object.entries(supAgg).sort((a,b)=>a[1]-b[1]);
 
@@ -3357,12 +3315,9 @@ window.runAnalytics = () => {
 
   el.innerHTML = `
   <!-- PPTX export btn -->
-  <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
-    <button class="btn btn-g btn-sm" onclick="exportProductionPPTX(_lastAnalyticsData)">
-      <i class="fas fa-file-powerpoint"></i> تقرير الإنتاج PPTX
-    </button>
-    <button class="btn btn-sm" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border:none" onclick="exportDashboardPPTX(_lastAnalyticsData)">
-      <i class="fas fa-chart-bar"></i> Dashboard PPTX
+  <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
+    <button class="btn btn-g btn-sm" onclick="exportProductionPPTX()">
+      <i class="fas fa-file-powerpoint"></i> تصدير تقرير الإنتاج PPTX
     </button>
   </div>
 
@@ -3596,10 +3551,12 @@ function _addBarsSlide(pres, C, BAR_COLORS, title, subtitle, accentColor, items,
 // PPTX EXPORT 1 — تقرير الإنتاج الشامل (Premium Dark)
 // ══════════════════════════════════════════════════════════════════
 window.exportProductionPPTX = (inputData) => {
-  const data = (inputData && inputData.length) ? inputData : _production;
+  const data = inputData || _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء تقرير الإنتاج...','info');
+
+  // ── aggregate ──
   const prodQtys={}, monthlyQty={}, pkgCounts={}, rmAgg={}, supAgg={};
   data.forEach(p=>{
     const lines=(p.items&&p.items.length)?p.items:[{productName:p.productName,qty:p.qty||0}];
@@ -3752,17 +3709,16 @@ window.exportProductionPPTX = (inputData) => {
     {v:String(data.length), l:'دفعة إنتاج', c:C.purple},
   ]);
 
-
   pres.writeFile({fileName:`تقرير_الإنتاج_${new Date().toISOString().split('T')[0]}.pptx`})
     .then(()=>toast('تم تصدير تقرير الإنتاج ✅','success'))
-    .catch(e=>{console.error('PPTX Error:',e); toast('خطأ في التصدير: '+e.message,'error');});
+    .catch(e=>toast('خطأ: '+e.message,'error'));
 };
 
 // ══════════════════════════════════════════════════════════════════
 // PPTX EXPORT 2 — تقرير المستلزمات المنفصل
 // ══════════════════════════════════════════════════════════════════
 window.exportSuppliesPPTX = (inputData) => {
-  const data = (inputData && inputData.length) ? inputData : _production;
+  const data = inputData || _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء تقرير المستلزمات...','info');
@@ -3977,7 +3933,7 @@ window.exportSuppliesPPTX = (inputData) => {
 // PPTX EXPORT 3 — تقرير الخامات المنفصل
 // ══════════════════════════════════════════════════════════════════
 window.exportRawMatsPPTX = (inputData) => {
-  const data = (inputData && inputData.length) ? inputData : _production;
+  const data = inputData || _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء تقرير الخامات...','info');
@@ -4854,380 +4810,8 @@ window.installPWA = async () => {
     }, 1000);
   }
 };
-// ══════════════════════════════════════════════════════════════════
-// PPTX EXPORT 4 — Dashboard Style (Power BI Light)
-// ══════════════════════════════════════════════════════════════════
-window.exportDashboardPPTX = (inputData) => {
-  const data = (inputData && inputData.length) ? inputData : _production;
-  if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
-  if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
-  toast('جارٍ إنشاء العرض التقديمي...','info');
-
-  // ── aggregate ──
-  const prodQtys={}, monthlyQty={}, pkgCounts={}, rmAgg={}, supAgg={}, rmBatchCount={};
-  data.forEach(p=>{
-    const lines=(p.items&&p.items.length)?p.items:[{productName:p.productName,qty:p.qty||0}];
-    lines.forEach(it=>{ if(it.productName) prodQtys[it.productName]=(prodQtys[it.productName]||0)+(it.qty||0); });
-    const mon=(p.month||p.date||'').substring(0,7);
-    if(mon) monthlyQty[mon]=(monthlyQty[mon]||0)+(p.totalQty||p.qty||0);
-    const pkgLines=(p.items&&p.items.length)?p.items:[{packaging:p.packaging,qty:p.qty||0}];
-    pkgLines.forEach(it=>{ if(it.packaging) pkgCounts[it.packaging]=(pkgCounts[it.packaging]||0)+(it.qty||0); });
-    Object.entries(p.rawMaterials||{}).forEach(([k,v])=>{rmAgg[k]=(rmAgg[k]||0)+v; rmBatchCount[k]=(rmBatchCount[k]||0)+1;});
-    Object.entries(p.supplies||{}).forEach(([k,v])=>{supAgg[k]=(supAgg[k]||0)+v;});
-  });
-
-  const sortedProds  = Object.entries(prodQtys).sort((a,b)=>b[1]-a[1]);
-  const sortedMonths = Object.entries(monthlyQty).sort((a,b)=>a[0].localeCompare(b[0]));
-  const sortedPkg    = Object.entries(pkgCounts).sort((a,b)=>b[1]-a[1]);
-  const sortedRm     = Object.entries(rmAgg).sort((a,b)=>b[1]-a[1]);
-  const sortedSup    = Object.entries(supAgg).sort((a,b)=>b[1]-a[1]);
-  const totalQty     = sortedProds.reduce((a,[,v])=>a+v,0);
-  const totalRm      = sortedRm.reduce((a,[,v])=>a+v,0);
-  const totalSup     = sortedSup.reduce((a,[,v])=>a+v,0);
-  const criticalRm   = Object.entries(rmBatchCount).filter(([,c])=>c/data.length>0.5).length;
-
-  // Pareto
-  let cumSum=0, pareto80=0;
-  for(const[,v] of sortedProds){cumSum+=v;pareto80++;if(cumSum/totalQty>=0.8)break;}
-
-  // النمو الشهري
-  const lastMon  = sortedMonths[sortedMonths.length-1]?.[1]||0;
-  const prevMon  = sortedMonths[sortedMonths.length-2]?.[1]||0;
-  const growth   = prevMon>0?Math.round((lastMon-prevMon)/prevMon*100):0;
-
-  const pres = new PptxGenJS();
-  pres.layout = 'LAYOUT_WIDE';
-  pres.title  = 'تقرير إنتاج الساقية — Dashboard';
-
-  // ── الألوان Light Dashboard ──
-  const D = {
-    bg:     'F8F9FA',   // خلفية رمادي فاتح جداً
-    white:  'FFFFFF',
-    card:   'FFFFFF',
-    border: 'E2E8F0',
-    text:   '1E293B',   // نص داكن
-    sub:    '64748B',   // نص ثانوي
-    green:  '16A34A',
-    green2: 'DCFCE7',
-    blue:   '2563EB',
-    blue2:  'DBEAFE',
-    orange: 'EA580C',
-    orange2:'FFEDD5',
-    purple: '7C3AED',
-    purple2:'EDE9FE',
-    red:    'DC2626',
-    red2:   'FEE2E2',
-    teal:   '0891B2',
-    teal2:  'CFFAFE',
-    gold:   'D97706',
-    gold2:  'FEF3C7',
-    accent: '2563EB',
-  };
-  const CHART_COLORS = ['2563EB','16A34A','EA580C','7C3AED','0891B2','D97706','DC2626','059669'];
-
-  // helper: KPI card
-  const addKpiCard = (s, x, y, w, h, val, unit, label, accentColor, lightColor) => {
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y,w,h,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.12,shadow:{type:'outer',color:'CBD5E1',blur:8,offset:3,angle:90,opacity:0.3}});
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:x+0.12,y:y+0.12,w:0.06,h:h-0.24,fill:{color:accentColor},line:{color:accentColor,width:0},rectRadius:0.03});
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:x+w-0.65,y:y+0.15,w:0.5,h:0.5,fill:{color:lightColor},line:{color:lightColor,width:0},rectRadius:0.08});
-    s.addText(val,{x:x+0.28,y:y+0.12,w:w-0.95,h:h*0.55,fontSize:22,bold:true,color:D.text,fontFace:'Arial',align:'right',valign:'bottom',margin:0,rtlMode:true});
-    s.addText(unit,{x:x+0.28,y:y+h*0.55,w:w-0.95,h:h*0.2,fontSize:9,color:accentColor,fontFace:'Arial',align:'right',valign:'top',margin:0,rtlMode:true});
-    s.addText(label,{x:x+0.28,y:y+h*0.72,w:w-0.38,h:h*0.26,fontSize:10,color:D.sub,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-  };
-
-  // helper: section header
-  const addSectionHeader = (s, x, y, w, title, subtitle, color) => {
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y,w,h:0.05,fill:{color:color},line:{color:color,width:0},rectRadius:0.02});
-    s.addText(title,{x,y:y+0.1,w,h:0.38,fontSize:14,bold:true,color:D.text,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-    if(subtitle) s.addText(subtitle,{x,y:y+0.44,w,h:0.24,fontSize:9,color:D.sub,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-  };
-
-  // ══ SLIDE 1 — Cover Dashboard ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:D.bg};
-    // شريط علوي
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.33,h:1.8,fill:{color:D.blue},line:{color:D.blue,width:0}});
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:1.7,w:13.33,h:0.12,fill:{color:D.green},line:{color:D.green,width:0}});
-    // العنوان
-    s.addText('الساقية للصناعات الزراعية',{x:0.5,y:0.15,w:12.3,h:0.5,fontSize:14,color:'FFFFFF',fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-    s.addText('تقرير الإنتاج',{x:0.5,y:0.55,w:12.3,h:0.75,fontSize:36,bold:true,color:'FFFFFF',fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-    s.addText('Production Dashboard',{x:0.5,y:1.22,w:12.3,h:0.4,fontSize:13,color:'BFDBFE',fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-    // KPI cards — صف واحد 4 كروت
-    addKpiCard(s,0.4, 2.1,2.9,1.4, _fmtTon(totalQty), _tonUnit(totalQty), 'إجمالي الإنتاج', D.blue,   D.blue2);
-    addKpiCard(s,3.5, 2.1,2.9,1.4, String(data.length),        'دفعة',             'إجمالي الدفعات',  D.green,  D.green2);
-    addKpiCard(s,6.6, 2.1,2.9,1.4, String(sortedProds.length), 'منتج',             'منتجات مصنّعة',   D.orange, D.orange2);
-    addKpiCard(s,9.7, 2.1,2.9,1.4, String(Object.keys(monthlyQty).length),'شهر',  'فترة التحليل',    D.purple, D.purple2);
-    // صف ثاني
-    addKpiCard(s,0.4, 3.7,2.9,1.4, String(pareto80),           'منتج',             'Pareto 80%',       D.teal,   D.teal2);
-    addKpiCard(s,3.5, 3.7,2.9,1.4, (growth>=0?'+':'')+growth+'%','نمو',            'النمو الشهري',     growth>=0?D.green:D.red, growth>=0?D.green2:D.red2);
-    addKpiCard(s,6.6, 3.7,2.9,1.4, String(sortedRm.length),    'خامة',             'خامات مستخدمة',    D.gold,   D.gold2);
-    addKpiCard(s,9.7, 3.7,2.9,1.4, String(criticalRm),         'خامة',             'خامات حرجة',       D.red,    D.red2);
-    // تاريخ
-    const d=new Date();
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:7.1,w:13.33,h:0.4,fill:{color:'E2E8F0'},line:{color:'E2E8F0',width:0}});
-    s.addText(`تاريخ التقرير: ${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}   |   الساقية للصناعات الزراعية`,{x:0.5,y:7.12,w:12.3,h:0.3,fontSize:9,color:D.sub,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-  })();
-
-  // ══ SLIDE 2 — أعلى المنتجات + الاتجاه الشهري ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:D.bg};
-    // header شريط
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.33,h:0.55,fill:{color:D.blue},line:{color:D.blue,width:0}});
-    s.addText('تحليل الإنتاج — المنتجات والاتجاه الشهري',{x:0.4,y:0.08,w:12.5,h:0.4,fontSize:14,bold:true,color:'FFFFFF',fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-
-    // ── القسم الأيمن: أعلى 5 منتجات (عرض 6.2) ──
-    addSectionHeader(s, 7.0,0.7, 6.0,'أعلى 5 منتجات إنتاجاً','بالكيلوجرام — ترتيب تنازلي', D.blue);
-    const top5=sortedProds.slice(0,5), maxQ=top5[0]?.[1]||1;
-    top5.forEach(([name,qty],i)=>{
-      const y=1.4+i*1.1;
-      const pct=Math.round(qty/totalQty*100);
-      const barW=Math.max(0.2,(qty/maxQ)*5.5);
-      const col=CHART_COLORS[i];
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.0,y,w:6.1,h:0.92,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.08,shadow:{type:'outer',color:'CBD5E1',blur:4,offset:2,angle:90,opacity:0.2}});
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.08,y:y+0.08,w:barW,h:0.75,fill:{color:col,transparency:15},line:{color:col,width:0},rectRadius:0.06});
-      s.addShape(pres.shapes.OVAL,{x:7.1,y:y+0.22,w:0.38,h:0.38,fill:{color:col},line:{color:col,width:0}});
-      s.addText(`${i+1}`,{x:7.1,y:y+0.22,w:0.38,h:0.38,fontSize:11,bold:true,color:'FFFFFF',fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-      s.addText(name,{x:7.56,y:y+0.1,w:Math.max(barW-0.5,2.0),h:0.38,fontSize:11,bold:true,color:D.text,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-      s.addText(_fmtTon(qty),{x:7.1,y:y+0.46,w:Math.max(barW-0.1,0.5),h:0.28,fontSize:10,bold:true,color:'FFFFFF',fontFace:'Arial',align:'left',margin:0,rtlMode:true});
-      s.addText(_tonUnit(qty),{x:7.1+Math.max(barW-0.1,0.5),y:y+0.5,w:0.5,h:0.22,fontSize:8,color:D.sub,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
-      s.addText(`${pct}%`,{x:12.3,y:y+0.22,w:0.7,h:0.38,fontSize:11,bold:true,color:col,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    });
-
-    // ── القسم الأيسر: الاتجاه الشهري (عرض 6.2) ──
-    addSectionHeader(s, 0.4,0.7, 6.2,'الاتجاه الشهري للإنتاج','مقارنة شهرية بالكيلوجرام', D.green);
-    if(sortedMonths.length){
-      const maxM=Math.max(...sortedMonths.map(([,v])=>v))||1;
-      const n=sortedMonths.length;
-      const colW=Math.min(1.1,5.8/n), gap=0.08;
-      const totalW=n*(colW+gap)-gap, startX=0.4+(6.0-totalW)/2;
-      const chartH=4.5, chartY=1.5;
-      // خلفية المنطقة
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:chartY,w:6.2,h:chartH,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.1,shadow:{type:'outer',color:'CBD5E1',blur:4,offset:2,angle:90,opacity:0.2}});
-      // خطوط أفقية
-      [0.25,0.5,0.75,1.0].forEach(pct=>{
-        const lineY=chartY+0.2+(chartH-0.5)*(1-pct);
-        s.addShape(pres.shapes.RECTANGLE,{x:0.5,y:lineY,w:6.0,h:0.01,fill:{color:'E2E8F0'},line:{color:'E2E8F0',width:0}});
-        s.addText(Math.round(maxM*pct/1000)+'ط',{x:0.42,y:lineY-0.12,w:0.5,h:0.24,fontSize:7,color:D.sub,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
-      });
-      sortedMonths.forEach(([mon,qty],i)=>{
-        const x=startX+i*(colW+gap);
-        const barH=Math.max(0.15,(qty/maxM)*(chartH-0.55));
-        const barY=chartY+0.2+(chartH-0.55)-barH;
-        const col=CHART_COLORS[i%CHART_COLORS.length];
-        const mi=parseInt(mon.split('-')[1]);
-        const prev=i>0?sortedMonths[i-1][1]:null;
-        const gr=prev?Math.round((qty-prev)/prev*100):null;
-        // العمود
-        s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y:barY,w:colW,h:barH,fill:{color:col,transparency:10},line:{color:col,width:0},rectRadius:0.06,shadow:{type:'outer',color:col,blur:6,offset:0,angle:270,opacity:0.25}});
-        // اسم الشهر
-        s.addText(MONTHS_AR_S[mi-1]?.substring(0,3)||mon,{x,y:chartY+chartH-0.28,w:colW,h:0.25,fontSize:8,bold:true,color:D.text,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-        // الكمية فوق العمود
-        s.addText(_fmtTon(qty),{x:x-0.1,y:barY-0.32,w:colW+0.2,h:0.2,fontSize:8,bold:true,color:col,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-        s.addText(_tonUnit(qty),{x:x-0.1,y:barY-0.15,w:colW+0.2,h:0.16,fontSize:6,color:D.sub,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-        // badge نمو
-        if(gr!==null){
-          const gc=gr>=0?D.green:D.red, gt=(gr>=0?'+':'')+gr+'%';
-          s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:x+0.02,y:barY-0.54,w:colW-0.04,h:0.2,fill:{color:gr>=0?D.green2:D.red2},line:{color:gc,width:1,transparency:50},rectRadius:0.04});
-          s.addText(gt,{x:x+0.02,y:barY-0.54,w:colW-0.04,h:0.2,fontSize:6,bold:true,color:gc,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-        }
-      });
-    }
-    // footer
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:7.1,w:13.33,h:0.4,fill:{color:'E2E8F0'},line:{color:'E2E8F0',width:0}});
-    s.addText('الساقية للصناعات الزراعية  |  تحليل الإنتاج',{x:0.5,y:7.12,w:12.3,h:0.3,fontSize:9,color:D.sub,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-  })();
-
-  // ══ SLIDE 3 — توزيع التعبئة + Pareto ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:D.bg};
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.33,h:0.55,fill:{color:D.purple},line:{color:D.purple,width:0}});
-    s.addText('توزيع التعبئة وتحليل Pareto',{x:0.4,y:0.08,w:12.5,h:0.4,fontSize:14,bold:true,color:'FFFFFF',fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-
-    // ── القسم الأيمن: توزيع التعبئة Doughnut ──
-    addSectionHeader(s, 7.0,0.7,6.0,'توزيع التعبئة','نسبة كل نوع من إجمالي الإنتاج', D.purple);
-    if(sortedPkg.length){
-      const pkgTotal=sortedPkg.reduce((a,[,v])=>a+v,0);
-      const pieColors=['2563EB','16A34A','EA580C','7C3AED','0891B2','D97706'];
-      s.addChart(pres.charts.DOUGHNUT,[{
-        name:'التعبئة',
-        labels:sortedPkg.slice(0,6).map(([n])=>n),
-        values:sortedPkg.slice(0,6).map(([,v])=>v)
-      }],{
-        x:7.0,y:1.4,w:3.5,h:5.5,
-        chartColors:pieColors,holeSize:50,
-        showPercent:true,showLabel:false,showValue:false,
-        dataLabelFontSize:11,dataLabelFontBold:true,dataLabelColor:'FFFFFF',
-        showLegend:false,chartArea:{fill:{color:D.white},border:{color:D.border,pt:1}},
-      });
-      // legend
-      sortedPkg.slice(0,6).forEach(([name,qty],i)=>{
-        const pct=Math.round(qty/pkgTotal*100);
-        const col=pieColors[i%pieColors.length];
-        const y=1.5+i*0.88;
-        s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.6,y,w:2.3,h:0.78,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.08});
-        s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.68,y:y+0.08,w:0.06,h:0.62,fill:{color:col},line:{color:col,width:0},rectRadius:0.03});
-        s.addText(name,{x:10.82,y:y+0.06,w:2.0,h:0.34,fontSize:10,bold:true,color:D.text,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-        s.addText(`${pct}%  •  ${_fmtTon(qty)} ${_tonUnit(qty)}`,{x:10.82,y:y+0.38,w:2.0,h:0.28,fontSize:8,color:D.sub,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-      });
-    }
-
-    // ── القسم الأيسر: Pareto ──
-    addSectionHeader(s, 0.4,0.7,6.2,'تحليل Pareto','أي المنتجات تصنع 80% من الإنتاج؟', D.orange);
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:1.4,w:6.2,h:5.5,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.1,shadow:{type:'outer',color:'CBD5E1',blur:4,offset:2,angle:90,opacity:0.2}});
-    // Pareto badge
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.55,y:1.55,w:2.5,h:0.65,fill:{color:D.orange2},line:{color:D.orange,width:1,transparency:50},rectRadius:0.08});
-    s.addText(`${pareto80} منتج`,{x:0.55,y:1.55,w:2.5,h:0.38,fontSize:16,bold:true,color:D.orange,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
-    s.addText('يصنعون 80% من الإنتاج',{x:0.55,y:1.88,w:2.5,h:0.24,fontSize:8,color:D.sub,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-    // جدول Pareto
-    let cumPct=0;
-    sortedProds.slice(0,8).forEach(([name,qty],i)=>{
-      const pct=Math.round(qty/totalQty*100);
-      cumPct+=pct;
-      const y=2.35+i*0.62;
-      const isPareto=cumPct-pct<80;
-      const rowBg=isPareto?D.orange2:D.white;
-      const rowBorder=isPareto?D.orange:D.border;
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y,w:6.0,h:0.54,fill:{color:rowBg},line:{color:rowBorder,width:1,transparency:isPareto?40:0},rectRadius:0.06});
-      s.addText(`${i+1}`,{x:0.55,y,w:0.4,h:0.54,fontSize:10,bold:true,color:D.sub,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-      s.addText(name,{x:1.0,y,w:3.2,h:0.54,fontSize:10,bold:isPareto,color:D.text,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-      s.addText(`${pct}%`,{x:4.3,y,w:1.0,h:0.54,fontSize:10,bold:true,color:isPareto?D.orange:D.sub,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-      s.addText(`${Math.min(cumPct,100)}%↑`,{x:5.3,y,w:1.1,h:0.54,fontSize:9,color:D.blue,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    });
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:7.1,w:13.33,h:0.4,fill:{color:'E2E8F0'},line:{color:'E2E8F0',width:0}});
-    s.addText('الساقية للصناعات الزراعية  |  توزيع التعبئة وPareto',{x:0.5,y:7.12,w:12.3,h:0.3,fontSize:9,color:D.sub,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-  })();
-
-  // ══ SLIDE 4 — الخامات Dashboard ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:D.bg};
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.33,h:0.55,fill:{color:D.teal},line:{color:D.teal,width:0}});
-    s.addText('تحليل استهلاك الخامات',{x:0.4,y:0.08,w:12.5,h:0.4,fontSize:14,bold:true,color:'FFFFFF',fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-
-    // KPIs صغيرة
-    addKpiCard(s,0.4, 0.7,3.0,1.0, _fmtTon(totalRm),_tonUnit(totalRm),'إجمالي الخامات',D.teal,D.teal2);
-    addKpiCard(s,3.6, 0.7,3.0,1.0, String(sortedRm.length),'نوع','أنواع الخامات',D.blue,D.blue2);
-    addKpiCard(s,6.8, 0.7,3.0,1.0, String(criticalRm),'خامة','خامات حرجة',D.red,D.red2);
-    addKpiCard(s,10.0,0.7,3.0,1.0, String(data.length),'دفعة','إجمالي الدفعات',D.green,D.green2);
-
-    // ── أعلى 7 خامات بار شارت ──
-    addSectionHeader(s,0.4,1.9,8.2,'أعلى الخامات استهلاكاً','ترتيب تنازلي بالكيلوجرام',D.teal);
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:2.55,w:8.2,h:4.35,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.1,shadow:{type:'outer',color:'CBD5E1',blur:4,offset:2,angle:90,opacity:0.2}});
-    const top7rm=sortedRm.slice(0,7), maxRm=top7rm[0]?.[1]||1;
-    top7rm.forEach(([name,qty],i)=>{
-      const y=2.65+i*0.58;
-      const pct=Math.round(qty/totalRm*100);
-      const barW=Math.max(0.2,(qty/maxRm)*6.8);
-      const col=CHART_COLORS[i%CHART_COLORS.length];
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.05,w:barW,h:0.42,fill:{color:col,transparency:15},line:{color:col,width:0},rectRadius:0.06});
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5+barW,y:y+0.05,w:7.95-barW,h:0.42,fill:{color:'F1F5F9'},line:{color:'F1F5F9',width:0},rectRadius:0.06});
-      s.addText(name,{x:0.55,y:y+0.06,w:Math.max(barW-0.1,1.5),h:0.38,fontSize:10,bold:true,color:pct>30?'FFFFFF':D.text,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-      s.addText(_fmtTon(qty)+' '+_tonUnit(qty),{x:0.5+barW+0.08,y:y+0.1,w:1.5,h:0.3,fontSize:9,bold:true,color:col,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
-      s.addText(`${pct}%`,{x:8.1,y:y+0.1,w:0.5,h:0.3,fontSize:9,color:D.sub,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-    });
-
-    // ── جدول تفصيلي أعلى 10 ──
-    addSectionHeader(s,8.8,1.9,4.3,'جدول تفصيلي','أعلى 10 خامات',D.blue);
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:8.8,y:2.55,w:4.3,h:4.35,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.1,shadow:{type:'outer',color:'CBD5E1',blur:4,offset:2,angle:90,opacity:0.2}});
-    // header جدول
-    s.addShape(pres.shapes.RECTANGLE,{x:8.85,y:2.6,w:4.2,h:0.36,fill:{color:D.teal},line:{color:D.teal,width:0}});
-    s.addText('#',{x:8.85,y:2.6,w:0.4,h:0.36,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    s.addText('الخامة',{x:9.3,y:2.6,w:2.2,h:0.36,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-    s.addText('الكمية',{x:11.55,y:2.6,w:1.4,h:0.36,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    sortedRm.slice(0,10).forEach(([name,qty],i)=>{
-      const y=3.0+i*0.38;
-      const rowBg=i%2===0?D.white:'F8FAFC';
-      s.addShape(pres.shapes.RECTANGLE,{x:8.85,y,w:4.2,h:0.36,fill:{color:rowBg},line:{color:rowBg,width:0}});
-      s.addText(`${i+1}`,{x:8.85,y,w:0.4,h:0.36,fontSize:9,color:D.sub,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-      s.addText(name,{x:9.3,y,w:2.2,h:0.36,fontSize:9,color:D.text,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-      s.addText(_fmtTon(qty)+' '+_tonUnit(qty),{x:11.55,y,w:1.4,h:0.36,fontSize:9,bold:true,color:D.teal,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    });
-
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:7.1,w:13.33,h:0.4,fill:{color:'E2E8F0'},line:{color:'E2E8F0',width:0}});
-    s.addText('الساقية للصناعات الزراعية  |  تحليل الخامات',{x:0.5,y:7.12,w:12.3,h:0.3,fontSize:9,color:D.sub,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-  })();
-
-  // ══ SLIDE 5 — المستلزمات Dashboard ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:D.bg};
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.33,h:0.55,fill:{color:D.gold},line:{color:D.gold,width:0}});
-    s.addText('تحليل استهلاك المستلزمات',{x:0.4,y:0.08,w:12.5,h:0.4,fontSize:14,bold:true,color:'FFFFFF',fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-
-    // KPIs
-    addKpiCard(s,0.4, 0.7,4.1,1.0, totalSup.toLocaleString(),'وحدة','إجمالي المستلزمات',D.gold,D.gold2);
-    addKpiCard(s,4.7, 0.7,4.1,1.0, String(sortedSup.length),'نوع','أنواع المستلزمات',D.purple,D.purple2);
-    addKpiCard(s,9.0, 0.7,4.1,1.0, String(sortedPkg.length),'نوع','أنواع التعبئة',D.blue,D.blue2);
-
-    // ── بار شارت أعلى 8 مستلزمات ──
-    addSectionHeader(s,0.4,1.9,8.2,'أعلى المستلزمات استهلاكاً','بالوحدة — ترتيب تنازلي',D.gold);
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:2.55,w:8.2,h:4.35,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.1,shadow:{type:'outer',color:'CBD5E1',blur:4,offset:2,angle:90,opacity:0.2}});
-    const top8sup=sortedSup.slice(0,8), maxSup=top8sup[0]?.[1]||1;
-    const goldShades=['D97706','EA580C','CA8A04','B45309','92400E','F59E0B','F97316','EF4444'];
-    top8sup.forEach(([name,qty],i)=>{
-      const y=2.65+i*0.5;
-      const pct=Math.round(qty/totalSup*100);
-      const barW=Math.max(0.2,(qty/maxSup)*6.8);
-      const col=goldShades[i%goldShades.length];
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:0.36,fill:{color:col,transparency:15},line:{color:col,width:0},rectRadius:0.05});
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5+barW,y:y+0.04,w:7.95-barW,h:0.36,fill:{color:'F1F5F9'},line:{color:'F1F5F9',width:0},rectRadius:0.05});
-      s.addText(name,{x:0.55,y:y+0.05,w:Math.max(barW-0.1,1.5),h:0.3,fontSize:9,bold:true,color:pct>25?'FFFFFF':D.text,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-      s.addText(qty.toLocaleString()+' وحدة',{x:0.5+barW+0.08,y:y+0.08,w:2.0,h:0.24,fontSize:8,bold:true,color:col,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
-      s.addText(`${pct}%`,{x:8.1,y:y+0.08,w:0.5,h:0.24,fontSize:8,color:D.sub,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-    });
-
-    // ── جدول تفصيلي ──
-    addSectionHeader(s,8.8,1.9,4.3,'جدول تفصيلي','كل المستلزمات',D.purple);
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:8.8,y:2.55,w:4.3,h:4.35,fill:{color:D.white},line:{color:D.border,width:1},rectRadius:0.1,shadow:{type:'outer',color:'CBD5E1',blur:4,offset:2,angle:90,opacity:0.2}});
-    s.addShape(pres.shapes.RECTANGLE,{x:8.85,y:2.6,w:4.2,h:0.36,fill:{color:D.gold},line:{color:D.gold,width:0}});
-    s.addText('#',{x:8.85,y:2.6,w:0.4,h:0.36,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    s.addText('المستلزم',{x:9.3,y:2.6,w:2.2,h:0.36,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-    s.addText('الكمية',{x:11.55,y:2.6,w:1.4,h:0.36,fontSize:9,bold:true,color:'FFFFFF',fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    sortedSup.slice(0,10).forEach(([name,qty],i)=>{
-      const y=3.0+i*0.38;
-      const rowBg=i%2===0?D.white:'F8FAFC';
-      s.addShape(pres.shapes.RECTANGLE,{x:8.85,y,w:4.2,h:0.36,fill:{color:rowBg},line:{color:rowBg,width:0}});
-      s.addText(`${i+1}`,{x:8.85,y,w:0.4,h:0.36,fontSize:9,color:D.sub,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-      s.addText(name,{x:9.3,y,w:2.2,h:0.36,fontSize:9,color:D.text,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
-      s.addText(qty.toLocaleString(),{x:11.55,y,w:1.4,h:0.36,fontSize:9,bold:true,color:D.gold,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-    });
-
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:7.1,w:13.33,h:0.4,fill:{color:'E2E8F0'},line:{color:'E2E8F0',width:0}});
-    s.addText('الساقية للصناعات الزراعية  |  تحليل المستلزمات',{x:0.5,y:7.12,w:12.3,h:0.3,fontSize:9,color:D.sub,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
-  })();
-
-  // ══ SLIDE 6 — Closing Dashboard ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:D.blue};
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:0,w:13.33,h:0.08,fill:{color:D.green},line:{color:D.green,width:0}});
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:2.5,y:1.2,w:8.33,h:5.1,fill:{color:'FFFFFF',transparency:8},line:{color:'FFFFFF',width:0},rectRadius:0.2});
-    s.addText('الساقية للصناعات الزراعية',{x:2.5,y:1.5,w:8.33,h:0.6,fontSize:18,bold:true,color:'FFFFFF',fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-    s.addShape(pres.shapes.RECTANGLE,{x:4.5,y:2.2,w:4.33,h:0.04,fill:{color:D.green},line:{color:D.green,width:0}});
-    s.addText('ملخص التقرير',{x:2.5,y:2.35,w:8.33,h:0.5,fontSize:13,color:'BFDBFE',fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-    // ملخص KPIs
-    const summaryKpis=[
-      {v:_fmtTon(totalQty),u:_tonUnit(totalQty),l:'إجمالي الإنتاج'},
-      {v:String(sortedProds.length),u:'منتج',l:'منتجات مصنّعة'},
-      {v:String(data.length),u:'دفعة',l:'إجمالي الدفعات'},
-      {v:String(pareto80),u:'منتج',l:'Pareto 80%'},
-    ];
-    summaryKpis.forEach(({v,u,l},i)=>{
-      const x=2.7+i*2.0;
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y:3.0,w:1.8,h:1.6,fill:{color:'FFFFFF',transparency:85},line:{color:'FFFFFF',width:1,transparency:60},rectRadius:0.12});
-      s.addText(v,{x,y:3.1,w:1.8,h:0.65,fontSize:22,bold:true,color:'FFFFFF',fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
-      s.addText(u,{x,y:3.7,w:1.8,h:0.26,fontSize:9,color:'BFDBFE',fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-      s.addText(l,{x,y:3.95,w:1.8,h:0.5,fontSize:9,color:'93C5FD',fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-    });
-    const d=new Date();
-    s.addText(`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`,{x:2.5,y:5.5,w:8.33,h:0.4,fontSize:11,color:'BFDBFE',fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-    s.addShape(pres.shapes.RECTANGLE,{x:0,y:7.1,w:13.33,h:0.4,fill:{color:'1D4ED8'},line:{color:'1D4ED8',width:0}});
-    s.addText('الساقية للصناعات الزراعية  |  Production Dashboard',{x:0.5,y:7.12,w:12.3,h:0.3,fontSize:9,color:'93C5FD',fontFace:'Arial',align:'center',margin:0,rtlMode:true});
-  })();
-
-  pres.writeFile({fileName:`Dashboard_الإنتاج_${new Date().toISOString().split('T')[0]}.pptx`})
-    .then(()=>toast('تم تصدير Dashboard PPTX ✅','success'))
-    .catch(e=>{console.error('Dashboard PPTX Error:',e); toast('خطأ في التصدير: '+e.message,'error');});
-};
-
 </script>
+<!-- Compare Modal -->
 <div class="overlay" id="mo-compare">
   <div class="modal xl">
     <div class="mh"><span class="mh-title" id="cmp-title">🔀 مقارنة المنتجات</span><button class="mclose" onclick="closeM('mo-compare')">×</button></div>
