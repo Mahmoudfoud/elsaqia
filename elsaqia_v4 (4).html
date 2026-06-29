@@ -3600,7 +3600,6 @@ window.exportProductionPPTX = (inputData) => {
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء تقرير الإنتاج...','info');
-  try {
   const prodQtys={}, monthlyQty={}, pkgCounts={}, rmAgg={}, supAgg={};
   data.forEach(p=>{
     const lines=(p.items&&p.items.length)?p.items:[{productName:p.productName,qty:p.qty||0}];
@@ -3753,7 +3752,6 @@ window.exportProductionPPTX = (inputData) => {
     {v:String(data.length), l:'دفعة إنتاج', c:C.purple},
   ]);
 
-  } catch(e) { console.error('PPTX build error:',e); toast('خطأ في بناء التقرير: '+e.message,'error'); return; }
 
   pres.writeFile({fileName:`تقرير_الإنتاج_${new Date().toISOString().split('T')[0]}.pptx`})
     .then(()=>toast('تم تصدير تقرير الإنتاج ✅','success'))
@@ -4864,7 +4862,6 @@ window.exportDashboardPPTX = (inputData) => {
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء العرض التقديمي...','info');
-  try {
 
   // ── aggregate ──
   const prodQtys={}, monthlyQty={}, pkgCounts={}, rmAgg={}, supAgg={}, rmBatchCount={};
@@ -5224,7 +5221,6 @@ window.exportDashboardPPTX = (inputData) => {
     s.addShape(pres.shapes.RECTANGLE,{x:0,y:7.1,w:13.33,h:0.4,fill:{color:'1D4ED8'},line:{color:'1D4ED8',width:0}});
     s.addText('الساقية للصناعات الزراعية  |  Production Dashboard',{x:0.5,y:7.12,w:12.3,h:0.3,fontSize:9,color:'93C5FD',fontFace:'Arial',align:'center',margin:0,rtlMode:true});
   })();
-  } catch(e) { console.error('Dashboard build error:',e); toast('خطأ في بناء التقرير: '+e.message,'error'); return; }
 
   pres.writeFile({fileName:`Dashboard_الإنتاج_${new Date().toISOString().split('T')[0]}.pptx`})
     .then(()=>toast('تم تصدير Dashboard PPTX ✅','success'))
