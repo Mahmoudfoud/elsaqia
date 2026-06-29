@@ -1004,6 +1004,7 @@ let _materials = [];
 let _history   = [];
 let _batches   = [];
 let _production = [];
+let _lastAnalyticsData = [];
 let _users     = [];
 let _auditItems= [];
 let _presence  = {};
@@ -3211,6 +3212,7 @@ window.runAnalytics = () => {
   });
   const el = document.getElementById('analytics-body');
   if (!data.length) { el.innerHTML = emptyState('📊','لا توجد بيانات في هذه الفترة','سجّل دفعات إنتاج أولاً','',''); return; }
+  _lastAnalyticsData = data; // حفظ للـ PPTX
 
   // ── aggregations ──
   // لو في فلتر منتج معين — نحسب فقط كميته من كل دفعة
@@ -3357,10 +3359,10 @@ window.runAnalytics = () => {
   el.innerHTML = `
   <!-- PPTX export btn -->
   <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:12px">
-    <button class="btn btn-g btn-sm" onclick="exportProductionPPTX()">
+    <button class="btn btn-g btn-sm" onclick="exportProductionPPTX(_lastAnalyticsData)">
       <i class="fas fa-file-powerpoint"></i> تقرير الإنتاج PPTX
     </button>
-    <button class="btn btn-sm" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border:none" onclick="exportDashboardPPTX()">
+    <button class="btn btn-sm" style="background:linear-gradient(135deg,#1d4ed8,#2563eb);color:#fff;border:none" onclick="exportDashboardPPTX(_lastAnalyticsData)">
       <i class="fas fa-chart-bar"></i> Dashboard PPTX
     </button>
   </div>
