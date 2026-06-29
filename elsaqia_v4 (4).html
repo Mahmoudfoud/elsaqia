@@ -676,7 +676,6 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="ph">
         <div class="ph-left"><div class="ph-title">🏭 الإنتاج والدُفعات</div><div class="ph-sub" id="prod-page-sub">سجل التصنيع والتحاليل الذكية</div></div>
         <div class="ph-acts">
-          <button class="btn btn-ghost btn-sm" onclick="exportProduction()"><i class="fas fa-file-excel"></i>Excel</button>
           <button class="btn btn-g btn-sm perm-btn" data-perm="add_batches" onclick="openProductionModal()"><i class="fas fa-plus"></i>دفعة جديدة</button>
         </div>
       </div>
@@ -3597,7 +3596,7 @@ function _addBarsSlide(pres, C, BAR_COLORS, title, subtitle, accentColor, items,
 // PPTX EXPORT 1 — تقرير الإنتاج الشامل (Premium Dark)
 // ══════════════════════════════════════════════════════════════════
 window.exportProductionPPTX = (inputData) => {
-  const data = inputData || _production;
+  const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء تقرير الإنتاج...','info');
@@ -3764,7 +3763,7 @@ window.exportProductionPPTX = (inputData) => {
 // PPTX EXPORT 2 — تقرير المستلزمات المنفصل
 // ══════════════════════════════════════════════════════════════════
 window.exportSuppliesPPTX = (inputData) => {
-  const data = inputData || _production;
+  const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء تقرير المستلزمات...','info');
@@ -3979,7 +3978,7 @@ window.exportSuppliesPPTX = (inputData) => {
 // PPTX EXPORT 3 — تقرير الخامات المنفصل
 // ══════════════════════════════════════════════════════════════════
 window.exportRawMatsPPTX = (inputData) => {
-  const data = inputData || _production;
+  const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء تقرير الخامات...','info');
@@ -4860,7 +4859,7 @@ window.installPWA = async () => {
 // PPTX EXPORT 4 — Dashboard Style (Power BI Light)
 // ══════════════════════════════════════════════════════════════════
 window.exportDashboardPPTX = (inputData) => {
-  const data = inputData || _production;
+  const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
   toast('جارٍ إنشاء العرض التقديمي...','info');
