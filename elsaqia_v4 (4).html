@@ -3253,7 +3253,13 @@ window.runAnalytics = () => {
   <!-- PPTX export btn -->
   <div style="display:flex;justify-content:flex-end;margin-bottom:12px">
     <button class="btn btn-g btn-sm" onclick="exportProductionPPTX(${JSON.stringify([...data].map(p=>({productName:p.productName,qty:p.qty||0,totalQty:p.totalQty,month:p.month,date:p.date,packaging:p.packaging,supplies:p.supplies,rawMaterials:p.rawMaterials,items:p.items})))})">
-      <i class="fas fa-file-powerpoint"></i> تصدير عرض تقديمي PPTX
+      <i class="fas fa-file-powerpoint"></i> تقرير الإنتاج PPTX
+    </button>
+    <button class="btn btn-sm" style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;border:none" onclick="exportSuppliesPPTX(${JSON.stringify([...data].map(p=>({productName:p.productName,qty:p.qty||0,totalQty:p.totalQty,month:p.month,date:p.date,packaging:p.packaging,supplies:p.supplies,rawMaterials:p.rawMaterials,items:p.items})))})">
+      <i class="fas fa-boxes"></i> تقرير المستلزمات PPTX
+    </button>
+    <button class="btn btn-sm" style="background:linear-gradient(135deg,#0e7490,#06b6d4);color:#fff;border:none" onclick="exportRawMatsPPTX(${JSON.stringify([...data].map(p=>({productName:p.productName,qty:p.qty||0,totalQty:p.totalQty,month:p.month,date:p.date,packaging:p.packaging,supplies:p.supplies,rawMaterials:p.rawMaterials,items:p.items})))})">
+      <i class="fas fa-flask"></i> تقرير الخامات PPTX
     </button>
   </div>
 
@@ -3380,13 +3386,117 @@ window.runAnalytics = () => {
 };
 
 // ══════════════════════════════════════════════════════════════════
-// PPTX EXPORT — عرض تقديمي احترافي Premium Dark
+// PPTX SHARED HELPERS
+// ══════════════════════════════════════════════════════════════════
+function _pptxPalette() {
+  return {
+    bg:'0A0F1E', bg2:'0D1525', card:'111827',
+    green:'10B981', green2:'059669',
+    gold:'F59E0B', blue:'3B82F6', purple:'8B5CF6',
+    pink:'EC4899', teal:'06B6D4',
+    white:'FFFFFF', gray:'6B7280', lgray:'9CA3AF', dark:'1F2937'
+  };
+}
+function _pptxBarColors() {
+  return ['10B981','3B82F6','8B5CF6','F59E0B','EC4899','06B6D4','EF4444','84CC16','F97316','A78BFA'];
+}
+function _mkSh() { return {type:'outer',color:'000000',blur:12,offset:4,angle:45,opacity:0.4}; }
+
+// helper: رسم شريحة cover موحدة
+function _addCoverSlide(pres, C, titleLine1, titleLine2, subtitle, kpis) {
+  const s = pres.addSlide(); s.background={color:C.bg};
+  s.addShape(pres.shapes.OVAL,{x:-1,y:-1,w:7,h:7,fill:{color:C.green,transparency:92},line:{color:C.green,width:0}});
+  s.addShape(pres.shapes.OVAL,{x:9,y:3,w:6,h:6,fill:{color:C.blue,transparency:90},line:{color:C.blue,width:0}});
+  s.addShape(pres.shapes.OVAL,{x:5,y:1,w:4,h:4,fill:{color:C.purple,transparency:94},line:{color:C.purple,width:0}});
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:0.45,w:2.5,h:0.42,fill:{color:C.green,transparency:80},line:{color:C.green,width:1,transparency:40},rectRadius:0.1});
+  s.addText('الساقية للصناعات',{x:0.5,y:0.45,w:2.5,h:0.42,fontSize:10,bold:true,color:C.green,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+  s.addText(titleLine1,{x:0.5,y:1.1,w:12,h:1.1,fontSize:66,bold:true,color:C.white,fontFace:'Arial',align:'right',charSpacing:2,rtlMode:true});
+  s.addText(titleLine2,{x:0.5,y:2.05,w:12,h:1.4,fontSize:80,bold:true,color:C.green,fontFace:'Arial',align:'right',charSpacing:3,rtlMode:true});
+  s.addText(subtitle,{x:0.5,y:3.55,w:12,h:0.55,fontSize:15,color:C.lgray,fontFace:'Arial',align:'right',charSpacing:1,rtlMode:true});
+  s.addShape(pres.shapes.RECTANGLE,{x:0.5,y:4.25,w:12.3,h:0.03,fill:{color:C.green,transparency:50},line:{color:C.green,width:0}});
+  kpis.forEach(({num,lbl,c},i)=>{
+    const x=0.5+i*3.2;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y:4.5,w:3.0,h:1.55,fill:{color:c,transparency:85},line:{color:c,width:1,transparency:50},rectRadius:0.14,shadow:_mkSh()});
+    s.addText(num,{x,y:4.6,w:3.0,h:0.75,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+    s.addText(lbl,{x,y:5.3,w:3.0,h:0.45,fontSize:11,color:c,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+  });
+  const d=new Date();
+  s.addText(`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`,{x:0.5,y:7.1,w:12.3,h:0.3,fontSize:9,color:C.gray,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+}
+
+// helper: رسم شريحة closing موحدة
+function _addClosingSlide(pres, C, stats) {
+  const s=pres.addSlide(); s.background={color:C.bg};
+  s.addShape(pres.shapes.OVAL,{x:-2,y:-2,w:9,h:9,fill:{color:C.green,transparency:92},line:{color:C.green,width:0}});
+  s.addShape(pres.shapes.OVAL,{x:8,y:2,w:7,h:7,fill:{color:C.blue,transparency:92},line:{color:C.blue,width:0}});
+  s.addShape(pres.shapes.OVAL,{x:3,y:3,w:5,h:5,fill:{color:C.purple,transparency:94},line:{color:C.purple,width:0}});
+  s.addText('شكراً',{x:0.5,y:1.3,w:12.3,h:1.8,fontSize:90,bold:true,color:C.white,fontFace:'Arial',align:'center',charSpacing:8,rtlMode:true});
+  s.addText('الساقية للصناعات الزراعية',{x:0.5,y:3.2,w:12.3,h:0.7,fontSize:20,color:C.green,fontFace:'Arial',align:'center',charSpacing:2,rtlMode:true});
+  stats.forEach(({v,l,c},i)=>{
+    const x=1.5+i*3.5;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y:4.2,w:3.1,h:1.5,fill:{color:c,transparency:85},line:{color:c,width:1,transparency:40},rectRadius:0.14,shadow:_mkSh()});
+    s.addText(v,{x,y:4.3,w:3.1,h:0.75,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+    s.addText(l,{x,y:5.0,w:3.1,h:0.4,fontSize:11,color:c,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+  });
+  const d=new Date();
+  s.addText(`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`,{x:0.5,y:7.05,w:12.3,h:0.3,fontSize:9,color:C.gray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+}
+
+// helper: تنسيق الكمية — رقم كبير + وحدة تحته
+// يرجع [{text, options}] مناسب لـ addText مع array
+function _fmtTon(qty) {
+  // يرجع نص الرقم فقط للعرض الكبير
+  if (qty >= 1000) return (qty/1000).toFixed(1);
+  return qty.toLocaleString();
+}
+function _tonUnit(qty) {
+  return qty >= 1000 ? 'طن' : 'كجم';
+}
+
+// helper: شريحة بار للخامات (بالطن) أو المستلزمات (بالوحدة)
+// mode = 'ton' | 'unit'
+function _addBarsSlide(pres, C, BAR_COLORS, title, subtitle, accentColor, items, total, mode) {
+  const s=pres.addSlide(); s.background={color:C.bg};
+  s.addShape(pres.shapes.OVAL,{x:9,y:3,w:7,h:7,fill:{color:accentColor,transparency:93},line:{color:accentColor,width:0}});
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:accentColor},line:{color:accentColor,width:0},rectRadius:0.03});
+  s.addText(title,{x:0.6,y:0.3,w:9,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+  s.addText(subtitle,{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:accentColor,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+  // badge إجمالي
+  const badgeVal = mode==='ton' ? _fmtTon(total) : total.toLocaleString();
+  const badgeUnit = mode==='ton' ? _tonUnit(total) : 'وحدة';
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.3,y:0.3,w:2.6,h:0.9,fill:{color:accentColor,transparency:80},line:{color:accentColor,width:1,transparency:30},rectRadius:0.12});
+  s.addText(badgeVal,{x:10.3,y:0.3,w:2.6,h:0.52,fontSize:24,bold:true,color:accentColor,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
+  s.addText(badgeUnit,{x:10.3,y:0.76,w:2.6,h:0.32,fontSize:10,color:C.lgray,fontFace:'Arial',align:'center',valign:'top',margin:0,rtlMode:true});
+
+  const top = items.slice(0,5), maxQty=top[0]?.[1]||1;
+  top.forEach(([name,qty],i)=>{
+    const y=1.35+i*1.16, col=BAR_COLORS[i%BAR_COLORS.length];
+    const barW=Math.max(0.3,(qty/maxQty)*11.5);
+    const pct=Math.round(qty/total*100);
+    const valStr = mode==='ton' ? _fmtTon(qty) : qty.toLocaleString();
+    const unitStr = mode==='ton' ? _tonUnit(qty) : 'وحدة';
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y-0.08,w:12.3,h:0.98,fill:{color:C.card},line:{color:col,width:1,transparency:70},rectRadius:0.1});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:0.72,fill:{color:col,transparency:20},line:{color:col,width:0},rectRadius:0.08,shadow:{type:'outer',color:col,blur:10,offset:2,angle:45,opacity:0.3}});
+    s.addShape(pres.shapes.OVAL,{x:0.58,y:y+0.12,w:0.46,h:0.46,fill:{color:col},line:{color:col,width:0}});
+    s.addText(`${i+1}`,{x:0.58,y:y+0.12,w:0.46,h:0.46,fontSize:13,bold:true,color:C.white,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+    s.addText(name,{x:1.15,y:y+0.15,w:Math.max(barW-0.7,2.5),h:0.42,fontSize:13,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    // الرقم كبير داخل البار
+    s.addText(valStr,{x:0.55,y:y+0.02,w:Math.max(barW-0.2,0.6),h:0.42,fontSize:13,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+    // الوحدة صغيرة تحت الرقم
+    s.addText(unitStr,{x:0.55,y:y+0.4,w:Math.max(barW-0.2,0.6),h:0.25,fontSize:9,color:C.lg||'9CA3AF',fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+    // النسبة بعد البار
+    s.addText(`${pct}%`,{x:0.6+barW,y:y+0.22,w:1.2,h:0.3,fontSize:10,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+  });
+}
+
+// ══════════════════════════════════════════════════════════════════
+// PPTX EXPORT 1 — تقرير الإنتاج الشامل (Premium Dark)
 // ══════════════════════════════════════════════════════════════════
 window.exportProductionPPTX = (inputData) => {
   const data = inputData || _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
-  toast('جارٍ إنشاء العرض التقديمي...','info');
+  toast('جارٍ إنشاء تقرير الإنتاج...','info');
 
   // ── aggregate ──
   const prodQtys={}, monthlyQty={}, pkgCounts={}, rmAgg={}, supAgg={};
@@ -3407,6 +3517,8 @@ window.exportProductionPPTX = (inputData) => {
   const sortedRm      = Object.entries(rmAgg).sort((a,b)=>b[1]-a[1]);
   const sortedSup     = Object.entries(supAgg).sort((a,b)=>b[1]-a[1]);
   const totalQty      = sortedProds.reduce((a,[,v])=>a+v,0);
+  const totalRm       = sortedRm.reduce((a,[,v])=>a+v,0);
+  const totalSup      = sortedSup.reduce((a,[,v])=>a+v,0);
   const paretoTotal   = totalQty;
   let cumSum=0, pareto80Count=0;
   for(const[,v] of sortedProds){cumSum+=v;pareto80Count++;if(cumSum/paretoTotal>=0.8)break;}
@@ -3415,67 +3527,47 @@ window.exportProductionPPTX = (inputData) => {
   pres.layout = 'LAYOUT_WIDE';
   pres.title  = 'تقرير إنتاج الساقية';
 
-  // ── palette ──
-  const C={bg:'0A0F1E',bg2:'0D1525',card:'111827',green:'10B981',green2:'059669',
-    gold:'F59E0B',blue:'3B82F6',purple:'8B5CF6',pink:'EC4899',teal:'06B6D4',
-    white:'FFFFFF',gray:'6B7280',lgray:'9CA3AF',dark:'1F2937'};
-  const BAR_COLORS=['10B981','3B82F6','8B5CF6','F59E0B','EC4899','06B6D4','EF4444','84CC16','F97316','A78BFA'];
-  const mkSh=()=>({type:'outer',color:'000000',blur:12,offset:4,angle:45,opacity:0.4});
+  const C = _pptxPalette();
+  const BAR_COLORS = _pptxBarColors();
 
   // ══ SLIDE 1 — Cover ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:C.bg};
-    s.addShape(pres.shapes.OVAL,{x:-1,y:-1,w:7,h:7,fill:{color:C.green,transparency:92},line:{color:C.green,width:0}});
-    s.addShape(pres.shapes.OVAL,{x:9,y:3,w:6,h:6,fill:{color:C.blue,transparency:90},line:{color:C.blue,width:0}});
-    s.addShape(pres.shapes.OVAL,{x:5,y:1,w:4,h:4,fill:{color:C.purple,transparency:94},line:{color:C.purple,width:0}});
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:0.45,w:2.5,h:0.42,fill:{color:C.green,transparency:80},line:{color:C.green,width:1,transparency:40},rectRadius:0.1});
-    s.addText('🌿 الساقية للصناعات',{x:0.5,y:0.45,w:2.5,h:0.42,fontSize:10,bold:true,color:C.green,fontFace:'Arial',align:'center',valign:'middle',margin:0});
-    s.addText('تقرير',{x:0.5,y:1.1,w:12,h:1.1,fontSize:66,bold:true,color:C.white,fontFace:'Arial',align:'right',charSpacing:2});
-    s.addText('الإنتاج',{x:0.5,y:2.05,w:12,h:1.4,fontSize:80,bold:true,color:C.green,fontFace:'Arial',align:'right',charSpacing:3});
-    s.addText('تحليل شامل للدفعات • المستلزمات • الخامات',{x:0.5,y:3.55,w:12,h:0.55,fontSize:15,color:C.lgray,fontFace:'Arial',align:'right',charSpacing:1});
-    s.addShape(pres.shapes.RECTANGLE,{x:0.5,y:4.25,w:12.3,h:0.03,fill:{color:C.green,transparency:50},line:{color:C.green,width:0}});
-    const kpis=[
-      {v:(totalQty/1000).toFixed(0)+' ط',l:'إجمالي الإنتاج',c:C.green},
-      {v:data.length+'',l:'إجمالي الدفعات',c:C.blue},
-      {v:sortedProds.length+'',l:'منتجاً مصنّعاً',c:C.purple},
-      {v:Object.keys(monthlyQty).length+'',l:'أشهر',c:C.gold},
-    ];
-    kpis.forEach(({v,l,c},i)=>{
-      const x=0.5+i*3.2;
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y:4.5,w:3.0,h:1.55,fill:{color:c,transparency:85},line:{color:c,width:1,transparency:50},rectRadius:0.14,shadow:mkSh()});
-      s.addText(v,{x,y:4.6,w:3.0,h:0.75,fontSize:30,bold:true,color:C.white,fontFace:'Arial',align:'center',margin:0});
-      s.addText(l,{x,y:5.3,w:3.0,h:0.45,fontSize:11,color:c,fontFace:'Arial',align:'center',margin:0});
-    });
-    const d=new Date();
-    s.addText(`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`,{x:0.5,y:7.1,w:12.3,h:0.3,fontSize:9,color:C.gray,fontFace:'Arial',align:'right',margin:0});
-  })();
+  _addCoverSlide(pres, C, 'تقرير', 'الإنتاج',
+    'تحليل شامل للدفعات • المستلزمات • الخامات',
+    [
+      {num:_fmtTon(totalQty), lbl:'إجمالي الإنتاج ('+_tonUnit(totalQty)+')', c:C.green},
+      {num:String(data.length),          lbl:'إجمالي الدفعات',   c:C.blue},
+      {num:String(sortedProds.length),   lbl:'منتجاً مصنّعاً',   c:C.purple},
+      {num:String(Object.keys(monthlyQty).length), lbl:'أشهر',   c:C.gold},
+    ]
+  );
 
   // ══ SLIDE 2 — أعلى 5 منتجات ══
   (()=>{
     const s=pres.addSlide(); s.background={color:C.bg};
     s.addShape(pres.shapes.OVAL,{x:9,y:-2,w:8,h:8,fill:{color:C.green,transparency:94},line:{color:C.green,width:0}});
     s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.green},line:{color:C.green,width:0},rectRadius:0.03});
-    s.addText('أعلى 5 منتجات إنتاجاً',{x:0.6,y:0.3,w:9,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-    s.addText('Pareto Analysis — المنتجات الأكثر تأثيراً في خط الإنتاج',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.green,fontFace:'Arial',align:'right',margin:0});
+    s.addText('أعلى 5 منتجات إنتاجاً',{x:0.6,y:0.3,w:9,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('Pareto Analysis — المنتجات الأكثر تأثيراً في خط الإنتاج',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.green,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
     const top5=sortedProds.slice(0,5);
     const top5sum=top5.reduce((a,[,v])=>a+v,0);
     const pct80=Math.round(top5sum/paretoTotal*100);
     s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.5,y:0.3,w:2.4,h:0.9,fill:{color:C.gold,transparency:80},line:{color:C.gold,width:1,transparency:30},rectRadius:0.12});
-    s.addText(`${pct80}%`,{x:10.5,y:0.35,w:2.4,h:0.5,fontSize:28,bold:true,color:C.gold,fontFace:'Arial',align:'center',margin:0});
-    s.addText('من إجمالي الإنتاج',{x:10.5,y:0.82,w:2.4,h:0.3,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',margin:0});
+    s.addText(`${pct80}%`,{x:10.5,y:0.3,w:2.4,h:0.52,fontSize:26,bold:true,color:C.gold,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
+    s.addText('من إجمالي الإنتاج',{x:10.5,y:0.76,w:2.4,h:0.32,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',valign:'top',margin:0,rtlMode:true});
     const maxQty=top5[0]?.[1]||1;
     top5.forEach(([name,qty],i)=>{
       const y=1.35+i*1.16, col=BAR_COLORS[i];
-      const barW=Math.max(0.3,(qty/maxQty)*12.2);
+      const barW=Math.max(0.3,(qty/maxQty)*11.5);
       const pctProd=Math.round(qty/paretoTotal*100);
+      const rc=['F59E0B','9CA3AF','CD7F32','6B7280','6B7280'];
       s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y-0.08,w:12.3,h:0.98,fill:{color:C.card},line:{color:col,width:1,transparency:70},rectRadius:0.1});
       s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:0.72,fill:{color:col,transparency:15},line:{color:col,width:0},rectRadius:0.08,shadow:{type:'outer',color:col,blur:10,offset:2,angle:45,opacity:0.35}});
-      const rc=['F59E0B','9CA3AF','CD7F32','6B7280','6B7280'];
       s.addShape(pres.shapes.OVAL,{x:0.58,y:y+0.12,w:0.46,h:0.46,fill:{color:rc[i]},line:{color:rc[i],width:0}});
-      s.addText(`${i+1}`,{x:0.58,y:y+0.12,w:0.46,h:0.46,fontSize:14,bold:true,color:C.bg,fontFace:'Arial',align:'center',valign:'middle',margin:0});
-      s.addText(name,{x:1.15,y:y+0.15,w:Math.max(barW-0.8,3),h:0.42,fontSize:14,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-      s.addText((qty/1000).toFixed(1)+' طن',{x:0.5+barW-0.1,y:y+0.03,w:1.4,h:0.35,fontSize:12,bold:true,color:col,fontFace:'Arial',align:'right',margin:0});
-      s.addText(`${pctProd}%`,{x:0.5+barW-0.1,y:y+0.35,w:1.4,h:0.3,fontSize:10,color:C.lgray,fontFace:'Arial',align:'right',margin:0});
+      s.addText(`${i+1}`,{x:0.58,y:y+0.12,w:0.46,h:0.46,fontSize:14,bold:true,color:C.bg,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+      s.addText(name,{x:1.15,y:y+0.15,w:Math.max(barW-0.7,3),h:0.42,fontSize:13,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(_fmtTon(qty),{x:0.55,y:y+0.02,w:Math.max(barW-0.2,0.6),h:0.42,fontSize:13,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(_tonUnit(qty),{x:0.55,y:y+0.4,w:Math.max(barW-0.2,0.6),h:0.25,fontSize:9,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(`${pctProd}%`,{x:0.6+barW,y:y+0.22,w:1.2,h:0.3,fontSize:10,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
     });
   })();
 
@@ -3484,14 +3576,14 @@ window.exportProductionPPTX = (inputData) => {
     const s=pres.addSlide(); s.background={color:C.bg};
     s.addShape(pres.shapes.OVAL,{x:-2,y:4,w:8,h:8,fill:{color:C.blue,transparency:94},line:{color:C.blue,width:0}});
     s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.blue},line:{color:C.blue,width:0},rectRadius:0.03});
-    s.addText('الاتجاه الشهري للإنتاج',{x:0.6,y:0.3,w:12,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-    s.addText('مقارنة الإنتاج شهراً بشهر مع نسبة النمو',{x:0.6,y:0.82,w:12,h:0.35,fontSize:12,color:C.blue,fontFace:'Arial',align:'right',margin:0});
-    const maxQty=Math.max(...sortedMonths.map(([,v])=>v));
+    s.addText('الاتجاه الشهري للإنتاج',{x:0.6,y:0.3,w:12,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('مقارنة الإنتاج شهراً بشهر مع نسبة النمو',{x:0.6,y:0.82,w:12,h:0.35,fontSize:12,color:C.blue,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    const maxQtyM=Math.max(...sortedMonths.map(([,v])=>v));
     const n=sortedMonths.length, COL_W=Math.min(2.4,11.8/n), GAP=0.15;
     const totalW=n*(COL_W+GAP)-GAP, startX=(13.3-totalW)/2;
     sortedMonths.forEach(([mon,qty],i)=>{
       const x=startX+i*(COL_W+GAP);
-      const h=Math.max(0.3,(qty/maxQty)*4.5), y=1.4+(4.5-h);
+      const h=Math.max(0.3,(qty/maxQtyM)*4.5), y=1.4+(4.5-h);
       const col=BAR_COLORS[i%BAR_COLORS.length];
       const mi=parseInt(mon.split('-')[1]);
       const mnLabel=MONTHS_AR_S[mi-1]||mon;
@@ -3499,73 +3591,35 @@ window.exportProductionPPTX = (inputData) => {
       const growth=prev?Math.round((qty-prev)/prev*100):null;
       s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y:1.4,w:COL_W,h:4.5,fill:{color:C.card},line:{color:col,width:1,transparency:85},rectRadius:0.1});
       s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:x+0.1,y,w:COL_W-0.2,h,fill:{color:col,transparency:10},line:{color:col,width:0},rectRadius:0.1,shadow:{type:'outer',color:col,blur:14,offset:0,angle:270,opacity:0.45}});
-      s.addText(mnLabel,{x,y:1.4+4.6,w:COL_W,h:0.4,fontSize:11,bold:true,color:C.white,fontFace:'Arial',align:'center',margin:0});
-      s.addText((qty/1000).toFixed(1)+' ط',{x,y:y-0.42,w:COL_W,h:0.38,fontSize:12,bold:true,color:col,fontFace:'Arial',align:'center',margin:0});
+      s.addText(mnLabel,{x,y:1.4+4.6,w:COL_W,h:0.4,fontSize:11,bold:true,color:C.white,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+      // رقم كبير + وحدة
+      s.addText(_fmtTon(qty),{x,y:y-0.46,w:COL_W,h:0.3,fontSize:13,bold:true,color:col,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+      s.addText(_tonUnit(qty),{x,y:y-0.18,w:COL_W,h:0.2,fontSize:8,color:C.lgray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
       if(growth!==null){
-        const gc=growth>=0?C.green:C.pink, gt=growth>=0?`▲ ${growth}%`:`▼ ${Math.abs(growth)}%`;
-        s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:x+0.2,y:y-0.82,w:COL_W-0.4,h:0.34,fill:{color:gc,transparency:80},line:{color:gc,width:1,transparency:30},rectRadius:0.08});
-        s.addText(gt,{x:x+0.2,y:y-0.82,w:COL_W-0.4,h:0.34,fontSize:9,bold:true,color:gc,fontFace:'Arial',align:'center',valign:'middle',margin:0});
+        const gc=growth>=0?C.green:C.pink, gt=growth>=0?`+${growth}%`:`${growth}%`;
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:x+0.2,y:y-0.86,w:COL_W-0.4,h:0.34,fill:{color:gc,transparency:80},line:{color:gc,width:1,transparency:30},rectRadius:0.08});
+        s.addText(gt,{x:x+0.2,y:y-0.86,w:COL_W-0.4,h:0.34,fontSize:9,bold:true,color:gc,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
       }
     });
   })();
 
   // ══ SLIDE 4 — أعلى 5 خامات ══
-  if(sortedRm.length)(()=>{
-    const s=pres.addSlide(); s.background={color:C.bg};
-    s.addShape(pres.shapes.OVAL,{x:9,y:3,w:7,h:7,fill:{color:C.teal,transparency:93},line:{color:C.teal,width:0}});
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.teal},line:{color:C.teal,width:0},rectRadius:0.03});
-    s.addText('أعلى 5 خامات استهلاكاً',{x:0.6,y:0.3,w:9,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-    s.addText('الخامات الأساسية التي تمثل العمود الفقري للإنتاج',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.teal,fontFace:'Arial',align:'right',margin:0});
-    const totalRm=sortedRm.reduce((a,[,v])=>a+v,0);
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.3,y:0.3,w:2.6,h:0.9,fill:{color:C.teal,transparency:80},line:{color:C.teal,width:1,transparency:30},rectRadius:0.12});
-    s.addText((totalRm/1000).toFixed(0)+' ط',{x:10.3,y:0.35,w:2.6,h:0.5,fontSize:26,bold:true,color:C.teal,fontFace:'Arial',align:'center',margin:0});
-    s.addText('إجمالي الخامات',{x:10.3,y:0.82,w:2.6,h:0.3,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',margin:0});
-    const top5=sortedRm.slice(0,5), maxQty=top5[0]?.[1]||1;
-    const blueShades=['06B6D4','0EA5E9','0284C7','0369A1','1E40AF'];
-    top5.forEach(([name,qty],i)=>{
-      const y=1.35+i*1.16, col=blueShades[i];
-      const barW=Math.max(0.3,(qty/maxQty)*12.2), pct=Math.round(qty/totalRm*100);
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y-0.08,w:12.3,h:0.98,fill:{color:C.card},line:{color:col,width:1,transparency:70},rectRadius:0.1});
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:0.72,fill:{color:col,transparency:20},line:{color:col,width:0},rectRadius:0.08,shadow:{type:'outer',color:col,blur:10,offset:2,angle:45,opacity:0.3}});
-      s.addShape(pres.shapes.OVAL,{x:0.58,y:y+0.12,w:0.46,h:0.46,fill:{color:col},line:{color:col,width:0}});
-      s.addText(`${i+1}`,{x:0.58,y:y+0.12,w:0.46,h:0.46,fontSize:13,bold:true,color:C.white,fontFace:'Arial',align:'center',valign:'middle',margin:0});
-      s.addText(name,{x:1.15,y:y+0.15,w:Math.max(barW-0.8,2.5),h:0.42,fontSize:14,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-      s.addText((qty/1000).toFixed(1)+' ط',{x:0.55,y:y+0.04,w:Math.max(barW-0.15,0.5),h:0.35,fontSize:11,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0});
-      s.addText(`${pct}% من الإجمالي`,{x:0.6+barW,y:y+0.2,w:2.5,h:0.3,fontSize:10,color:C.lgray,fontFace:'Arial',align:'left',margin:0});
-    });
-  })();
+  if(sortedRm.length)
+    _addBarsSlide(pres,C,BAR_COLORS,'أعلى 5 خامات استهلاكاً','الخامات الأساسية — العمود الفقري للإنتاج',C.teal,sortedRm,totalRm,'ton');
 
   // ══ SLIDE 5 — أعلى 5 مستلزمات ══
-  if(sortedSup.length)(()=>{
-    const s=pres.addSlide(); s.background={color:C.bg};
-    s.addShape(pres.shapes.OVAL,{x:-2,y:-1,w:7,h:7,fill:{color:C.gold,transparency:93},line:{color:C.gold,width:0}});
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.gold},line:{color:C.gold,width:0},rectRadius:0.03});
-    s.addText('أعلى 5 مستلزمات استهلاكاً',{x:0.6,y:0.3,w:9,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-    s.addText('المستلزمات الأكثر استخداماً في عمليات التعبئة والتغليف',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.gold,fontFace:'Arial',align:'right',margin:0});
-    const top5=sortedSup.slice(0,5), maxQty=top5[0]?.[1]||1;
-    const goldShades=['F59E0B','FBBF24','F97316','EF4444','D97706'];
-    top5.forEach(([name,qty],i)=>{
-      const y=1.35+i*1.16, col=goldShades[i];
-      const barW=Math.max(0.3,(qty/maxQty)*12.2);
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y-0.08,w:12.3,h:0.98,fill:{color:C.card},line:{color:col,width:1,transparency:70},rectRadius:0.1});
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:0.72,fill:{color:col,transparency:20},line:{color:col,width:0},rectRadius:0.08,shadow:{type:'outer',color:col,blur:10,offset:2,angle:45,opacity:0.3}});
-      s.addShape(pres.shapes.OVAL,{x:0.58,y:y+0.12,w:0.46,h:0.46,fill:{color:col},line:{color:col,width:0}});
-      s.addText(`${i+1}`,{x:0.58,y:y+0.12,w:0.46,h:0.46,fontSize:13,bold:true,color:C.bg,fontFace:'Arial',align:'center',valign:'middle',margin:0});
-      s.addText(name,{x:1.15,y:y+0.15,w:Math.max(barW-0.8,2.5),h:0.42,fontSize:14,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-      s.addText(qty.toLocaleString()+' وحدة',{x:0.55,y:y+0.04,w:Math.max(barW-0.15,0.5),h:0.35,fontSize:11,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0});
-    });
-  })();
+  if(sortedSup.length)
+    _addBarsSlide(pres,C,['F59E0B','FBBF24','F97316','EF4444','D97706'],'أعلى 5 مستلزمات استهلاكاً','المستلزمات الأكثر استخداماً في عمليات التعبئة',C.gold,sortedSup,totalSup,'unit');
 
   // ══ SLIDE 6 — توزيع التعبئة ══
   if(sortedPkg.length)(()=>{
     const s=pres.addSlide(); s.background={color:C.bg};
     s.addShape(pres.shapes.OVAL,{x:3,y:-1,w:8,h:8,fill:{color:C.purple,transparency:95},line:{color:C.purple,width:0}});
     s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.purple},line:{color:C.purple,width:0},rectRadius:0.03});
-    s.addText('توزيع التعبئة',{x:0.6,y:0.3,w:12,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-    s.addText('نسبة كل نوع تعبئة من إجمالي الإنتاج',{x:0.6,y:0.82,w:12,h:0.35,fontSize:12,color:C.purple,fontFace:'Arial',align:'right',margin:0});
+    s.addText('توزيع التعبئة',{x:0.6,y:0.3,w:12,h:0.55,fontSize:28,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('نسبة كل نوع تعبئة من إجمالي الإنتاج',{x:0.6,y:0.82,w:12,h:0.35,fontSize:12,color:C.purple,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
     const pieColors=['8B5CF6','3B82F6','10B981','F59E0B','EC4899','06B6D4','EF4444'];
     const pkgTotal=sortedPkg.reduce((a,[,v])=>a+v,0);
-    // Doughnut chart left
     s.addChart(pres.charts.DOUGHNUT,[{
       name:'التعبئة',
       labels:sortedPkg.slice(0,7).map(([n])=>n),
@@ -3573,51 +3627,393 @@ window.exportProductionPPTX = (inputData) => {
     }],{
       x:0.3,y:1.1,w:6.5,h:6,
       chartColors:pieColors.slice(0,Math.min(sortedPkg.length,7)),
-      holeSize:55,
-      showPercent:true, showLabel:false, showValue:false,
+      holeSize:55, showPercent:true, showLabel:false, showValue:false,
       dataLabelColor:C.white, dataLabelFontSize:12, dataLabelFontBold:true,
-      legendPos:'b', showLegend:false,
-      chartArea:{fill:{color:C.bg}},
+      legendPos:'b', showLegend:false, chartArea:{fill:{color:C.bg}},
     });
-    // right: legend cards
     sortedPkg.slice(0,5).forEach(([name,qty],i)=>{
       const col=pieColors[i%pieColors.length], y=1.3+i*1.16;
       const pct=Math.round(qty/pkgTotal*100);
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.2,y,w:5.7,h:0.96,fill:{color:C.card},line:{color:col,width:1,transparency:50},rectRadius:0.1,shadow:mkSh()});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.2,y,w:5.7,h:0.96,fill:{color:C.card},line:{color:col,width:1,transparency:50},rectRadius:0.1,shadow:_mkSh()});
       s.addShape(pres.shapes.OVAL,{x:7.3,y:y+0.28,w:0.4,h:0.4,fill:{color:col},line:{color:col,width:0}});
-      s.addText(name,{x:7.8,y:y+0.08,w:4.7,h:0.42,fontSize:13,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0});
-      s.addText(`${pct}%`,{x:7.8,y:y+0.5,w:4.7,h:0.34,fontSize:11,bold:true,color:col,fontFace:'Arial',align:'right',margin:0});
+      s.addText(name,{x:7.8,y:y+0.06,w:4.7,h:0.42,fontSize:13,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(`${pct}%`,{x:7.8,y:y+0.48,w:4.7,h:0.34,fontSize:11,bold:true,color:col,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
       const bw=Math.max(0.1,(pct/100)*4.7);
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.7,y:y+0.85,w:4.7,h:0.06,fill:{color:'2D3748'},line:{color:'2D3748',width:0},rectRadius:0.03});
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.7,y:y+0.85,w:bw,h:0.06,fill:{color:col},line:{color:col,width:0},rectRadius:0.03});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.7,y:y+0.84,w:4.7,h:0.06,fill:{color:'2D3748'},line:{color:'2D3748',width:0},rectRadius:0.03});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.7,y:y+0.84,w:bw,h:0.06,fill:{color:col},line:{color:col,width:0},rectRadius:0.03});
     });
   })();
 
   // ══ SLIDE 7 — Closing ══
-  (()=>{
-    const s=pres.addSlide(); s.background={color:C.bg};
-    s.addShape(pres.shapes.OVAL,{x:-2,y:-2,w:9,h:9,fill:{color:C.green,transparency:92},line:{color:C.green,width:0}});
-    s.addShape(pres.shapes.OVAL,{x:8,y:2,w:7,h:7,fill:{color:C.blue,transparency:92},line:{color:C.blue,width:0}});
-    s.addShape(pres.shapes.OVAL,{x:3,y:3,w:5,h:5,fill:{color:C.purple,transparency:94},line:{color:C.purple,width:0}});
-    s.addText('شكراً',{x:0.5,y:1.3,w:12.3,h:1.8,fontSize:90,bold:true,color:C.white,fontFace:'Arial',align:'center',charSpacing:8});
-    s.addText('الساقية للصناعات الزراعية',{x:0.5,y:3.2,w:12.3,h:0.7,fontSize:20,color:C.green,fontFace:'Arial',align:'center',charSpacing:2});
-    const stats=[
-      {v:(totalQty/1000).toFixed(0)+' ط',l:'إجمالي الإنتاج',c:C.green},
-      {v:sortedProds.length+'',l:'منتجاً مصنّعاً',c:C.blue},
-      {v:data.length+'',l:'دفعة إنتاج',c:C.purple},
-    ];
-    stats.forEach(({v,l,c},i)=>{
-      const x=1.5+i*3.5;
-      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x,y:4.2,w:3.1,h:1.5,fill:{color:c,transparency:85},line:{color:c,width:1,transparency:40},rectRadius:0.14,shadow:mkSh()});
-      s.addText(v,{x,y:4.3,w:3.1,h:0.75,fontSize:30,bold:true,color:C.white,fontFace:'Arial',align:'center',margin:0});
-      s.addText(l,{x,y:5.0,w:3.1,h:0.4,fontSize:11,color:c,fontFace:'Arial',align:'center',margin:0});
-    });
-    const d=new Date();
-    s.addText(`${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}`,{x:0.5,y:7.05,w:12.3,h:0.3,fontSize:9,color:C.gray,fontFace:'Arial',align:'center',margin:0});
-  })();
+  _addClosingSlide(pres, C, [
+    {v:_fmtTon(totalQty), l:'إجمالي الإنتاج ('+_tonUnit(totalQty)+')', c:C.green},
+    {v:String(sortedProds.length), l:'منتجاً مصنّعاً', c:C.blue},
+    {v:String(data.length), l:'دفعة إنتاج', c:C.purple},
+  ]);
 
   pres.writeFile({fileName:`تقرير_الإنتاج_${new Date().toISOString().split('T')[0]}.pptx`})
-    .then(()=>toast('تم تصدير العرض التقديمي ✅','success'))
+    .then(()=>toast('تم تصدير تقرير الإنتاج ✅','success'))
+    .catch(e=>toast('خطأ: '+e.message,'error'));
+};
+
+// ══════════════════════════════════════════════════════════════════
+// PPTX EXPORT 2 — تقرير المستلزمات المنفصل
+// ══════════════════════════════════════════════════════════════════
+window.exportSuppliesPPTX = (inputData) => {
+  const data = inputData || _production;
+  if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
+  if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
+  toast('جارٍ إنشاء تقرير المستلزمات...','info');
+
+  // ── aggregate ──
+  const supAgg={}, monthlySupAgg={}, pkgAgg={};
+  data.forEach(p=>{
+    const mon=(p.month||p.date||'').substring(0,7);
+    Object.entries(p.supplies||{}).forEach(([k,v])=>{
+      supAgg[k]=(supAgg[k]||0)+v;
+      if(mon){ if(!monthlySupAgg[k])monthlySupAgg[k]={}; monthlySupAgg[k][mon]=(monthlySupAgg[k][mon]||0)+v; }
+    });
+    const pkgLines=(p.items&&p.items.length)?p.items:[{packaging:p.packaging,qty:p.qty||0}];
+    pkgLines.forEach(it=>{ if(it.packaging) pkgAgg[it.packaging]=(pkgAgg[it.packaging]||0)+(it.qty||0); });
+  });
+
+  const sortedSup   = Object.entries(supAgg).sort((a,b)=>b[1]-a[1]);
+  const sortedPkg   = Object.entries(pkgAgg).sort((a,b)=>b[1]-a[1]);
+  const allMonths   = [...new Set(data.map(p=>(p.month||p.date||'').substring(0,7)).filter(Boolean))].sort();
+  const totalSup    = sortedSup.reduce((a,[,v])=>a+v,0);
+  const totalBatches= data.length;
+
+  const pres = new PptxGenJS();
+  pres.layout = 'LAYOUT_WIDE';
+  pres.title  = 'تقرير المستلزمات — الساقية';
+  const C = _pptxPalette();
+  const BAR_COLORS = _pptxBarColors();
+  const GOLD_SHADES = ['F59E0B','FBBF24','F97316','EF4444','D97706','FB923C','FCD34D','FDE68A','FDBA74','FCA5A5'];
+
+  // ══ SLIDE 1 — Cover ══
+  _addCoverSlide(pres, C, 'تقرير', 'المستلزمات',
+    'تحليل استهلاك مستلزمات التعبئة والتغليف',
+    [
+      {num:sortedSup.length+'',         lbl:'نوع مستلزم',         c:C.gold},
+      {num:totalSup.toLocaleString(),   lbl:'إجمالي الوحدات',    c:C.green},
+      {num:totalBatches+'',             lbl:'إجمالي الدفعات',    c:C.blue},
+      {num:sortedPkg.length+'',         lbl:'نوع تعبئة',         c:C.purple},
+    ]
+  );
+
+  // ══ SLIDE 2 — أعلى 10 مستلزمات (كل المستلزمات المهمة) ══
+  (()=>{
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:9,y:-2,w:8,h:8,fill:{color:C.gold,transparency:94},line:{color:C.gold,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.gold},line:{color:C.gold,width:0},rectRadius:0.03});
+    s.addText('المستلزمات الأكثر استهلاكاً',{x:0.6,y:0.3,w:9,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('ترتيب تنازلي لجميع المستلزمات المستخدمة في التعبئة والتغليف',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.gold,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    // badge
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.3,y:0.3,w:2.6,h:0.9,fill:{color:C.gold,transparency:80},line:{color:C.gold,width:1,transparency:30},rectRadius:0.12});
+    s.addText(totalSup.toLocaleString(),{x:10.3,y:0.3,w:2.6,h:0.52,fontSize:18,bold:true,color:C.gold,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
+    s.addText('إجمالي الوحدات',{x:10.3,y:0.76,w:2.6,h:0.32,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',valign:'top',margin:0,rtlMode:true});
+    const top10=sortedSup.slice(0,10), maxQ=top10[0]?.[1]||1;
+    const rowH=0.63, startY=1.25;
+    top10.forEach(([name,qty],i)=>{
+      const y=startY+i*rowH, col=GOLD_SHADES[i%GOLD_SHADES.length];
+      const barW=Math.max(0.2,(qty/maxQ)*10.8);
+      const pct=Math.round(qty/totalSup*100);
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y,w:12.3,h:rowH-0.06,fill:{color:C.card},line:{color:col,width:1,transparency:75},rectRadius:0.08});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:rowH-0.16,fill:{color:col,transparency:25},line:{color:col,width:0},rectRadius:0.06});
+      s.addText(`${i+1}`,{x:0.52,y:y+0.05,w:0.4,h:rowH-0.18,fontSize:11,bold:true,color:C.white,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+      s.addText(name,{x:1.0,y:y+0.06,w:Math.max(barW-0.6,2.5),h:rowH-0.2,fontSize:11,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(qty.toLocaleString(),{x:0.55,y:y+0.04,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.6,fontSize:11,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText('وحدة',{x:0.55,y:y+0.04+(rowH-0.16)*0.55,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.4,fontSize:8,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(`${pct}%`,{x:0.6+barW,y:y+0.1,w:1.0,h:0.3,fontSize:9,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+    });
+  })();
+
+  // ══ SLIDE 3 — مستلزمات العبوات (فقط) ══
+  (()=>{
+    const bottleSup = sortedSup.filter(([n])=>
+      n.includes('عبوة')||n.includes('جركن')||n.includes('بستلة')||n.includes('كيس مطبوع')
+    );
+    if(!bottleSup.length) return;
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:-2,y:3,w:7,h:7,fill:{color:C.teal,transparency:93},line:{color:C.teal,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.teal},line:{color:C.teal,width:0},rectRadius:0.03});
+    s.addText('مستلزمات العبوات والحاويات',{x:0.6,y:0.3,w:9,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('جميع أنواع العبوات والجراكن والبسطلات والأكياس',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.teal,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    const btotal=bottleSup.reduce((a,[,v])=>a+v,0);
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.3,y:0.3,w:2.6,h:0.9,fill:{color:C.teal,transparency:80},line:{color:C.teal,width:1,transparency:30},rectRadius:0.12});
+    s.addText(btotal.toLocaleString(),{x:10.3,y:0.3,w:2.6,h:0.52,fontSize:18,bold:true,color:C.teal,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
+    s.addText('إجمالي العبوات',{x:10.3,y:0.76,w:2.6,h:0.32,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',valign:'top',margin:0,rtlMode:true});
+    const maxQ=bottleSup[0]?.[1]||1;
+    const rowH=Math.min(0.7,5.8/bottleSup.length), startY=1.25;
+    bottleSup.forEach(([name,qty],i)=>{
+      const y=startY+i*rowH, col=BAR_COLORS[i%BAR_COLORS.length];
+      const barW=Math.max(0.2,(qty/maxQ)*10.8);
+      const pct=Math.round(qty/btotal*100);
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y,w:12.3,h:rowH-0.06,fill:{color:C.card},line:{color:col,width:1,transparency:75},rectRadius:0.08});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:rowH-0.16,fill:{color:col,transparency:25},line:{color:col,width:0},rectRadius:0.06});
+      s.addText(`${i+1}`,{x:0.52,y:y+0.04,w:0.4,h:rowH-0.18,fontSize:10,bold:true,color:C.white,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+      s.addText(name,{x:1.0,y:y+0.05,w:Math.max(barW-0.6,2.5),h:rowH-0.2,fontSize:10,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(qty.toLocaleString(),{x:0.55,y:y+0.04,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.6,fontSize:10,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText('وحدة',{x:0.55,y:y+0.04+(rowH-0.16)*0.55,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.4,fontSize:7,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(`${pct}%`,{x:0.6+barW,y:y+0.1,w:1.0,h:0.25,fontSize:9,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+    });
+  })();
+
+  // ══ SLIDE 4 — مستلزمات التغليف (ستيكر، كرتونة، غطاء...) ══
+  (()=>{
+    const packSup = sortedSup.filter(([n])=>
+      n.includes('ستيكر')||n.includes('كرتونة')||n.includes('غطاء')||
+      n.includes('فنت')||n.includes('سيفتي')||n.includes('طبة')||
+      n.includes('فاصل')||n.includes('أفيز')||n.includes('كيس')&&!n.includes('مطبوع')
+    );
+    if(!packSup.length) return;
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:9,y:2,w:7,h:7,fill:{color:C.purple,transparency:93},line:{color:C.purple,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.purple},line:{color:C.purple,width:0},rectRadius:0.03});
+    s.addText('مستلزمات التغليف والإغلاق',{x:0.6,y:0.3,w:9,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('الستيكرات، الكرتون، الأغطية، الفنوت، وملحقات التغليف',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.purple,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    const ptotal=packSup.reduce((a,[,v])=>a+v,0);
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.3,y:0.3,w:2.6,h:0.9,fill:{color:C.purple,transparency:80},line:{color:C.purple,width:1,transparency:30},rectRadius:0.12});
+    s.addText(ptotal.toLocaleString(),{x:10.3,y:0.3,w:2.6,h:0.52,fontSize:18,bold:true,color:C.purple,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
+    s.addText('إجمالي قطع التغليف',{x:10.3,y:0.76,w:2.6,h:0.32,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',valign:'top',margin:0,rtlMode:true});
+    const maxQ=packSup[0]?.[1]||1;
+    const rowH=Math.min(0.7,5.8/packSup.length), startY=1.25;
+    const purpleShades=['8B5CF6','A78BFA','7C3AED','6D28D9','5B21B6','C4B5FD','DDD6FE','4C1D95','7E22CE','9333EA'];
+    packSup.forEach(([name,qty],i)=>{
+      const y=startY+i*rowH, col=purpleShades[i%purpleShades.length];
+      const barW=Math.max(0.2,(qty/maxQ)*10.8);
+      const pct=Math.round(qty/ptotal*100);
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y,w:12.3,h:rowH-0.06,fill:{color:C.card},line:{color:col,width:1,transparency:75},rectRadius:0.08});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:rowH-0.16,fill:{color:col,transparency:25},line:{color:col,width:0},rectRadius:0.06});
+      s.addText(`${i+1}`,{x:0.52,y:y+0.04,w:0.4,h:rowH-0.18,fontSize:10,bold:true,color:C.white,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+      s.addText(name,{x:1.0,y:y+0.05,w:Math.max(barW-0.6,2.5),h:rowH-0.2,fontSize:10,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(qty.toLocaleString(),{x:0.55,y:y+0.04,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.6,fontSize:10,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText('وحدة',{x:0.55,y:y+0.04+(rowH-0.16)*0.55,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.4,fontSize:7,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(`${pct}%`,{x:0.6+barW,y:y+0.1,w:1.0,h:0.25,fontSize:9,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+    });
+  })();
+
+  // ══ SLIDE 5 — الاستهلاك الشهري للمستلزمات الأعلى ══
+  if(allMonths.length>=2)(()=>{
+    const top5Names=sortedSup.slice(0,5).map(([n])=>n);
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:-2,y:2,w:7,h:7,fill:{color:C.green,transparency:94},line:{color:C.green,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.green},line:{color:C.green,width:0},rectRadius:0.03});
+    s.addText('الاتجاه الشهري للمستلزمات',{x:0.6,y:0.3,w:12,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('أعلى 5 مستلزمات — استهلاكها الشهري',{x:0.6,y:0.82,w:12,h:0.35,fontSize:12,color:C.green,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    // جدول بيانات
+    const COL_W = Math.min(1.8, 12.0/(allMonths.length+1));
+    const hdrY = 1.2;
+    // header row
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:hdrY,w:12.4,h:0.38,fill:{color:'1F2937'},line:{color:'374151',width:1,transparency:0},rectRadius:0.05});
+    s.addText('المستلزم',{x:0.5,y:hdrY+0.04,w:2.8,h:0.3,fontSize:10,bold:true,color:C.lgray,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    allMonths.forEach((mon,i)=>{
+      const mi=parseInt(mon.split('-')[1]);
+      s.addText(MONTHS_AR_S[mi-1]?.substring(0,3)||mon,{x:3.4+i*COL_W,y:hdrY+0.04,w:COL_W,h:0.3,fontSize:9,bold:true,color:C.lgray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+    });
+    s.addText('الإجمالي',{x:3.4+allMonths.length*COL_W,y:hdrY+0.04,w:1.4,h:0.3,fontSize:9,bold:true,color:C.gold,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+    // data rows
+    top5Names.forEach((name,ri)=>{
+      const rowY=hdrY+0.42+ri*0.98, col=GOLD_SHADES[ri%GOLD_SHADES.length];
+      const rowTotal=Object.values(monthlySupAgg[name]||{}).reduce((a,b)=>a+b,0);
+      const rowMax=Math.max(1,...allMonths.map(m=>monthlySupAgg[name]?.[m]||0));
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:rowY,w:12.4,h:0.9,fill:{color:C.card},line:{color:col,width:1,transparency:75},rectRadius:0.06});
+      s.addText(name,{x:0.5,y:rowY+0.06,w:2.8,h:0.78,fontSize:10,bold:true,color:C.white,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
+      allMonths.forEach((mon,ci)=>{
+        const v=monthlySupAgg[name]?.[mon]||0;
+        const barH=v>0?Math.max(0.08,(v/rowMax)*0.55):0;
+        const cellX=3.4+ci*COL_W;
+        if(v>0){
+          s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:cellX+0.05,y:rowY+0.28+0.55-barH,w:COL_W-0.1,h:barH,fill:{color:col,transparency:30},line:{color:col,width:0},rectRadius:0.04});
+        }
+        s.addText(v>0?v.toLocaleString():'—',{x:cellX,y:rowY+0.55,w:COL_W,h:0.28,fontSize:9,bold:v>0,color:v>0?col:C.gray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+      });
+      s.addText(rowTotal.toLocaleString(),{x:3.4+allMonths.length*COL_W,y:rowY+0.22,w:1.4,h:0.46,fontSize:12,bold:true,color:C.gold,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+    });
+  })();
+
+  // ══ SLIDE 6 — توزيع التعبئة ══
+  if(sortedPkg.length)(()=>{
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:3,y:-1,w:8,h:8,fill:{color:C.blue,transparency:95},line:{color:C.blue,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.blue},line:{color:C.blue,width:0},rectRadius:0.03});
+    s.addText('توزيع الإنتاج حسب التعبئة',{x:0.6,y:0.3,w:12,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('نسبة كل نوع تعبئة من إجمالي الكميات المنتجة',{x:0.6,y:0.82,w:12,h:0.35,fontSize:12,color:C.blue,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    const pieColors=['3B82F6','F59E0B','10B981','8B5CF6','EC4899','06B6D4','EF4444'];
+    const pkgTotal=sortedPkg.reduce((a,[,v])=>a+v,0);
+    s.addChart(pres.charts.DOUGHNUT,[{
+      name:'التعبئة',
+      labels:sortedPkg.slice(0,7).map(([n])=>n),
+      values:sortedPkg.slice(0,7).map(([,v])=>v)
+    }],{x:0.3,y:1.1,w:6.5,h:6,chartColors:pieColors,holeSize:55,showPercent:true,showLabel:false,showValue:false,dataLabelColor:C.white,dataLabelFontSize:12,dataLabelFontBold:true,legendPos:'b',showLegend:false,chartArea:{fill:{color:C.bg}}});
+    sortedPkg.slice(0,5).forEach(([name,qty],i)=>{
+      const col=pieColors[i%pieColors.length], y=1.3+i*1.16;
+      const pct=Math.round(qty/pkgTotal*100);
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.2,y,w:5.7,h:0.96,fill:{color:C.card},line:{color:col,width:1,transparency:50},rectRadius:0.1,shadow:_mkSh()});
+      s.addShape(pres.shapes.OVAL,{x:7.3,y:y+0.28,w:0.4,h:0.4,fill:{color:col},line:{color:col,width:0}});
+      s.addText(name,{x:7.8,y:y+0.06,w:4.7,h:0.42,fontSize:13,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(`${pct}%`,{x:7.8,y:y+0.48,w:4.7,h:0.34,fontSize:11,bold:true,color:col,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      const bw=Math.max(0.1,(pct/100)*4.7);
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.7,y:y+0.84,w:4.7,h:0.06,fill:{color:'2D3748'},line:{color:'2D3748',width:0},rectRadius:0.03});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:7.7,y:y+0.84,w:bw,h:0.06,fill:{color:col},line:{color:col,width:0},rectRadius:0.03});
+    });
+  })();
+
+  // ══ SLIDE 7 — Closing ══
+  _addClosingSlide(pres, C, [
+    {v:String(sortedSup.length), l:'نوع مستلزم', c:C.gold},
+    {v:totalSup.toLocaleString(), l:'إجمالي الوحدات', c:C.green},
+    {v:String(totalBatches), l:'دفعة إنتاج', c:C.purple},
+  ]);
+
+  pres.writeFile({fileName:`تقرير_المستلزمات_${new Date().toISOString().split('T')[0]}.pptx`})
+    .then(()=>toast('تم تصدير تقرير المستلزمات ✅','success'))
+    .catch(e=>toast('خطأ: '+e.message,'error'));
+};
+
+// ══════════════════════════════════════════════════════════════════
+// PPTX EXPORT 3 — تقرير الخامات المنفصل
+// ══════════════════════════════════════════════════════════════════
+window.exportRawMatsPPTX = (inputData) => {
+  const data = inputData || _production;
+  if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
+  if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
+  toast('جارٍ إنشاء تقرير الخامات...','info');
+
+  // ── aggregate ──
+  const rmAgg={}, monthlyRmAgg={}, rmBatchCount={};
+  data.forEach(p=>{
+    const mon=(p.month||p.date||'').substring(0,7);
+    Object.entries(p.rawMaterials||{}).forEach(([k,v])=>{
+      rmAgg[k]=(rmAgg[k]||0)+v;
+      rmBatchCount[k]=(rmBatchCount[k]||0)+1;
+      if(mon){ if(!monthlyRmAgg[k])monthlyRmAgg[k]={}; monthlyRmAgg[k][mon]=(monthlyRmAgg[k][mon]||0)+v; }
+    });
+  });
+
+  const sortedRm    = Object.entries(rmAgg).sort((a,b)=>b[1]-a[1]);
+  const allMonths   = [...new Set(data.map(p=>(p.month||p.date||'').substring(0,7)).filter(Boolean))].sort();
+  const totalRm     = sortedRm.reduce((a,[,v])=>a+v,0);
+  const totalBatches= data.length;
+  const criticalRm  = Object.entries(rmBatchCount).filter(([,c])=>c/totalBatches>0.5).sort((a,b)=>b[1]-a[1]);
+
+  const pres = new PptxGenJS();
+  pres.layout = 'LAYOUT_WIDE';
+  pres.title  = 'تقرير الخامات — الساقية';
+  const C = _pptxPalette();
+  const BAR_COLORS = _pptxBarColors();
+  const TEAL_SHADES = ['06B6D4','0EA5E9','0284C7','0369A1','1E40AF','38BDF8','7DD3FC','BAE6FD','0891B2','155E75'];
+
+  // ══ SLIDE 1 — Cover ══
+  _addCoverSlide(pres, C, 'تقرير', 'الخامات',
+    'تحليل استهلاك المواد الخام في خط الإنتاج',
+    [
+      {num:sortedRm.length+'',             lbl:'نوع خامة',               c:C.teal},
+      {num:_fmtTon(totalRm),               lbl:'إجمالي الاستهلاك ('+_tonUnit(totalRm)+')', c:C.green},
+      {num:totalBatches+'',                lbl:'إجمالي الدفعات',         c:C.blue},
+      {num:criticalRm.length+'',           lbl:'خامة حرجة',              c:C.pink},
+    ]
+  );
+
+  // ══ SLIDE 2 — أعلى 10 خامات استهلاكاً ══
+  (()=>{
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:9,y:-2,w:8,h:8,fill:{color:C.teal,transparency:94},line:{color:C.teal,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.teal},line:{color:C.teal,width:0},rectRadius:0.03});
+    s.addText('الخامات الأكثر استهلاكاً',{x:0.6,y:0.3,w:9,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('ترتيب تنازلي لجميع الخامات المستخدمة في الدفعات',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.teal,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.3,y:0.3,w:2.6,h:0.9,fill:{color:C.teal,transparency:80},line:{color:C.teal,width:1,transparency:30},rectRadius:0.12});
+    s.addText(_fmtTon(totalRm),{x:10.3,y:0.3,w:2.6,h:0.52,fontSize:22,bold:true,color:C.teal,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
+    s.addText('إجمالي ('+_tonUnit(totalRm)+')',{x:10.3,y:0.76,w:2.6,h:0.32,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',valign:'top',margin:0,rtlMode:true});
+    const top10=sortedRm.slice(0,10), maxQ=top10[0]?.[1]||1;
+    const rowH=0.63, startY=1.25;
+    top10.forEach(([name,qty],i)=>{
+      const y=startY+i*rowH, col=TEAL_SHADES[i%TEAL_SHADES.length];
+      const barW=Math.max(0.2,(qty/maxQ)*10.8);
+      const pct=Math.round(qty/totalRm*100);
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y,w:12.3,h:rowH-0.06,fill:{color:C.card},line:{color:col,width:1,transparency:75},rectRadius:0.08});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:rowH-0.16,fill:{color:col,transparency:25},line:{color:col,width:0},rectRadius:0.06});
+      s.addText(`${i+1}`,{x:0.52,y:y+0.05,w:0.4,h:rowH-0.18,fontSize:11,bold:true,color:C.white,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+      s.addText(name,{x:1.0,y:y+0.06,w:Math.max(barW-0.6,2.5),h:rowH-0.2,fontSize:11,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(_fmtTon(qty),{x:0.55,y:y+0.04,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.6,fontSize:11,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(_tonUnit(qty),{x:0.55,y:y+0.04+(rowH-0.16)*0.55,w:Math.max(barW-0.15,0.5),h:(rowH-0.16)*0.4,fontSize:8,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(`${pct}%`,{x:0.6+barW,y:y+0.1,w:1.0,h:0.3,fontSize:9,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+    });
+  })();
+
+  // ══ SLIDE 3 — الاستهلاك الشهري للخامات الأعلى ══
+  if(allMonths.length>=2)(()=>{
+    const top5Names=sortedRm.slice(0,5).map(([n])=>n);
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:-2,y:2,w:7,h:7,fill:{color:C.blue,transparency:94},line:{color:C.blue,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.blue},line:{color:C.blue,width:0},rectRadius:0.03});
+    s.addText('الاتجاه الشهري للخامات',{x:0.6,y:0.3,w:12,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('أعلى 5 خامات — استهلاكها الشهري بالكجم أو الطن',{x:0.6,y:0.82,w:12,h:0.35,fontSize:12,color:C.blue,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    const COL_W = Math.min(1.8, 12.0/(allMonths.length+1));
+    const hdrY = 1.2;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:hdrY,w:12.4,h:0.38,fill:{color:'1F2937'},line:{color:'374151',width:1,transparency:0},rectRadius:0.05});
+    s.addText('الخامة',{x:0.5,y:hdrY+0.04,w:2.8,h:0.3,fontSize:10,bold:true,color:C.lgray,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    allMonths.forEach((mon,i)=>{
+      const mi=parseInt(mon.split('-')[1]);
+      s.addText(MONTHS_AR_S[mi-1]?.substring(0,3)||mon,{x:3.4+i*COL_W,y:hdrY+0.04,w:COL_W,h:0.3,fontSize:9,bold:true,color:C.lgray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+    });
+    s.addText('الإجمالي',{x:3.4+allMonths.length*COL_W,y:hdrY+0.04,w:1.4,h:0.3,fontSize:9,bold:true,color:C.teal,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+    top5Names.forEach((name,ri)=>{
+      const rowY=hdrY+0.42+ri*0.98, col=TEAL_SHADES[ri%TEAL_SHADES.length];
+      const rowTotal=Object.values(monthlyRmAgg[name]||{}).reduce((a,b)=>a+b,0);
+      const rowMax=Math.max(1,...allMonths.map(m=>monthlyRmAgg[name]?.[m]||0));
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:rowY,w:12.4,h:0.9,fill:{color:C.card},line:{color:col,width:1,transparency:75},rectRadius:0.06});
+      s.addText(name,{x:0.5,y:rowY+0.06,w:2.8,h:0.78,fontSize:10,bold:true,color:C.white,fontFace:'Arial',align:'right',valign:'middle',margin:0,rtlMode:true});
+      allMonths.forEach((mon,ci)=>{
+        const v=monthlyRmAgg[name]?.[mon]||0;
+        const barH=v>0?Math.max(0.08,(v/rowMax)*0.55):0;
+        const cellX=3.4+ci*COL_W;
+        if(v>0){
+          s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:cellX+0.05,y:rowY+0.28+0.55-barH,w:COL_W-0.1,h:barH,fill:{color:col,transparency:30},line:{color:col,width:0},rectRadius:0.04});
+        }
+        s.addText(v>0?_fmtTon(v):'—',{x:cellX,y:rowY+0.48,w:COL_W,h:0.22,fontSize:9,bold:v>0,color:v>0?col:C.gray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+        if(v>0) s.addText(_tonUnit(v),{x:cellX,y:rowY+0.66,w:COL_W,h:0.16,fontSize:7,color:C.lgray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+      });
+      s.addText(_fmtTon(rowTotal),{x:3.4+allMonths.length*COL_W,y:rowY+0.18,w:1.4,h:0.36,fontSize:12,bold:true,color:C.teal,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+      s.addText(_tonUnit(rowTotal),{x:3.4+allMonths.length*COL_W,y:rowY+0.52,w:1.4,h:0.22,fontSize:8,color:C.lgray,fontFace:'Arial',align:'center',margin:0,rtlMode:true});
+    });
+  })();
+
+  // ══ SLIDE 4 — الخامات الحرجة ══
+  if(criticalRm.length)(()=>{
+    const s=pres.addSlide(); s.background={color:C.bg};
+    s.addShape(pres.shapes.OVAL,{x:9,y:2,w:7,h:7,fill:{color:C.pink,transparency:93},line:{color:C.pink,width:0}});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.4,y:0.3,w:0.06,h:0.9,fill:{color:C.pink},line:{color:C.pink,width:0},rectRadius:0.03});
+    s.addText('الخامات الحرجة — نقاط الضعف',{x:0.6,y:0.3,w:9,h:0.55,fontSize:26,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addText('خامات تدخل في أكثر من 50% من الدفعات — إذا انقطعت تأثر معظم الإنتاج',{x:0.6,y:0.82,w:9,h:0.35,fontSize:12,color:C.pink,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:10.3,y:0.3,w:2.6,h:0.9,fill:{color:C.pink,transparency:80},line:{color:C.pink,width:1,transparency:30},rectRadius:0.12});
+    s.addText(criticalRm.length+'',{x:10.3,y:0.3,w:2.6,h:0.52,fontSize:28,bold:true,color:C.pink,fontFace:'Arial',align:'center',valign:'bottom',margin:0,rtlMode:true});
+    s.addText('خامة حرجة',{x:10.3,y:0.76,w:2.6,h:0.32,fontSize:9,color:C.lgray,fontFace:'Arial',align:'center',valign:'top',margin:0,rtlMode:true});
+    const maxPct=criticalRm[0]?criticalRm[0][1]/totalBatches*100:100;
+    const rowH=Math.min(0.8, 5.8/criticalRm.length), startY=1.25;
+    criticalRm.slice(0,8).forEach(([name,count],i)=>{
+      const pct=Math.round(count/totalBatches*100);
+      const y=startY+i*rowH;
+      const dangerCol=pct>=90?'EF4444':pct>=75?'F97316':pct>=60?'F59E0B':'EC4899';
+      const barW=Math.max(0.2,(pct/maxPct)*10.8);
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.45,y:y,w:12.3,h:rowH-0.06,fill:{color:C.card},line:{color:dangerCol,width:1,transparency:60},rectRadius:0.08});
+      s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:y+0.04,w:barW,h:rowH-0.16,fill:{color:dangerCol,transparency:30},line:{color:dangerCol,width:0},rectRadius:0.06});
+      s.addText(name,{x:1.0,y:y+0.06,w:Math.max(barW-0.5,2.5),h:rowH-0.2,fontSize:11,bold:true,color:C.white,fontFace:'Arial',align:'right',margin:0,rtlMode:true});
+      s.addText(`${pct}%`,{x:0.52,y:y+0.04,w:barW-0.1,h:(rowH-0.16)*0.6,fontSize:14,bold:true,color:C.bg,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(`من الدفعات`,{x:0.52,y:y+0.04+(rowH-0.16)*0.55,w:barW,h:(rowH-0.16)*0.4,fontSize:8,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+      s.addText(`${count} دفعة`,{x:0.6+barW,y:y+0.15,w:1.5,h:0.3,fontSize:9,color:C.lgray,fontFace:'Arial',align:'left',margin:0,rtlMode:true});
+    });
+  })();
+
+  // ══ SLIDE 5 — Closing ══
+  _addClosingSlide(pres, C, [
+    {v:String(sortedRm.length), l:'نوع خامة', c:C.teal},
+    {v:_fmtTon(totalRm), l:'إجمالي ('+_tonUnit(totalRm)+')', c:C.green},
+    {v:String(criticalRm.length), l:'خامة حرجة', c:C.pink},
+  ]);
+
+  pres.writeFile({fileName:`تقرير_الخامات_${new Date().toISOString().split('T')[0]}.pptx`})
+    .then(()=>toast('تم تصدير تقرير الخامات ✅','success'))
     .catch(e=>toast('خطأ: '+e.message,'error'));
 };
 
