@@ -3211,7 +3211,8 @@ window.runAnalytics = () => {
   });
   const el = document.getElementById('analytics-body');
   if (!data.length) { el.innerHTML = emptyState('📊','لا توجد بيانات في هذه الفترة','سجّل دفعات إنتاج أولاً','',''); return; }
-  _lastAnalyticsData = data; // حفظ للـ PPTX
+  _lastAnalyticsData = data;
+  window._lastAnalyticsData = data; // عشان الـ onclick في الـ HTML يقدر يوصلها (module scope مش متاحة في inline onclick)
 
   // ── aggregations ──
   // لو في فلتر منتج معين — نحسب فقط كميته من كل دفعة
