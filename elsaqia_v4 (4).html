@@ -4815,46 +4815,7 @@ window.exportMatDetail = id => {
   toast('تم تصدير مواصفات الخامة Excel','success');
 };
 
-</script>
 
-<!-- PWA Service Worker Registration -->
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js')
-      .then(reg => console.log('SW registered:', reg.scope))
-      .catch(err => console.log('SW error:', err));
-  });
-}
-
-// PWA Install prompt
-let deferredPrompt;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  deferredPrompt = e;
-  // Show install button after login
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-
-window.installPWA = async () => {
-  if (!deferredPrompt) return;
-  deferredPrompt.prompt();
-  const { outcome } = await deferredPrompt.userChoice;
-  deferredPrompt = null;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  if (outcome === 'accepted') {
-    // Show toast after install
-    setTimeout(() => {
-      const t = document.createElement('div');
-      t.className = 'toast t-ok';
-      t.innerHTML = '<i class="fas fa-check-circle"></i>تم تثبيت التطبيق بنجاح!';
-      document.getElementById('toasts').appendChild(t);
-      setTimeout(() => t.remove(), 4000);
-    }, 1000);
-  }
-};
 // ══════════════════════════════════════════════════════════════════
 // PPTX EXPORT 4 — Dashboard Style (Power BI Light)
 // ══════════════════════════════════════════════════════════════════
@@ -5226,6 +5187,46 @@ window.exportDashboardPPTX = (inputData) => {
   pres.writeFile({fileName:`Dashboard_الإنتاج_${new Date().toISOString().split('T')[0]}.pptx`})
     .then(()=>toast('تم تصدير Dashboard PPTX ✅','success'))
     .catch(e=>{console.error('Dashboard PPTX Error:',e); toast('خطأ في التصدير: '+e.message,'error');});
+};
+</script>
+
+<!-- PWA Service Worker Registration -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('SW registered:', reg.scope))
+      .catch(err => console.log('SW error:', err));
+  });
+}
+
+// PWA Install prompt
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install button after login
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+
+window.installPWA = async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+  if (outcome === 'accepted') {
+    // Show toast after install
+    setTimeout(() => {
+      const t = document.createElement('div');
+      t.className = 'toast t-ok';
+      t.innerHTML = '<i class="fas fa-check-circle"></i>تم تثبيت التطبيق بنجاح!';
+      document.getElementById('toasts').appendChild(t);
+      setTimeout(() => t.remove(), 4000);
+    }, 1000);
+  }
 };
 
 </script>
