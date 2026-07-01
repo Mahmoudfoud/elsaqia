@@ -544,10 +544,9 @@ textarea.fc{resize:vertical;min-height:68px}
 <div id="auth-screen">
   <div class="auth-card">
     <div class="auth-brand">
-      <div class="auth-logo">🌿</div>
-      <h1>الساقية</h1>
+      <div class="auth-logo"><img src="https://indus.elsakya.com/wp-content/uploads/2022/10/cropped-Header-Arabic-min-Copy-270x270.png" alt="الساقية" style="width:90px;height:90px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(0,0,0,.3))"></div>
+      <h1>الساقية للصناعات الزراعية</h1>
       <p>نظام إدارة التركيبات والتصنيع الزراعي الاحترافي</p>
-
     </div>
     <div class="auth-form">
       <div class="auth-title">تسجيل الدخول</div>
@@ -573,7 +572,7 @@ textarea.fc{resize:vertical;min-height:68px}
   <aside class="sidebar">
     <div class="sb-top">
       <div class="sb-logo-row">
-        <div class="sb-logo-ic">🌿</div>
+        <div class="sb-logo-ic"><img src="https://indus.elsakya.com/wp-content/uploads/2022/10/cropped-Header-Arabic-min-Copy-270x270.png" alt="الساقية" style="width:36px;height:36px;object-fit:contain;border-radius:6px"></div>
         <div><div class="sb-logo-txt">الساقية</div><div class="sb-logo-sub">AGRICULTURAL ERP v3</div></div>
       </div>
       <div class="sb-user">
@@ -3512,8 +3511,9 @@ function _addCoverSlide(pres, C, titleLine1, titleLine2, subtitle, kpis) {
   s.addShape(pres.shapes.OVAL,{x:-1,y:-1,w:7,h:7,fill:{color:C.green,transparency:92},line:{color:C.green,width:0}});
   s.addShape(pres.shapes.OVAL,{x:9,y:3,w:6,h:6,fill:{color:C.blue,transparency:90},line:{color:C.blue,width:0}});
   s.addShape(pres.shapes.OVAL,{x:5,y:1,w:4,h:4,fill:{color:C.purple,transparency:94},line:{color:C.purple,width:0}});
-  s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:0.45,w:2.5,h:0.42,fill:{color:C.green,transparency:80},line:{color:C.green,width:1,transparency:40},rectRadius:0.1});
-  s.addText('الساقية للصناعات',{x:0.5,y:0.45,w:2.5,h:0.42,fontSize:10,bold:true,color:C.green,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE,{x:0.5,y:0.35,w:3.2,h:0.6,fill:{color:C.green,transparency:80},line:{color:C.green,width:1,transparency:40},rectRadius:0.1});
+  try { s.addImage({path:'https://indus.elsakya.com/wp-content/uploads/2022/10/cropped-Header-Arabic-min-Copy-270x270.png',x:0.55,y:0.37,w:0.5,h:0.5}); } catch(e){}
+  s.addText('الساقية للصناعات الزراعية',{x:1.1,y:0.35,w:2.6,h:0.6,fontSize:9,bold:true,color:C.green,fontFace:'Arial',align:'center',valign:'middle',margin:0,rtlMode:true});
   s.addText(titleLine1,{x:0.5,y:1.1,w:12,h:1.1,fontSize:66,bold:true,color:C.white,fontFace:'Arial',align:'right',charSpacing:2,rtlMode:true});
   s.addText(titleLine2,{x:0.5,y:2.05,w:12,h:1.4,fontSize:80,bold:true,color:C.green,fontFace:'Arial',align:'right',charSpacing:3,rtlMode:true});
   s.addText(subtitle,{x:0.5,y:3.55,w:12,h:0.55,fontSize:15,color:C.lgray,fontFace:'Arial',align:'right',charSpacing:1,rtlMode:true});
@@ -3535,6 +3535,7 @@ function _addClosingSlide(pres, C, stats) {
   s.addShape(pres.shapes.OVAL,{x:8,y:2,w:7,h:7,fill:{color:C.blue,transparency:92},line:{color:C.blue,width:0}});
   s.addShape(pres.shapes.OVAL,{x:3,y:3,w:5,h:5,fill:{color:C.purple,transparency:94},line:{color:C.purple,width:0}});
   s.addText('شكراً',{x:0.5,y:1.3,w:12.3,h:1.8,fontSize:90,bold:true,color:C.white,fontFace:'Arial',align:'center',charSpacing:8,rtlMode:true});
+  try { s.addImage({path:'https://indus.elsakya.com/wp-content/uploads/2022/10/cropped-Header-Arabic-min-Copy-270x270.png',x:5.7,y:3.1,w:0.6,h:0.6}); } catch(e){}
   s.addText('الساقية للصناعات الزراعية',{x:0.5,y:3.2,w:12.3,h:0.7,fontSize:20,color:C.green,fontFace:'Arial',align:'center',charSpacing:2,rtlMode:true});
   stats.forEach(({v,l,c},i)=>{
     const x=1.5+i*3.5;
