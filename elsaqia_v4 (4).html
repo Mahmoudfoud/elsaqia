@@ -546,7 +546,7 @@ textarea.fc{resize:vertical;min-height:68px}
     <div class="auth-brand">
       <div class="auth-logo"><img src="https://indus.elsakya.com/wp-content/uploads/2022/10/cropped-Header-Arabic-min-Copy-270x270.png" alt="الساقية" style="width:90px;height:90px;object-fit:contain;filter:drop-shadow(0 4px 16px rgba(0,0,0,.3))"></div>
       <h1>الساقية للصناعات الزراعية</h1>
-      <p>نظام إدارة التركيبات والتصنيع الزراعي </p>
+      <p>نظام إدارة التركيبات والتصنيع الزراعي الاحترافي</p>
     </div>
     <div class="auth-form">
       <div class="auth-title">تسجيل الدخول</div>
@@ -3190,6 +3190,293 @@ window.toggleRest = id => {
 };
 
 // ══════════════════════════════════════════════════════════════════
+// ADVANCED ANALYTICS ENGINE — تحليلات ذكية (Z-Score / Regression / Pearson / K-Means)
+// كل الخوارزميات مكتوبة يدوياً بـ JS خالص من غير أي مكتبة خارجية
+// وبتتأقلم تلقائياً مع حجم البيانات المتاح (تشتغل من دفعة واحدة، وتتحسن دقتها كل ما البيانات تزيد)
+// ══════════════════════════════════════════════════════════════════
+
+// إنتاج كل منتج شهرياً — أساس لكل التحليلات الجاية
+function _aaMonthlyByProduct(data){
+  const m={};
+  data.forEach(p=>{
+    const mon=(p.month||p.date||'').substring(0,7);
+    if(!mon) return;
+    const items=(p.items&&p.items.length)?p.items:[{productName:p.productName,qty:p.qty||0}];
+    items.forEach(it=>{
+      if(!it.productName) return;
+      if(!m[it.productName]) m[it.productName]={};
+      m[it.productName][mon]=(m[it.productName][mon]||0)+(it.qty||0);
+    });
+  });
+  return m;
+}
+
+// ── 1) كشف الشذوذ (Z-Score) على نسبة استهلاك كل خامة لكل كجم منتج ──
+function aaDetectAnomalies(data){
+  const byMat = {};
+  data.forEach(p=>{
+    const items=(p.items&&p.items.length)?p.items:[{productName:p.productName,qty:p.qty||0}];
+    const batchQty = items.reduce((a,b)=>a+(b.qty||0),0);
+    if(!batchQty) return;
+    Object.entries(p.rawMaterials||{}).forEach(([mat,qty])=>{
+      if(!byMat[mat]) byMat[mat]=[];
+      byMat[mat].push({
+        id:p.id, ratio: qty/batchQty, qty, batchQty,
+        label: items.map(i=>i.productName).filter(Boolean).join(' + ')||'—',
+        date: p.date || (p.month?p.month+'-01':'')
+      });
+    });
+  });
+  let checkedEnough=false;
+  const anomalies=[];
+  Object.entries(byMat).forEach(([mat,arr])=>{
+    if(arr.length<4) return; // عينة صغيرة جداً — انحراف معياري غير موثوق
+    checkedEnough=true;
+    const mean = arr.reduce((a,b)=>a+b.ratio,0)/arr.length;
+    const std  = Math.sqrt(arr.reduce((a,b)=>a+(b.ratio-mean)**2,0)/arr.length);
+    if(std===0) return;
+    arr.forEach(it=>{
+      const z=(it.ratio-mean)/std;
+      if(Math.abs(z)>=2){
+        anomalies.push({material:mat, ...it, z, mean, pctDiff: mean? Math.round((it.ratio-mean)/mean*100) : 0});
+      }
+    });
+  });
+  anomalies.sort((a,b)=>Math.abs(b.z)-Math.abs(a.z));
+  return {anomalies, checkedEnough, materialsCovered:Object.keys(byMat).length};
+}
+
+// ── 2) تصنيف المنتجات: نجوم 🌟 / متراجعة ⚠️ / صاعدة 🌱 / راكدة 💤 ──
+function aaClassifyProducts(prodQtys, monthlyByProduct){
+  const entries = Object.entries(prodQtys);
+  if(!entries.length) return [];
+  const total = entries.reduce((a,[,v])=>a+v,0)||1;
+  const avgShare = total/entries.length;
+  return entries.map(([name,qty])=>{
+    const months = Object.entries(monthlyByProduct[name]||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+    let trend=null;
+    if(months.length>=2){
+      const last=months[months.length-1][1], prev=months[months.length-2][1];
+      trend = prev>0 ? Math.round((last-prev)/prev*100) : (last>0?100:0);
+    }
+    const highVolume = qty>=avgShare;
+    let category;
+    if(trend===null) category='insufficient';
+    else if(highVolume && trend>=0) category='star';
+    else if(highVolume && trend<0) category='declining';
+    else if(!highVolume && trend>0) category='rising';
+    else category='stagnant_low';
+    return {name, qty, trend, category, share: Math.round(qty/total*100)};
+  }).sort((a,b)=>b.qty-a.qty);
+}
+
+// ── 3) تنبؤ تكيفي: متوسط مرجّح لبيانات قليلة → انحدار خطي لما البيانات تكفي ──
+function aaForecast(sortedMonths){
+  const n = sortedMonths.length;
+  if(n===0) return null;
+  if(n===1) return {value:sortedMonths[0][1], method:'أقرب تقدير (شهر واحد فقط)', confidence:'منخفضة جداً'};
+  if(n<4){
+    let wsum=0, vsum=0;
+    sortedMonths.forEach(([,v],i)=>{const w=i+1; wsum+=w; vsum+=w*v;});
+    return {value:Math.round(vsum/wsum), method:'متوسط مرجّح (Weighted Moving Average)', confidence:'متوسطة'};
+  }
+  const xs=sortedMonths.map((_,i)=>i), ys=sortedMonths.map(([,v])=>v);
+  const xMean=xs.reduce((a,b)=>a+b,0)/n, yMean=ys.reduce((a,b)=>a+b,0)/n;
+  let num=0, den=0;
+  for(let i=0;i<n;i++){ num+=(xs[i]-xMean)*(ys[i]-yMean); den+=(xs[i]-xMean)**2; }
+  const slope = den?num/den:0, intercept = yMean-slope*xMean;
+  const forecast = Math.max(0, slope*n+intercept);
+  const yPred = xs.map(x=>slope*x+intercept);
+  const ssRes = ys.reduce((a,y,i)=>a+(y-yPred[i])**2,0);
+  const ssTot = ys.reduce((a,y)=>a+(y-yMean)**2,0)||1;
+  const r2 = Math.max(0, 1-ssRes/ssTot);
+  return {value:Math.round(forecast), method:'انحدار خطي (Linear Regression)', confidence: r2>0.7?'عالية':r2>0.4?'متوسطة':'منخفضة', r2:Math.round(r2*100), trendDir: slope>0?'صاعد':slope<0?'هابط':'مستقر'};
+}
+
+// ── 4) ارتباط بيرسون بين اتجاهات أهم المنتجات ──
+function aaCorrelateTopProducts(sortedProds, monthlyByProduct, sortedMonths){
+  const topNames = sortedProds.slice(0,6).map(([n])=>n);
+  const months = sortedMonths.map(([m])=>m);
+  if(months.length<3 || topNames.length<2) return [];
+  const series = topNames.map(name=>months.map(m=>(monthlyByProduct[name]||{})[m]||0));
+  const pearson=(a,b)=>{
+    const n=a.length, ma=a.reduce((x,y)=>x+y,0)/n, mb=b.reduce((x,y)=>x+y,0)/n;
+    let num=0, da=0, db=0;
+    for(let i=0;i<n;i++){ num+=(a[i]-ma)*(b[i]-mb); da+=(a[i]-ma)**2; db+=(b[i]-mb)**2; }
+    const den=Math.sqrt(da*db);
+    return den? num/den : 0;
+  };
+  const results=[];
+  for(let i=0;i<topNames.length;i++){
+    for(let j=i+1;j<topNames.length;j++){
+      const r = pearson(series[i], series[j]);
+      if(Math.abs(r)>=0.6) results.push({a:topNames[i], b:topNames[j], r:Math.round(r*100)/100});
+    }
+  }
+  return results.sort((x,y)=>Math.abs(y.r)-Math.abs(x.r));
+}
+
+// ── 5) تجميع أنماط الإنتاج (K-Means مبسّط، k=3) حسب حجم الدفعة × دورة التكرار ──
+function aaClusterProducts(avgBatch, cycles){
+  const names = Object.keys(avgBatch).filter(n=>cycles[n]!==undefined);
+  if(names.length<3) return {clusters:[]};
+  const points = names.map(n=>({name:n, x:avgBatch[n], y:cycles[n]}));
+  const xs=points.map(p=>p.x), ys=points.map(p=>p.y);
+  const xMax=Math.max(...xs)||1, yMax=Math.max(...ys)||1;
+  points.forEach(p=>{ p.nx=p.x/xMax; p.ny=p.y/yMax; });
+  const k = Math.min(3, names.length);
+  let best=null;
+  for(let run=0; run<6; run++){
+    let centroids=[]; const used=new Set();
+    while(centroids.length<k){
+      const idx=Math.floor(Math.random()*points.length);
+      if(used.has(idx)) continue; used.add(idx);
+      centroids.push({x:points[idx].nx, y:points[idx].ny});
+    }
+    let assign = points.map(()=>0);
+    for(let iter=0; iter<20; iter++){
+      assign = points.map(p=>{
+        let bi=0, bd=Infinity;
+        centroids.forEach((c,ci)=>{ const d=(p.nx-c.x)**2+(p.ny-c.y)**2; if(d<bd){bd=d;bi=ci;} });
+        return bi;
+      });
+      centroids = centroids.map((c,ci)=>{
+        const members = points.filter((_,pi)=>assign[pi]===ci);
+        if(!members.length) return c;
+        return {x:members.reduce((a,m)=>a+m.nx,0)/members.length, y:members.reduce((a,m)=>a+m.ny,0)/members.length};
+      });
+    }
+    const inertia = points.reduce((sum,p,pi)=>{const c=centroids[assign[pi]]; return sum+(p.nx-c.x)**2+(p.ny-c.y)**2;},0);
+    if(!best || inertia<best.inertia) best={centroids, assign, inertia};
+  }
+  const sortedX = xs.slice().sort((a,b)=>a-b), sortedY = ys.slice().sort((a,b)=>a-b);
+  const medX = sortedX[Math.floor(sortedX.length/2)], medY = sortedY[Math.floor(sortedY.length/2)];
+  const groups = best.centroids.map((c,ci)=>{
+    const members = points.filter((_,pi)=>best.assign[pi]===ci).map(p=>p.name);
+    const avgX = c.x*xMax, avgY = c.y*yMax;
+    let label;
+    if(avgX>=medX && avgY>=medY) label='دفعات كبيرة ومتباعدة — إنتاج بالجملة';
+    else if(avgX>=medX && avgY<medY) label='دفعات كبيرة ومتكررة — خط إنتاج رئيسي';
+    else if(avgX<medX && avgY>=medY) label='دفعات صغيرة ونادرة — منتجات هامشية';
+    else label='دفعات صغيرة ومتكررة — طلب مستمر';
+    return {label, members, avgBatch:Math.round(avgX), avgCycle:Math.round(avgY)};
+  }).filter(g=>g.members.length);
+  return {clusters:groups};
+}
+
+// ── تجميع الأقسام الخمسة في HTML واحد ──
+function renderAdvancedAnalytics(data, prodQtys, sortedProds, sortedMonths, avgBatch, cycles){
+  const monthlyByProduct = _aaMonthlyByProduct(data);
+  const {anomalies, checkedEnough} = aaDetectAnomalies(data);
+  const classes = aaClassifyProducts(prodQtys, monthlyByProduct);
+  const forecastTotal = aaForecast(sortedMonths);
+  const forecastTop = sortedProds.slice(0,3).map(([name])=>{
+    const months = Object.entries(monthlyByProduct[name]||{}).sort((a,b)=>a[0].localeCompare(b[0]));
+    return {name, f: aaForecast(months)};
+  }).filter(x=>x.f);
+  const correlations = aaCorrelateTopProducts(sortedProds, monthlyByProduct, sortedMonths);
+  const clusterResult = aaClusterProducts(avgBatch, cycles);
+
+  const catMeta = {
+    star:       {emoji:'🌟', label:'نجم — حجم عالي ونمو موجب',      color:'#16a34a', bg:'#f0fdf4'},
+    declining:  {emoji:'⚠️', label:'في تراجع — حجم عالي ونمو سالب', color:'#dc2626', bg:'#fef2f2'},
+    rising:     {emoji:'🌱', label:'صاعد — حجم منخفض ونمو موجب',    color:'#2563eb', bg:'#eff6ff'},
+    stagnant_low:{emoji:'💤', label:'راكد — حجم منخفض وبدون نمو',   color:'#64748b', bg:'#f8fafc'},
+    insufficient:{emoji:'❔', label:'بيانات غير كافية للتصنيف بعد',  color:'#94a3b8', bg:'#f8fafc'},
+  };
+  const grouped = {};
+  classes.forEach(c=>{ (grouped[c.category]=grouped[c.category]||[]).push(c); });
+
+  const fmtQty = v => v>=1000 ? (v/1000).toFixed(1)+' طن' : v.toLocaleString()+' كجم';
+
+  const forecastHtml = `
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-brain"></i>التنبؤ بالإنتاج القادم (Forecasting)</div>
+    <div class="insight-body">
+      ${forecastTotal ? `
+      <div class="ins-alert info">
+        <span class="ins-alert-ic">🔮</span>
+        <span class="ins-alert-txt">
+          الشهر القادم المتوقع: <strong>${fmtQty(forecastTotal.value)}</strong> إجمالياً
+          — الطريقة: ${forecastTotal.method} — الثقة: <strong>${forecastTotal.confidence}</strong>${forecastTotal.r2!==undefined?` (R²=${forecastTotal.r2}%)`:''}
+        </span>
+      </div>` : `<div class="ins-alert warn"><span class="ins-alert-ic">⚠️</span><span class="ins-alert-txt">مفيش بيانات كفاية للتنبؤ لسه</span></div>`}
+      ${forecastTop.length?`
+      <table class="sup-table" style="margin-top:8px">
+        <thead><tr><th>المنتج</th><th>توقع الشهر القادم</th><th>الطريقة</th><th>الثقة</th></tr></thead>
+        <tbody>${forecastTop.map(x=>`<tr><td>${x.name}</td><td><strong>${fmtQty(x.f.value)}</strong></td><td style="font-size:11px;color:var(--e400)">${x.f.method}</td><td style="font-size:11px">${x.f.confidence}</td></tr>`).join('')}</tbody>
+      </table>`:''}
+      <div style="font-size:11px;color:var(--e400);margin-top:8px">💡 الدقة بتتحسن تلقائياً كل ما تسجّل دفعات أكتر — النظام بيبدأ بمتوسط مرجّح وبيتحول لانحدار خطي فور توفر 4 شهور بيانات فأكتر</div>
+    </div>
+  </div>`;
+
+  const classifyHtml = `
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-layer-group"></i>تصنيف المنتجات — أداء كل منتج</div>
+    <div class="insight-body">
+      ${Object.entries(catMeta).map(([key,meta])=>{
+        const items = grouped[key]||[];
+        if(!items.length) return '';
+        return `<div style="margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:${meta.color};margin-bottom:6px">${meta.emoji} ${meta.label} <span style="color:var(--e400);font-weight:600">(${items.length})</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${items.map(it=>`<span title="${it.share}% من الإنتاج${it.trend!==null?' — تغيّر '+(it.trend>0?'+':'')+it.trend+'%':''}" style="padding:4px 12px;background:${meta.bg};border:1px solid ${meta.color}33;border-radius:20px;font-size:12px;font-weight:600;color:${meta.color}">${it.name}${it.trend!==null?` <span style="opacity:.75">${it.trend>0?'▲':it.trend<0?'▼':'—'}${Math.abs(it.trend)}%</span>`:''}</span>`).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+
+  const anomalyHtml = `
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-exclamation-circle"></i>كشف الشذوذ في استهلاك الخامات (Anomaly Detection)</div>
+    <div class="insight-body">
+      ${!checkedEnough ? `<div class="ins-alert info"><span class="ins-alert-ic">💡</span><span class="ins-alert-txt">محتاجين 4 دفعات على الأقل لنفس الخامة عشان نقدر نكشف الشذوذ بدقة — البيانات لسه قليلة</span></div>`
+      : anomalies.length ? `
+        <div class="ins-alert danger"><span class="ins-alert-ic">⚠️</span><span class="ins-alert-txt">فيه <strong>${anomalies.length}</strong> دفعة استهلاكها للخامة خارج عن المعتاد بشكل ملحوظ (انحراف ≥ 2 عن المتوسط)</span></div>
+        <table class="sup-table" style="margin-top:8px">
+          <thead><tr><th>الخامة</th><th>الدفعة</th><th>التاريخ</th><th>الانحراف</th></tr></thead>
+          <tbody>${anomalies.slice(0,8).map(a=>`<tr><td>${a.material}</td><td>${a.label}</td><td>${a.date||'—'}</td><td style="color:${a.z>0?'#dc2626':'#d97706'};font-weight:700">${a.z>0?'أعلى':'أقل'} من المعتاد بـ ${Math.abs(a.pctDiff)}%</td></tr>`).join('')}</tbody>
+        </table>`
+      : `<div class="ins-alert ok"><span class="ins-alert-ic">✅</span><span class="ins-alert-txt">مفيش دفعات شاذة — استهلاك الخامات متسق مع النمط المعتاد</span></div>`}
+    </div>
+  </div>`;
+
+  const correlationHtml = correlations.length ? `
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-link"></i>الارتباط بين اتجاهات المنتجات (Correlation)</div>
+    <div class="insight-body">
+      ${correlations.slice(0,6).map(c=>`<div class="ins-alert ${c.r>0?'info':'warn'}"><span class="ins-alert-ic">${c.r>0?'🔗':'↔️'}</span><span class="ins-alert-txt"><strong>${c.a}</strong> و <strong>${c.b}</strong> بيتحركوا ${c.r>0?'مع بعض':'بعكس بعض'} (معامل الارتباط ${c.r})</span></div>`).join('')}
+    </div>
+  </div>` : '';
+
+  const clusterHtml = clusterResult.clusters.length ? `
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-object-group"></i>تجميع أنماط الإنتاج (Clustering)</div>
+    <div class="insight-body">
+      ${clusterResult.clusters.map(g=>`
+        <div style="margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:var(--g800);margin-bottom:4px">${g.label} <span style="color:var(--e400);font-weight:600">— متوسط الدفعة ${g.avgBatch.toLocaleString()} كجم، كل ${g.avgCycle} يوم</span></div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">${g.members.map(n=>`<span style="padding:4px 12px;background:var(--g50);border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;color:var(--e600)">${n}</span>`).join('')}</div>
+        </div>`).join('')}
+    </div>
+  </div>` : '';
+
+  return `
+  <div style="margin:26px 0 14px;display:flex;align-items:center;gap:8px">
+    <i class="fas fa-microchip" style="color:var(--g700)"></i>
+    <span style="font-size:16px;font-weight:800;color:var(--g900)">التحليلات الذكية المتقدمة</span>
+    <span style="font-size:11px;color:var(--e400);font-weight:600">Z-Score · Regression · Pearson · K-Means</span>
+  </div>
+  ${anomalyHtml}
+  ${classifyHtml}
+  ${forecastHtml}
+  ${correlationHtml}
+  ${clusterHtml}
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════════
 // ANALYTICS ENGINE
 // ══════════════════════════════════════════════════════════════════
 window.runAnalytics = () => {
@@ -3485,6 +3772,8 @@ window.runAnalytics = () => {
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${stagnant.map(n=>`<span style="padding:4px 12px;background:var(--g50);border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;color:var(--e600)">${n}</span>`).join('')}</div>
     </div>
   </div>`:''}
+
+  ${renderAdvancedAnalytics(data, prodQtys, sortedProds, sortedMonths, avgBatch, cycles)}
   `;
 };
 
