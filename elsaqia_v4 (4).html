@@ -1006,6 +1006,8 @@ let _lastAnalyticsData = [];
 let _users     = [];
 let _auditItems= [];
 let _presence  = {};
+let _capColors = ['أخضر','أزرق','أحمر','أصفر','أبيض','برتقالي','بنفسجي','أسود','بني'];
+let _closureSubtypes = ['طبة عادية','طبة مضادة للأحماض','طبة 100مللي','طبة ألومنيوم سادة'];
 
 // ══════════════════════════════════════════════
 // SYNC STATUS
@@ -1251,8 +1253,24 @@ function startListeners() {
     onSnapshot(query(collection(db,'production'), orderBy('createdAt','desc')), s=>{
       _production = s.docs.map(d=>({id:d.id,...d.data()}));
       if(_page==='batches') renderProduction();
+    }),
+    onSnapshot(doc(db,'settings','packaging'), s=>{
+      if(!s.exists()) return;
+      const d = s.data();
+      if(d.capColors && d.capColors.length) _capColors = d.capColors;
+      if(d.closureSubtypes && d.closureSubtypes.length) _closureSubtypes = d.closureSubtypes;
     })
   );
+}
+
+// حفظ الألوان/أنواع الطبات الجديدة في Firestore عشان تفضل موجودة على كل جهاز
+async function saveGlobalPackagingSettings(){
+  try {
+    await setDoc(doc(db,'settings','packaging'), {
+      capColors:_capColors, closureSubtypes:_closureSubtypes,
+      updatedAt:Date.now(), updatedBy:CU?.email||''
+    }, {merge:true});
+  } catch(e){ toast('تعذر حفظ الإعداد الجديد: '+e.message,'error'); }
 }
 
 // ══════════════════════════════════════════════
@@ -2772,8 +2790,21 @@ const PACKAGING = {
 };
 const MONTHS_AR_S = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
 
-// ── حساب المستلزمات من الكمية + التعبئة ──
-function calcSupplies(qty, pkgKey, capColor, productName) {
+// ── هل التعبئة دي فيها اختيار "فنت/طبة" أصلاً؟ ──
+function needsClosureChoice(pkgKey){
+  const cfg = PACKAGING[pkgKey]; if(!cfg) return false;
+  return cfg.supplies.includes('فنت') || cfg.supplies.includes('طبة');
+}
+// ── النوع الافتراضي (فنت أو طبة) حسب إعدادات التعبئة الأصلية ──
+function defaultClosureType(pkgKey){
+  const cfg = PACKAGING[pkgKey]; if(!cfg) return null;
+  if(cfg.supplies.includes('فنت')) return 'فنت';
+  if(cfg.supplies.includes('طبة')) return 'طبة';
+  return null;
+}
+
+// ── حساب المستلزمات من الكمية + التعبئة (مع دعم استبدال نوع الغلق يدوياً) ──
+function calcSupplies(qty, pkgKey, capColor, productName, closureType, closureSubtype) {
   const cfg = PACKAGING[pkgKey]; if (!cfg) return {};
   const tons = qty / 1000;
   const result = {};
@@ -2781,6 +2812,10 @@ function calcSupplies(qty, pkgKey, capColor, productName) {
   const totalUnits = Math.ceil(unitsPerTon * tons);
   cfg.supplies.forEach(s => {
     let key = s;
+    if ((s === 'فنت' || s === 'طبة') && closureType) {
+      // المستخدم اختار نوع غلق مختلف عن الافتراضي (أو نوع طبة معين)
+      key = (closureType === 'طبة' && closureSubtype) ? closureSubtype : closureType;
+    }
     if (s === 'غطاء' && capColor) key = `غطاء ${capColor}`;
     if (s === 'ستيكر' && productName) key = `ستيكر ${productName} ${pkgKey}`;
     if (s === 'ستيكر كرتونة' && productName) key = `ستيكر كرتونة ${productName}`;
@@ -2896,6 +2931,7 @@ function renderProduction() {
           ${supKeys.length?`<span style="font-size:11px;color:var(--e400)">${supKeys.length} مستلزم</span>`:''}
           ${rmKeys.length?`<span style="font-size:11px;color:var(--e400)">${rmKeys.length} خامة</span>`:''}
           <div style="display:flex;gap:6px">
+            <button class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:#1d6f42;color:#fff;border:none" onclick="event.stopPropagation();exportBatchExcel('${p.id}')" title="تصدير Excel"><i class="fas fa-file-excel"></i></button>
             ${hasPerm('edit_batches')?`<button class="btn btn-sm" style="padding:4px 8px;font-size:11px;background:var(--g600);color:#fff;border:none" onclick="event.stopPropagation();openEditProductionModal('${p.id}')"><i class="fas fa-edit"></i></button>`:''}
             ${hasPerm('delete_batches')?`<button class="btn btn-red btn-sm" style="padding:4px 8px;font-size:11px" onclick="event.stopPropagation();delProduction('${p.id}')"><i class="fas fa-trash"></i></button>`:''}
           </div>
@@ -2938,6 +2974,27 @@ window.delProduction = async id => {
   catch(e) { toast('خطأ: '+e.message,'error'); }
 };
 
+// ── تصدير خامات ومستلزمات دفعة واحدة كملف Excel (شيتين: خامات + مستلزمات) ──
+window.exportBatchExcel = (id) => {
+  const p = _production.find(x=>x.id===id);
+  if(!p){ toast('الدفعة غير موجودة','error'); return; }
+  const wb = XLSX.utils.book_new();
+
+  const rmEntries = Object.entries(p.rawMaterials||{});
+  const rmData = [['الخامة','الكمية (كجم)'], ...rmEntries.map(([k,v])=>[k,v])];
+  const wsRm = XLSX.utils.aoa_to_sheet(rmData);
+  XLSX.utils.book_append_sheet(wb, wsRm, 'الخامات');
+
+  const supEntries = Object.entries(p.supplies||{});
+  const supData = [['المستلزم','الكمية'], ...supEntries.map(([k,v])=>[k,v])];
+  const wsSup = XLSX.utils.aoa_to_sheet(supData);
+  XLSX.utils.book_append_sheet(wb, wsSup, 'المستلزمات');
+
+  const label = (p.items && p.items.length>1) ? 'مجمعة' : (p.productName||'دفعة');
+  const dateLabel = (p.dateType==='month' ? (p.month||'') : (p.date||'')).replace(/\//g,'-') || new Date().toLocaleDateString('ar-EG').replace(/\//g,'-');
+  XLSX.writeFile(wb, `دفعة_${label}_${dateLabel}.xlsx`);
+};
+
 // ══════════════════════════════════════════════════════════════════
 // PRODUCTION MODAL
 // ══════════════════════════════════════════════════════════════════
@@ -2949,12 +3006,13 @@ const PKG_OPTS = `<option value="">— التعبئة —</option>
 <option>شيكارة 50كجم</option><option>شيكارة 25كجم</option>
 <option>كيس 1كجم</option><option>كيس 5كجم</option>`;
 
-const CAP_OPTS = `<option value="أخضر">أخضر</option><option value="أزرق">أزرق</option>
-<option value="أحمر">أحمر</option><option value="أصفر">أصفر</option>
-<option value="أبيض">أبيض</option><option value="برتقالي">برتقالي</option>
-<option value="بنفسجي">بنفسجي</option><option value="أسود">أسود</option>`;
+// ── بناء خيارات select من قائمة قابلة للتخصيص + خيار "إضافة جديد" ──
+function _optsFromList(list, selected, addLabel) {
+  return list.map(v=>`<option value="${v}"${v===selected?' selected':''}>${v}</option>`).join('')
+    + `<option value="__add_new__">➕ ${addLabel}</option>`;
+}
 
-let _prodLines = []; // [{prodId, qty, pkg, capColor}]
+let _prodLines = []; // [{prodId, qty, pkg, capColor, closureType, closureSubtype}]
 
 function prodOpts() {
   return '<option value="">— المنتج —</option>' + _products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
@@ -2965,18 +3023,69 @@ function renderProdLines() {
   if(!_prodLines.length) { el.innerHTML='<div style="color:var(--e400);font-size:13px;padding:8px 0">اضغط "إضافة منتج" لإضافة منتج للدفعة</div>'; recalcAllLines(); return; }
   el.innerHTML = _prodLines.map((line,i)=>{
     const needsCap = PACKAGING[line.pkg]?.needsCapColor;
-    return `<div class="prod-line-row" id="pline-${i}">
-      <div style="display:grid;grid-template-columns:1fr 120px 160px ${needsCap?'120px ':''} 36px;gap:8px;align-items:center;margin-bottom:8px">
+    const needsClosure = needsClosureChoice(line.pkg);
+    const closureType = line.closureType || defaultClosureType(line.pkg);
+    const detailsRow = (needsCap || needsClosure) ? `
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px">
+        ${needsCap?`<div class="fg" style="margin:0"><label class="fl" style="font-size:10px">لون الغطاء</label>
+          <select class="fc" style="margin:0;min-width:130px" onchange="onCapColorChange(${i},this.value)">${_optsFromList(_capColors, line.capColor||'أخضر', 'لون جديد...')}</select></div>`:''}
+        ${needsClosure?`<div class="fg" style="margin:0"><label class="fl" style="font-size:10px">نوع الغلق</label>
+          <select class="fc" style="margin:0;min-width:100px" onchange="onClosureTypeChange(${i},this.value)">
+            <option value="فنت"${closureType==='فنت'?' selected':''}>فنت</option>
+            <option value="طبة"${closureType==='طبة'?' selected':''}>طبة</option>
+          </select></div>`:''}
+        ${(needsClosure && closureType==='طبة')?`<div class="fg" style="margin:0"><label class="fl" style="font-size:10px">نوع الطبة</label>
+          <select class="fc" style="margin:0;min-width:160px" onchange="onClosureSubtypeChange(${i},this.value)">${_optsFromList(_closureSubtypes, line.closureSubtype||_closureSubtypes[0], 'نوع جديد...')}</select></div>`:''}
+      </div>` : '';
+    return `<div class="prod-line-row" id="pline-${i}" style="border:1px solid var(--border);border-radius:8px;padding:10px;margin-bottom:8px">
+      <div style="display:grid;grid-template-columns:1fr 110px 150px 36px;gap:8px;align-items:center">
         <select class="fc" style="margin:0" onchange="setProdLine(${i},'prodId',this.value)">${prodOpts().replace(`value="${line.prodId}"`,`value="${line.prodId}" selected`)}</select>
         <input type="number" class="fc" style="margin:0" placeholder="كجم" min="1" value="${line.qty||''}" oninput="setProdLine(${i},'qty',this.value)">
         <select class="fc" style="margin:0" onchange="setProdLine(${i},'pkg',this.value)">${PKG_OPTS.replace(`>${line.pkg}<`,` selected>${line.pkg}<`)}</select>
-        ${needsCap?`<select class="fc" style="margin:0" onchange="setProdLine(${i},'capColor',this.value)">${CAP_OPTS.replace(`value="${line.capColor||'أخضر'}"`,`value="${line.capColor||'أخضر'}" selected`)}</select>`:''}
         <button class="btn btn-red btn-sm" style="padding:6px 8px;margin:0" onclick="removeProdLine(${i})"><i class="fas fa-times"></i></button>
       </div>
+      ${detailsRow}
     </div>`;
   }).join('');
   recalcAllLines();
 }
+
+// ── اختيار/إضافة لون غطاء جديد ──
+window.onCapColorChange = (i, val) => {
+  if (val === '__add_new__') {
+    const nv = prompt('اكتب اسم اللون الجديد:');
+    if (!nv || !nv.trim()) { renderProdLines(); return; }
+    const clean = nv.trim();
+    if (!_capColors.includes(clean)) { _capColors.push(clean); saveGlobalPackagingSettings(); }
+    _prodLines[i].capColor = clean;
+    renderProdLines();
+  } else {
+    setProdLine(i, 'capColor', val);
+  }
+};
+
+// ── تغيير نوع الغلق (فنت/طبة) ──
+window.onClosureTypeChange = (i, val) => {
+  _prodLines[i].closureType = val;
+  if (val !== 'طبة') _prodLines[i].closureSubtype = null;
+  else if (!_prodLines[i].closureSubtype) _prodLines[i].closureSubtype = _closureSubtypes[0];
+  renderProdLines();
+};
+
+// ── اختيار/إضافة نوع طبة جديد ──
+window.onClosureSubtypeChange = (i, val) => {
+  if (val === '__add_new__') {
+    const nv = prompt('اكتب نوع الطبة الجديد:');
+    if (!nv || !nv.trim()) { renderProdLines(); return; }
+    const clean = nv.trim();
+    if (!_closureSubtypes.includes(clean)) { _closureSubtypes.push(clean); saveGlobalPackagingSettings(); }
+    _prodLines[i].closureSubtype = clean;
+    renderProdLines();
+  } else {
+    _prodLines[i].closureSubtype = val;
+    recalcAllLines();
+  }
+};
 
 function recalcAllLines() {
   // Merge supplies + rawMats across all lines
@@ -2987,7 +3096,7 @@ function recalcAllLines() {
     if(!line.prodId||!line.qty||!line.pkg) return;
     hasData = true;
     const prod = _products.find(x=>x.id===line.prodId);
-    const sup  = calcSupplies(parseFloat(line.qty)||0, line.pkg, line.capColor||'أخضر', prod?.name||'');
+    const sup  = calcSupplies(parseFloat(line.qty)||0, line.pkg, line.capColor||'أخضر', prod?.name||'', line.closureType||defaultClosureType(line.pkg), line.closureSubtype);
     const rm   = calcRawMats(line.prodId, parseFloat(line.qty)||0);
     Object.entries(sup).forEach(([k,v])=>{ allSupplies[k]=(allSupplies[k]||0)+v; });
     Object.entries(rm).forEach(([k,v])=>{ allRawMats[k]=(allRawMats[k]||0)+v; });
@@ -3002,7 +3111,7 @@ function recalcAllLines() {
 }
 
 window.addProdLine = () => {
-  _prodLines.push({prodId:'', qty:'', pkg:'', capColor:'أخضر'});
+  _prodLines.push({prodId:'', qty:'', pkg:'', capColor:'أخضر', closureType:null, closureSubtype:null});
   renderProdLines();
 };
 
@@ -3013,17 +3122,21 @@ window.removeProdLine = i => {
 
 window.setProdLine = (i, field, val) => {
   _prodLines[i][field] = val;
-  // if pkg changed, re-render to show/hide cap color
-  if(field==='pkg') renderProdLines();
-  else recalcAllLines();
+  // if pkg changed, re-render to show/hide cap color + closure type/subtype (ونرجّع النوع للافتراضي)
+  if(field==='pkg') {
+    _prodLines[i].closureType = null;
+    _prodLines[i].closureSubtype = null;
+    renderProdLines();
+  } else recalcAllLines();
 };
 
 let _editProdId = null; // null = إضافة جديدة، string = تعديل
 
 window.openProductionModal = () => {
-  _editProdId = null;
-  _prodLines  = [{prodId:'', qty:'', pkg:'', capColor:'أخضر'}];
+  _editProdId = null; window._editProdId = null;
+  _prodLines  = [{prodId:'', qty:'', pkg:'', capColor:'أخضر', closureType:null, closureSubtype:null}];
   document.getElementById('mprod-note').value = '';
+  const expBtn = document.getElementById('mprod-export-btn'); if(expBtn) expBtn.style.display='none';
   document.getElementById('mprod-preview').style.display='none';
   const now = new Date();
   document.getElementById('mprod-date').value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
@@ -3043,21 +3156,24 @@ window.openBatchModal = window.openProductionModal;
 window.openEditProductionModal = (id) => {
   const p = _production.find(x=>x.id===id);
   if(!p){ toast('لم يتم العثور على الدفعة','error'); return; }
-  _editProdId = id;
-  // ملء الـ lines من بيانات الدفعة
+  _editProdId = id; window._editProdId = id;
   if(p.items && p.items.length) {
     _prodLines = p.items.map(it=>({
       prodId:   it.productId||'',
       qty:      String(it.qty||''),
       pkg:      it.packaging||'',
-      capColor: it.capColor||'أخضر'
+      capColor: it.capColor||'أخضر',
+      closureType:    it.closureType||null,
+      closureSubtype: it.closureSubtype||null
     }));
   } else {
     _prodLines = [{
       prodId:   p.productId||'',
       qty:      String(p.qty||''),
       pkg:      p.packaging||'',
-      capColor: p.capColor||'أخضر'
+      capColor: p.capColor||'أخضر',
+      closureType:    p.closureType||null,
+      closureSubtype: p.closureSubtype||null
     }];
   }
   // التاريخ
@@ -3080,6 +3196,8 @@ window.openEditProductionModal = (id) => {
   if(titleEl) titleEl.textContent = 'تعديل الدفعة';
   const saveBtn = document.getElementById('mprod-save-btn');
   if(saveBtn) saveBtn.textContent = 'حفظ التعديلات';
+  const expBtn = document.getElementById('mprod-export-btn');
+  if(expBtn) expBtn.style.display='';
   renderProdLines();
   openM('mo-production');
 };
@@ -3105,14 +3223,17 @@ window.saveProduction = async () => {
   const items = validLines.map(line=>{
     const prod = _products.find(x=>x.id===line.prodId);
     const qty  = parseFloat(line.qty);
-    const sup  = calcSupplies(qty, line.pkg, line.capColor||'أخضر', prod?.name||'');
+    const resolvedClosureType = line.closureType || defaultClosureType(line.pkg);
+    const sup  = calcSupplies(qty, line.pkg, line.capColor||'أخضر', prod?.name||'', resolvedClosureType, line.closureSubtype);
     const rm   = calcRawMats(line.prodId, qty);
     Object.entries(sup).forEach(([k,v])=>{ allSupplies[k]=(allSupplies[k]||0)+v; });
     Object.entries(rm).forEach(([k,v])=>{ allRawMats[k]=(allRawMats[k]||0)+v; });
     return {
       productId:line.prodId, productName:prod?.name||'—',
       qty, packaging:line.pkg,
-      capColor: PACKAGING[line.pkg]?.needsCapColor ? (line.capColor||'أخضر') : null
+      capColor: PACKAGING[line.pkg]?.needsCapColor ? (line.capColor||'أخضر') : null,
+      closureType:    needsClosureChoice(line.pkg) ? resolvedClosureType : null,
+      closureSubtype: (needsClosureChoice(line.pkg) && resolvedClosureType==='طبة') ? (line.closureSubtype||_closureSubtypes[0]) : null
     };
   });
   const totalQty = items.reduce((a,b)=>a+b.qty,0);
@@ -3149,7 +3270,7 @@ window.saveProduction = async () => {
       toast('تم حفظ الدفعة ✅','success');
     }
     closeM('mo-production');
-    _editProdId = null;
+    _editProdId = null; window._editProdId = null;
   } catch(e){ toast('خطأ: '+e.message,'error'); }
   SS('on');
 };
@@ -5603,6 +5724,7 @@ window.installPWA = async () => {
     </div>
     <div class="mf">
       <button class="btn btn-ghost" onclick="closeM('mo-production')">إلغاء</button>
+      <button class="btn btn-sm" id="mprod-export-btn" style="display:none;background:#1d6f42;color:#fff;border:none" onclick="exportBatchExcel(window._editProdId)"><i class="fas fa-file-excel"></i>تصدير Excel</button>
       <button class="btn btn-g" id="mprod-save-btn" onclick="saveProduction()"><i class="fas fa-save"></i>حفظ الدفعة</button>
     </div>
   </div>
