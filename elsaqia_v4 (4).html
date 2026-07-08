@@ -621,11 +621,11 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="sb-grp-lbl" style="margin-top:6px">التصنيع</div>
       <div class="nav-link perm-nav" data-perm="view_products" data-page="products" onclick="goPage('products')"><i class="fas fa-flask"></i>المنتجات</div>
       <div class="nav-link perm-nav" data-perm="view_materials" data-page="materials" onclick="goPage('materials')"><i class="fas fa-box-open"></i>الخامات</div>
-      <div class="nav-link perm-nav" data-perm="view_batches" data-page="batches" onclick="goPage('batches')"><i class="fas fa-industry"></i>سجل الدُفعات</div>
+      <div class="nav-link perm-nav" data-perm="view_batches" data-page="batches" onclick="goPage('batches')"><i class="fas fa-industry"></i>الإنتاج</div>
 
       <div class="sb-grp-lbl" style="margin-top:6px">الإدارة</div>
-      <div class="nav-link admin-only" data-page="users" onclick="goPage('users')"><i class="fas fa-users-cog"></i>المستخدمين</div>
-      <div class="nav-link admin-only" data-page="audit" onclick="goPage('audit')"><i class="fas fa-clipboard-list"></i>سجل النشاطات</div>
+      <div class="nav-link perm-nav" data-perm="manage_users" data-page="users" onclick="goPage('users')"><i class="fas fa-users-cog"></i>المستخدمين</div>
+      <div class="nav-link perm-nav" data-perm="manage_users" data-page="audit" onclick="goPage('audit')"><i class="fas fa-clipboard-list"></i>سجل النشاطات</div>
     </nav>
     <div class="sb-bottom">
       <button id="pwa-install-btn" onclick="installPWA()" style="display:none;width:100%;padding:8px 12px;border-radius:var(--rs);background:linear-gradient(135deg,var(--gold),var(--gold-lt));border:none;color:var(--e800);cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;font-weight:700;align-items:center;justify-content:center;gap:7px;margin-bottom:8px;transition:all .2s">
@@ -807,7 +807,7 @@ textarea.fc{resize:vertical;min-height:68px}
         </div>
       </div>
       <div class="sbar"><input class="sinput" id="m-q" type="text" placeholder="بحث بالاسم أو الكود..." oninput="renderMaterials()"></div>
-      <div class="card"><table class="tbl"><thead><tr><th>الكود</th><th>الاسم</th><th>الوحدة</th><th>العناصر</th><th>الكثافة</th><th>اللون</th><th></th></tr></thead><tbody id="m-body"></tbody></table></div>
+      <div class="card"><table class="tbl"><thead><tr><th>الكود</th><th>الاسم</th><th>الوحدة</th><th>عدد المنتجات</th><th>العناصر</th><th>الكثافة</th><th>اللون</th><th></th></tr></thead><tbody id="m-body"></tbody></table></div>
     </div>
 
     <!-- USERS -->
@@ -1075,6 +1075,7 @@ const PERMS_DEF = [
   {k:'view_versions',    l:'عرض سجل التعديلات'},
   {k:'view_materials',   l:'عرض الخامات'},
   {k:'edit_materials',   l:'تعديل الخامات'},
+  {k:'delete_materials', l:'حذف الخامات'},
   {k:'use_calc',         l:'استخدام الحاسبة'},
   {k:'print',            l:'الطباعة'},
   {k:'export_excel',     l:'تصدير Excel'},
@@ -1083,12 +1084,15 @@ const PERMS_DEF = [
   {k:'edit_formulations',l:'تعديل التركيبات'},
   {k:'global_search',    l:'البحث العام'},
   {k:'view_history',     l:'عرض السجل'},
-  {k:'view_batches',     l:'عرض سجل الدفعات'},
-  {k:'add_batches',      l:'إضافة دفعات'},
-  {k:'edit_batches',     l:'تعديل دفعات'},
-  {k:'delete_batches',   l:'حذف دفعات'},
+  {k:'view_batches',     l:'عرض الإنتاج'},
+  {k:'add_batches',      l:'إضافة إنتاج'},
+  {k:'edit_batches',     l:'تعديل إنتاج'},
+  {k:'delete_batches',   l:'حذف إنتاج'},
+  {k:'export_batches',   l:'تصدير الإنتاج (Excel/PPTX)'},
   {k:'view_mat_report',  l:'عرض تقرير الخامات'},
   {k:'view_calendar',    l:'عرض تقويم الرش'},
+  {k:'edit_calendar',    l:'تعديل تقويم الرش'},
+  {k:'manage_packaging_settings', l:'إدارة ألوان الأغطية وأنواع الطبات'},
   {k:'print_products',   l:'طباعة المنتجات'},
   {k:'export_products',  l:'تصدير المنتجات'},
   {k:'print_materials',  l:'طباعة الخامات'},
@@ -1126,6 +1130,7 @@ async function submitPendingChange(entityType, entityId, data, code, name) {
 }
 
 window.approveChange = async (pcId) => {
+  if(!isAdmin()){toast('الأدمن فقط يقدر يوافق على الطلبات','error');return;}
   const pc = _pendingChanges.find(x=>x.id===pcId); if(!pc || pc.status!=='pending') return;
   SS('save');
   try {
@@ -1145,6 +1150,7 @@ window.approveChange = async (pcId) => {
 };
 
 window.rejectChange = async (pcId) => {
+  if(!isAdmin()){toast('الأدمن فقط يقدر يرفض الطلبات','error');return;}
   const pc = _pendingChanges.find(x=>x.id===pcId); if(!pc || pc.status!=='pending') return;
   SS('save');
   try {
@@ -1426,14 +1432,13 @@ window.goPage = name => {
     materials: 'view_materials',
     calc:      'use_calc',
     history:   'view_history',
-    users:     null,
-    audit:     null,
+    users:     'manage_users',
+    audit:     'manage_users',
   };
 
   if (pagePerms.hasOwnProperty(name)) {
     const perm = pagePerms[name];
-    if (perm === null && !isAdmin()) { toast('ليس لديك صلاحية الوصول لهذه الصفحة','error'); return; }
-    if (perm && !hasPerm(perm))      { toast('ليس لديك صلاحية الوصول لهذه الصفحة','error'); return; }
+    if (perm && !hasPerm(perm)) { toast('ليس لديك صلاحية الوصول لهذه الصفحة','error'); return; }
   }
 
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1988,10 +1993,11 @@ function renderMaterials() {
   const q=(document.getElementById('m-q')?.value||'').toLowerCase();
   const items=_materials.filter(m=>!q||(m.name||'').toLowerCase().includes(q)||(m.code||'').includes(q));
   const cE=hasPerm('edit_materials');
+  const cD=hasPerm('delete_materials');
   const allElems=Object.assign({},ELEMENTS,window._customElements||{});
   const tbody=document.getElementById('m-body');
   if(!items.length){
-    tbody.innerHTML='<tr><td colspan="7"><div class="empty"><i class="fas fa-box-open"></i><p>لا توجد خامات</p></div></td></tr>';
+    tbody.innerHTML='<tr><td colspan="8"><div class="empty"><i class="fas fa-box-open"></i><p>لا توجد خامات</p></div></td></tr>';
     return;
   }
   tbody.innerHTML=items.map(m=>{
@@ -2002,23 +2008,28 @@ function renderMaterials() {
     }).join('');
     const mid = m.id;
     const mname = (m.name||'').replace(/"/g,'&quot;');
+    const prodCount = _products.filter(p=>(p.ingredients||[]).some(i=>i.matId===mid)).length;
     return '<tr>'+
       '<td style="font-family:monospace;font-weight:700;color:var(--g600)">#'+(m.code||mid)+'</td>'+
       '<td style="font-weight:600">'+m.name+'</td>'+
       '<td>'+(m.unit||'—')+'</td>'+
+      '<td style="text-align:center">'+(prodCount>0?'<span class="badge bg-green" style="cursor:pointer" title="اضغط لعرض المنتجات" onclick="showMatUsedIn(\''+mid+'\')">'+prodCount+'</span>':'<span style="color:var(--e400)">0</span>')+'</td>'+
       '<td style="display:flex;flex-wrap:wrap;gap:3px">'+(pills||'<span style="color:var(--e400);font-size:11px">—</span>')+'</td>'+
       '<td>'+(m.density||'—')+'</td>'+
       '<td>'+(m.color||'—')+'</td>'+
       '<td style="display:flex;gap:4px">'+
         '<button class="btn btn-ghost btn-xs btn-ic" onclick="showMDetail(this.dataset.id)" data-id="'+mid+'"><i class="fas fa-eye"></i></button>'+
-        (cE
-          ? '<button class="btn btn-gold btn-xs btn-ic" onclick="openMModal(this.dataset.id)" data-id="'+mid+'"><i class="fas fa-edit"></i></button>'+
-            '<button class="btn btn-red btn-xs btn-ic" onclick="confirmDel(&apos;material&apos;,this.dataset.id,this.dataset.name)" data-id="'+mid+'" data-name="'+mname+'"><i class="fas fa-trash"></i></button>'
-          : '')+
+        (cE ? '<button class="btn btn-gold btn-xs btn-ic" onclick="openMModal(this.dataset.id)" data-id="'+mid+'"><i class="fas fa-edit"></i></button>' : '')+
+        (cD ? '<button class="btn btn-red btn-xs btn-ic" onclick="confirmDel(&apos;material&apos;,this.dataset.id,this.dataset.name)" data-id="'+mid+'" data-name="'+mname+'"><i class="fas fa-trash"></i></button>' : '')+
       '</td>'+
       '</tr>';
   }).join('');
 }
+window.showMatUsedIn = id => {
+  const m = _materials.find(x=>x.id===id); if(!m) return;
+  const usedIn = _products.filter(p=>(p.ingredients||[]).some(i=>i.matId===id));
+  toast(usedIn.length?('مستخدمة في: '+usedIn.map(p=>p.name).join('، ')):'الخامة دي مش مستخدمة في أي منتج حالياً','info');
+};
 window.showMDetail = id => {
   const m=_materials.find(x=>x.id===id); if(!m)return;
   const allElems=Object.assign({},ELEMENTS,window._customElements||{});
@@ -2324,7 +2335,7 @@ window.doCalc = async () => {
           ${hasPerm('export_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportCalc()"><i class="fas fa-file-excel"></i>Excel</button>`:''}
         </div>
       </div>
-      <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية الإجمالية</th><th>الوحدة</th><th>التفاصيل</th></tr></thead><tbody>${mRows}</tbody></table>
+      <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية الإجمالية</th><th>شكل الخامة</th><th>التفاصيل</th></tr></thead><tbody>${mRows}</tbody></table>
     </div>`;
   }
 
@@ -2340,7 +2351,7 @@ window.doCalc = async () => {
       <div style="background:linear-gradient(135deg,var(--g700),var(--g500));padding:10px 18px;color:#fff">
         <div style="font-size:14px;font-weight:900">${r.prod.name} — ${r.qty} ${r.prod.unit||'لتر'}</div>
       </div>
-      <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table>
+      <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>شكل الخامة</th></tr></thead><tbody>${rows}</tbody></table>
     </div>`;
   });
 
@@ -2359,12 +2370,12 @@ window.printCalc = () => {
     const mRows=r.merged.map(m=>`<tr><td>#${m.code}</td><td>${m.name}</td><td style="font-weight:700">${m.total.toFixed(3)}</td><td>${m.unit}</td><td style="font-size:11px">${m.prods.length>1?m.prods.map(p=>p.name+': '+p.qty).join(' + '):'—'}</td></tr>`).join('');
     body+=`<h3>الإجمالي المجمع</h3>
     <p>${r.items.map(x=>x.prodName+' ('+x.qty+' '+x.unit+')').join(' + ')} ${r.note?'| '+r.note:''}</p>
-    <table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية الإجمالية</th><th>الوحدة</th><th>التفاصيل</th></tr></thead><tbody>${mRows}</tbody></table><hr>`;
+    <table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية الإجمالية</th><th>شكل الخامة</th><th>التفاصيل</th></tr></thead><tbody>${mRows}</tbody></table><hr>`;
   }
   r.allResults.forEach(res=>{
     const rows=res.rows.map(x=>`<tr><td>#${x.code}</td><td>${x.name}</td><td>${x.needed}</td><td>${x.unit}</td></tr>`).join('');
     body+=`<h3>${res.prod.name} — ${res.qty} ${res.prod.unit||'لتر'}</h3>
-    <table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead><tbody>${rows}</tbody></table><br>`;
+    <table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>شكل الخامة</th></tr></thead><tbody>${rows}</tbody></table><br>`;
   });
   const w=window.open('','_blank');
   w.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><title>حساب متعدد</title><style>body{font-family:sans-serif;padding:24px}h3{color:#1a4a2e;margin:16px 0 6px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{padding:8px;border:1px solid #ccc;text-align:right}th{background:#e8f5e9}hr{border:none;border-top:2px solid #e8f5e9;margin:16px 0}</style></head><body>${body}<small>طُبع: ${new Date().toLocaleString('ar-EG')}</small></body></html>`);
@@ -3163,6 +3174,7 @@ window.delProduction = async id => {
 
 // ── تصدير خامات ومستلزمات دفعة واحدة كملف Excel (شيتين: خامات + مستلزمات) ──
 window.exportBatchExcel = (id) => {
+  if(!hasPerm('export_batches')){toast('ليس لديك صلاحية تصدير الإنتاج','error');return;}
   const p = _production.find(x=>x.id===id);
   if(!p){ toast('الدفعة غير موجودة','error'); return; }
   const wb = XLSX.utils.book_new();
@@ -3240,6 +3252,7 @@ function renderProdLines() {
 // ── اختيار/إضافة لون غطاء جديد ──
 window.onCapColorChange = (i, val) => {
   if (val === '__add_new__') {
+    if (!hasPerm('manage_packaging_settings')) { toast('ليس لديك صلاحية إضافة ألوان جديدة — اختَر من القائمة الموجودة','error'); renderProdLines(); return; }
     const nv = prompt('اكتب اسم اللون الجديد:');
     if (!nv || !nv.trim()) { renderProdLines(); return; }
     const clean = nv.trim();
@@ -3262,6 +3275,7 @@ window.onClosureTypeChange = (i, val) => {
 // ── اختيار/إضافة نوع طبة جديد ──
 window.onClosureSubtypeChange = (i, val) => {
   if (val === '__add_new__') {
+    if (!hasPerm('manage_packaging_settings')) { toast('ليس لديك صلاحية إضافة أنواع جديدة — اختَر من القائمة الموجودة','error'); renderProdLines(); return; }
     const nv = prompt('اكتب نوع الطبة الجديد:');
     if (!nv || !nv.trim()) { renderProdLines(); return; }
     const clean = nv.trim();
@@ -4200,6 +4214,7 @@ function _addBarsSlide(pres, C, BAR_COLORS, title, subtitle, accentColor, items,
 // PPTX EXPORT 1 — تقرير الإنتاج الشامل (Premium Dark)
 // ══════════════════════════════════════════════════════════════════
 window.exportProductionPPTX = (inputData) => {
+  if(!hasPerm('export_batches')){toast('ليس لديك صلاحية تصدير الإنتاج','error');return;}
   const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
@@ -4366,6 +4381,7 @@ window.exportProductionPPTX = (inputData) => {
 // PPTX EXPORT 2 — تقرير المستلزمات المنفصل
 // ══════════════════════════════════════════════════════════════════
 window.exportSuppliesPPTX = (inputData) => {
+  if(!hasPerm('export_batches')){toast('ليس لديك صلاحية تصدير الإنتاج','error');return;}
   const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
@@ -4581,6 +4597,7 @@ window.exportSuppliesPPTX = (inputData) => {
 // PPTX EXPORT 3 — تقرير الخامات المنفصل
 // ══════════════════════════════════════════════════════════════════
 window.exportRawMatsPPTX = (inputData) => {
+  if(!hasPerm('export_batches')){toast('ليس لديك صلاحية تصدير الإنتاج','error');return;}
   const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
@@ -4881,12 +4898,13 @@ window.showCalendar = async () => {
     }
   } catch(e){}
   const types = [...new Set(_products.map(p=>p.color||'عام'))];
+  const cE = hasPerm('edit_calendar');
   const monthHeader = `<div class="cal-grid">${MONTHS_AR.map(m=>`<div class="cal-month">${m.slice(0,3)}</div>`).join('')}</div>`;
   const rows = types.map(type => {
     if (!_calSeasons[type]) _calSeasons[type] = [3,4,5,9,10];
     const cells = Array.from({length:12},(_,i)=>{
       const on = _calSeasons[type].includes(i+1);
-      return `<div class="cal-cell${on?' active':''}" title="${MONTHS_AR[i]}" onclick="toggleCalCell(this,'${type}',${i+1})"></div>`;
+      return `<div class="cal-cell${on?' active':''}" title="${MONTHS_AR[i]}" ${cE?`onclick="toggleCalCell(this,'${type}',${i+1})"`:'style="cursor:default"'}></div>`;
     }).join('');
     return `<div class="cal-prod-row">
       <div class="cal-prod-name">${type}</div>
@@ -4894,16 +4912,17 @@ window.showCalendar = async () => {
     </div>`;
   }).join('');
   document.getElementById('calendar-body').innerHTML = `<div style="padding:16px">
-    <div style="font-size:12px;color:var(--e400);margin-bottom:8px">اضغط على الخلية لتفعيل/إلغاء شهر الرش</div>
-    <div style="margin-bottom:12px;display:flex;justify-content:flex-end">
+    <div style="font-size:12px;color:var(--e400);margin-bottom:8px">${cE?'اضغط على الخلية لتفعيل/إلغاء شهر الرش':'عرض فقط — ليس لديك صلاحية التعديل'}</div>
+    ${cE?`<div style="margin-bottom:12px;display:flex;justify-content:flex-end">
       <button class="btn btn-g btn-sm" onclick="saveCalendar()"><i class="fas fa-save"></i>حفظ التقويم</button>
-    </div>
+    </div>`:''}
     ${monthHeader}${rows||emptyState('🌱','لا توجد منتجات','','','&nbsp;')}
     </div>`;
   openM('mo-calendar');
 };
 
 window.saveCalendar = async () => {
+  if(!hasPerm('edit_calendar')){toast('ليس لديك صلاحية تعديل التقويم','error');return;}
   try {
     await setDoc(doc(db,'settings','calendar'), {seasons:_calSeasons, updatedAt:Date.now(), updatedBy:CU.email});
     toast('تم حفظ التقويم','success');
@@ -5418,6 +5437,7 @@ window.exportMatDetail = id => {
 // PPTX EXPORT 4 — Dashboard Style (Power BI Light)
 // ══════════════════════════════════════════════════════════════════
 window.exportDashboardPPTX = (inputData) => {
+  if(!hasPerm('export_batches')){toast('ليس لديك صلاحية تصدير الإنتاج','error');return;}
   const data = (inputData && inputData.length) ? inputData : _production;
   if(!data||!data.length){toast('لا يوجد بيانات','error');return;}
   if(typeof PptxGenJS==='undefined'){toast('مكتبة PPTX لم تُحمَّل بعد','error');return;}
