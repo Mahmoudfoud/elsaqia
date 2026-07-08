@@ -77,7 +77,19 @@ html,body{height:100%;font-family:'Cairo',sans-serif;color:var(--e800);backgroun
 .sb-logo-txt{color:#fff;font-size:17px;font-weight:900;line-height:1.1}
 .sb-logo-sub{color:rgba(255,255,255,.35);font-size:9px;letter-spacing:1px}
 .sb-user{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);border-radius:var(--rs);padding:10px 12px;display:flex;align-items:center;gap:10px}
-.sb-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--e800);font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sb-av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--e800);font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;overflow:hidden;cursor:pointer}
+.sb-av img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.sb-av-cam{position:absolute;inset:0;background:rgba(10,20,12,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0;transition:opacity .15s}
+.sb-av:hover .sb-av-cam{opacity:1}
+.stat-card.clickable{cursor:pointer;position:relative}
+.users-popover{position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.18);padding:10px;min-width:230px;max-height:280px;overflow-y:auto;z-index:400;display:none}
+.users-popover.show{display:block}
+.users-popover-title{font-size:10px;font-weight:800;color:var(--e400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;padding:0 4px}
+.users-popover-item{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px}
+.users-popover-item:hover{background:#f5f5f0}
+.users-popover-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-lt));color:var(--e800);font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden}
+.users-popover-av img{width:100%;height:100%;object-fit:cover}
+.users-popover-name{font-size:13px;font-weight:700;color:var(--g900)}
 .sb-av-name{color:#fff;font-size:12px;font-weight:700}
 .sb-av-role{color:rgba(255,255,255,.4);font-size:10px;display:flex;align-items:center;gap:4px}
 .online-dot{width:6px;height:6px;border-radius:50%;background:#4ade80;animation:blink 2s infinite}
@@ -598,7 +610,8 @@ textarea.fc{resize:vertical;min-height:68px}
         <div><div class="sb-logo-txt">الساقية</div><div class="sb-logo-sub">AGRICULTURAL ERP v3</div></div>
       </div>
       <div class="sb-user">
-        <div class="sb-av" id="sb-av">A</div>
+        <div class="sb-av" id="sb-av" onclick="document.getElementById('avatar-file-input').click()" title="اضغط لتغيير صورتك الشخصية">A<div class="sb-av-cam"><i class="fas fa-camera"></i></div></div>
+        <input type="file" id="avatar-file-input" accept="image/*" style="display:none" onchange="handleAvatarUpload(this)">
         <div><div class="sb-av-name" id="sb-name">—</div><div class="sb-av-role"><span class="online-dot"></span><span id="sb-role">—</span></div></div>
       </div>
       <div style="margin-top:8px">
@@ -1319,7 +1332,10 @@ async function nextCode(type) {
 function setupUI() {
   document.getElementById('sb-name').textContent = CU.displayName||CU.email;
   document.getElementById('sb-role').textContent = CU.role==='admin'?'أدمن':'مستخدم';
-  document.getElementById('sb-av').textContent   = (CU.displayName||CU.email)[0].toUpperCase();
+  document.getElementById('sb-av').innerHTML = (CU.avatarUrl
+    ? `<img src="${CU.avatarUrl}">`
+    : (CU.displayName||CU.email)[0].toUpperCase()
+  ) + '<div class="sb-av-cam"><i class="fas fa-camera"></i></div>';
 
   document.querySelectorAll('.admin-only').forEach(el=>{
     el.style.display = isAdmin()?'flex':'none';
@@ -1367,6 +1383,7 @@ function startListeners() {
           CU.permissions = fresh.permissions;
           CU.displayName = fresh.displayName;
           CU.requiresApproval = fresh.requiresApproval;
+          CU.avatarUrl = fresh.avatarUrl;
           setupUI();
         }
       }
@@ -1594,13 +1611,41 @@ function renderDashStats() {
   const onl = Object.values(_presence).filter(p=>p.status==='online'&&(Date.now()-p.lastSeen)<120000).length;
   // Count unique elements across all products
   const allProdElems = new Set(_products.flatMap(p=>[...(p.elements||[]),...(p.ingredients||[]).flatMap(ing=>{const m=_materials.find(x=>x.id===ing.matId);return m?.elements||[];})]));
-  el.innerHTML = [
+  const stats = [
     {ic:'🧪',lbl:'المنتجات',    val:_products.length, bg:'#e8f7ec',c:'var(--g700)'},
     {ic:'📦',lbl:'الخامات',     val:_materials.length,bg:'#fef8e8',c:'var(--gold)'},
     {ic:'📋',lbl:'الطلبات',     val:_history.length,  bg:'#f3f0fb',c:'#7c3aed'},
     {ic:'🔬',lbl:'عناصر مستخدمة',val:allProdElems.size,bg:'#e0f2fe',c:'#0891b2'},
-    {ic:'👥',lbl:'المستخدمين',   val:_users.length,    bg:'#f0fdf4',c:'#15803d'},
-  ].map(s=>`<div class="stat-card"><div class="stat-ic" style="background:${s.bg};font-size:20px">${s.ic}</div><div><div class="stat-val" style="color:${s.c}">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div></div>`).join('');
+    {ic:'👥',lbl:'المستخدمين',   val:_users.length,    bg:'#f0fdf4',c:'#15803d', users:true},
+  ];
+  el.innerHTML = stats.map(s=>
+    s.users
+    ? `<div class="stat-card clickable" onclick="toggleUsersPopover(event)"><div class="stat-ic" style="background:${s.bg};font-size:20px">${s.ic}</div><div><div class="stat-val" style="color:${s.c}">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div>
+        <div class="users-popover" id="users-popover"><div class="users-popover-title">فريق العمل</div><div id="users-popover-list"></div></div>
+      </div>`
+    : `<div class="stat-card"><div class="stat-ic" style="background:${s.bg};font-size:20px">${s.ic}</div><div><div class="stat-val" style="color:${s.c}">${s.val}</div><div class="stat-lbl">${s.lbl}</div></div></div>`
+  ).join('');
+}
+
+window.toggleUsersPopover = (e) => {
+  e.stopPropagation();
+  const pop = document.getElementById('users-popover');
+  if (!pop) return;
+  const willShow = !pop.classList.contains('show');
+  document.querySelectorAll('.users-popover.show').forEach(p=>p.classList.remove('show'));
+  if (willShow) {
+    document.getElementById('users-popover-list').innerHTML = _users.map(u => `
+      <div class="users-popover-item">
+        <div class="users-popover-av">${u.avatarUrl?`<img src="${u.avatarUrl}">`:(u.displayName||u.email||'?')[0].toUpperCase()}</div>
+        <div class="users-popover-name">${u.displayName||u.email}</div>
+      </div>`).join('') || '<div style="font-size:12px;color:var(--e400);padding:8px">لا يوجد مستخدمين</div>';
+    pop.classList.add('show');
+    setTimeout(()=>document.addEventListener('click', closeUsersPopoverOnce), 0);
+  }
+};
+function closeUsersPopoverOnce() {
+  document.querySelectorAll('.users-popover.show').forEach(p=>p.classList.remove('show'));
+  document.removeEventListener('click', closeUsersPopoverOnce);
 }
 
 function renderDash() {
@@ -2784,6 +2829,23 @@ async function uploadToImgBB(file) {
     return null;
   }
 }
+
+window.handleAvatarUpload = async (inp) => {
+  if (!inp.files[0]) return;
+  const file = inp.files[0];
+  SS('save');
+  const url = await uploadToImgBB(file);
+  if (url) {
+    try {
+      await updateDoc(doc(db,'users',CU.id), {avatarUrl:url});
+      CU.avatarUrl = url;
+      setupUI();
+      toast('تم تحديث صورتك الشخصية','success');
+    } catch(e){ toast('خطأ: '+e.message,'error'); }
+  }
+  SS('on');
+  inp.value = '';
+};
 
 window.handleMatImg = async (inp, previewId, urlId) => {
   if (!inp.files[0]) return;
