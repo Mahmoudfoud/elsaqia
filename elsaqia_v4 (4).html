@@ -162,6 +162,14 @@ textarea.fc{resize:vertical;min-height:68px}
 .mh-title{font-size:16px;font-weight:900;color:var(--g900)}
 .mclose{width:28px;height:28px;border-radius:50%;border:none;background:#f0f0ec;cursor:pointer;font-size:14px;color:var(--e400);display:flex;align-items:center;justify-content:center;transition:all .15s}
 .mclose:hover{background:#e5e0d8;color:var(--e700)}
+.mh-acts{display:flex;align-items:center;gap:6px}
+.mmin{width:28px;height:28px;border-radius:50%;border:none;background:#f0f0ec;cursor:pointer;font-size:14px;color:var(--e400);display:flex;align-items:center;justify-content:center;transition:all .15s}
+.mmin:hover{background:#e5e0d8;color:var(--e700)}
+.overlay.minimized{background:transparent;backdrop-filter:none;align-items:flex-end;justify-content:flex-start;padding:0 0 20px 20px;pointer-events:none}
+.overlay.minimized .modal{display:none}
+.mini-pill{display:none}
+.overlay.minimized .mini-pill{display:flex;align-items:center;gap:8px;pointer-events:all;background:var(--g600);color:#fff;padding:10px 16px;border-radius:30px;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;font-size:13px;font-weight:700;animation:pillPulse 2s infinite}
+@keyframes pillPulse{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,.28)}50%{box-shadow:0 8px 30px rgba(45,125,66,.55)}}
 .mb{padding:16px 20px}
 .mf{padding:13px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);border-radius:0 0 16px 16px}
 
@@ -377,6 +385,19 @@ textarea.fc{resize:vertical;min-height:68px}
 .gs-kbd{background:var(--bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:11px}
 #gs-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:var(--rs);padding:5px 11px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;color:rgba(255,255,255,.75);display:flex;align-items:center;gap:5px;transition:all .15s}
 #gs-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+#notif-bell-btn{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:var(--rs);padding:5px 11px;cursor:pointer;font-family:'Cairo',sans-serif;font-size:12px;color:rgba(255,255,255,.75);display:flex;align-items:center;gap:5px;transition:all .15s;position:relative;width:100%;justify-content:center}
+#notif-bell-btn:hover{background:rgba(255,255,255,.2);color:#fff}
+.notif-badge{position:absolute;top:-6px;left:-6px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;min-width:17px;height:17px;border-radius:9px;display:none;align-items:center;justify-content:center;padding:0 4px;border:2px solid var(--e800,#1a4a2e)}
+.notif-badge.show{display:flex}
+.notif-item{padding:12px 14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:#fafaf7}
+.notif-item.unread{border-color:var(--g400);background:var(--g50)}
+.notif-item-txt{font-size:13px;font-weight:600;color:var(--g900);margin-bottom:4px}
+.notif-item-meta{font-size:10px;color:var(--e400);margin-bottom:8px}
+.notif-item-acts{display:flex;gap:6px}
+.notif-status{font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;display:inline-block}
+.notif-status.pending{background:#fef3c7;color:#92400e}
+.notif-status.approved{background:#dcfce7;color:#166534}
+.notif-status.rejected{background:#fee2e2;color:#991b1b}
 
 /* ── OFFLINE BANNER ── */
 #offline-banner{position:fixed;bottom:0;left:0;right:0;background:#1f2937;color:#f9fafb;text-align:center;padding:9px 16px;font-family:'Cairo',sans-serif;font-size:13px;font-weight:600;z-index:9999;display:none;align-items:center;justify-content:center;gap:10px;border-top:2px solid #f59e0b}
@@ -473,6 +494,7 @@ textarea.fc{resize:vertical;min-height:68px}
 .bar-track{flex:1;height:22px;background:#f0f0ec;border-radius:4px;overflow:hidden}
 .bar-fill{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;padding-right:8px;justify-content:flex-end}
 .bar-val{font-size:11px;font-weight:700;color:#fff;white-space:nowrap}
+.bar-val-ext{font-size:11px;font-weight:800;color:var(--e700);white-space:nowrap;flex-shrink:0;min-width:46px;text-align:left}
 .heatmap-wrap{overflow-x:auto}
 .heatmap{border-collapse:separate;border-spacing:2px;font-size:11px}
 .heatmap th{padding:5px 8px;font-weight:700;color:var(--e400);text-align:center}
@@ -582,6 +604,12 @@ textarea.fc{resize:vertical;min-height:68px}
       <div style="margin-top:8px">
         <button id="gs-btn" onclick="openGS()" title="بحث عام Ctrl+F" style="width:100%;justify-content:center">
           <i class="fas fa-search"></i> بحث سريع <span style="opacity:.5;font-size:10px">Ctrl+F</span>
+        </button>
+      </div>
+      <div style="margin-top:8px">
+        <button id="notif-bell-btn" onclick="openNotifPanel()">
+          <i class="fas fa-bell"></i> الإشعارات
+          <span class="notif-badge" id="notif-badge">0</span>
         </button>
       </div>
     </div>
@@ -873,8 +901,9 @@ textarea.fc{resize:vertical;min-height:68px}
 
 <!-- Material Add/Edit -->
 <div class="overlay" id="mo-mat">
+  <div class="mini-pill" id="mat-mini-pill" onclick="restoreMatModal()"><i class="fas fa-flask"></i><span>خامة جديدة — اضغط للمتابعة</span></div>
   <div class="modal">
-    <div class="mh"><span class="mh-title" id="mm-title">خامة جديدة</span><button class="mclose" onclick="closeM('mo-mat')">×</button></div>
+    <div class="mh"><span class="mh-title" id="mm-title">خامة جديدة</span><div class="mh-acts"><button class="mmin" id="mat-min-btn" style="display:none" onclick="minimizeMatModal()" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-mat')">×</button></div></div>
     <div class="mb">
       <div class="frow c2">
         <div class="fg"><label class="fl">كود الخامة (تلقائي)</label><input class="fc" id="mm-code" readonly></div>
@@ -955,6 +984,11 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="divider"></div>
       <div class="sec-lbl" style="margin-bottom:8px">🔑 الصلاحيات</div>
       <div id="perm-cont"></div>
+      <div class="divider"></div>
+      <div class="fg" style="display:flex;align-items:center;gap:8px;background:#fef3c7;padding:10px 12px;border-radius:8px">
+        <input type="checkbox" id="uu-needs-approval" style="width:18px;height:18px">
+        <label for="uu-needs-approval" style="font-size:12px;font-weight:700;color:#92400e;margin:0">أي إضافة أو تعديل يعمله هذا المستخدم على المنتجات أو الخامات لازم يتوافق عليه الأدمن الأول قبل ما يتنفذ فعلياً</label>
+      </div>
     </div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-user')">إلغاء</button><button class="btn btn-g" onclick="saveUser()"><i class="fas fa-save"></i>حفظ</button></div>
   </div>
@@ -963,6 +997,11 @@ textarea.fc{resize:vertical;min-height:68px}
 <!-- History Detail -->
 <div class="overlay" id="mo-hdetail">
   <div class="modal lg"><div class="mh"><span class="mh-title">تفاصيل الطلب</span><button class="mclose" onclick="closeM('mo-hdetail')">×</button></div><div class="mb" id="hd-body"></div><div class="mf" id="hdetail-foot"><button class="btn btn-ghost" onclick="closeM('mo-hdetail')">إغلاق</button></div></div>
+</div>
+
+<!-- Notifications -->
+<div class="overlay" id="mo-notif">
+  <div class="modal lg"><div class="mh"><span class="mh-title" id="notif-title">الإشعارات</span><button class="mclose" onclick="closeM('mo-notif')">×</button></div><div class="mb" id="notif-body"></div></div>
 </div>
 
 <!-- Confirm Delete -->
@@ -1008,6 +1047,8 @@ let _auditItems= [];
 let _presence  = {};
 let _capColors = ['أخضر','أزرق','أحمر','أصفر','أبيض','برتقالي','بنفسجي','أسود','بني'];
 let _closureSubtypes = ['طبة عادية','طبة مضادة للأحماض','طبة 100مللي','طبة ألومنيوم سادة'];
+let _pendingChanges = [];
+let _notifications  = [];
 
 // ══════════════════════════════════════════════
 // SYNC STATUS
@@ -1065,6 +1106,96 @@ window.hasPerm = k => {
   return !!( (CU.permissions||{})[k] );
 };
 const isAdmin = () => CU?.role === 'admin';
+
+// ══════════════════════════════════════════════
+// APPROVAL WORKFLOW — إضافة/تعديل المنتجات والخامات لموظف يحتاج موافقة الأدمن
+// ══════════════════════════════════════════════
+async function submitPendingChange(entityType, entityId, data, code, name) {
+  const pcRef = await addDoc(collection(db,'pending_changes'), {
+    entityType, action: entityId?'edit':'add', entityId: entityId||null,
+    data, code: code||null, name,
+    requestedBy: CU.email, requestedByUid: CU.id, requestedByName: CU.displayName||CU.email,
+    requestedAt: Date.now(), status:'pending'
+  });
+  await addDoc(collection(db,'notifications'), {
+    toRole:'admin', toUid:null, type:'pending_change',
+    text: `${CU.displayName||CU.email} طلب ${entityId?'تعديل':'إضافة'} ${entityType==='product'?'منتج':'خامة'}: ${name}`,
+    refId: pcRef.id, read:false, createdAt:Date.now()
+  });
+  await audit('request', `${CU.displayName||CU.email} طلب ${entityId?'تعديل':'إضافة'} ${entityType==='product'?'منتج':'خامة'}: ${name} — بانتظار موافقة الأدمن`);
+}
+
+window.approveChange = async (pcId) => {
+  const pc = _pendingChanges.find(x=>x.id===pcId); if(!pc || pc.status!=='pending') return;
+  SS('save');
+  try {
+    if (pc.entityType==='product') {
+      if (pc.action==='add') await addDoc(collection(db,'products'), {...pc.data, code:pc.code, createdAt:Date.now(), createdBy:pc.requestedBy});
+      else await updateDoc(doc(db,'products',pc.entityId), pc.data);
+    } else {
+      if (pc.action==='add') await addDoc(collection(db,'materials'), {...pc.data, code:pc.code, createdAt:Date.now(), createdBy:pc.requestedBy});
+      else await updateDoc(doc(db,'materials',pc.entityId), pc.data);
+    }
+    await updateDoc(doc(db,'pending_changes',pcId), {status:'approved', reviewedBy:CU.email, reviewedAt:Date.now()});
+    await addDoc(collection(db,'notifications'), {toRole:null, toUid:pc.requestedByUid, type:'change_approved', text:`تمت الموافقة على طلبك: ${pc.name}`, refId:pcId, read:false, createdAt:Date.now()});
+    await audit('approve', `وافق ${CU.displayName||CU.email} على طلب ${pc.requestedByName}: ${pc.name}`);
+    toast('تم القبول وتنفيذ التعديل ✅','success');
+  } catch(e){ toast('خطأ: '+e.message,'error'); }
+  SS('on');
+};
+
+window.rejectChange = async (pcId) => {
+  const pc = _pendingChanges.find(x=>x.id===pcId); if(!pc || pc.status!=='pending') return;
+  SS('save');
+  try {
+    await updateDoc(doc(db,'pending_changes',pcId), {status:'rejected', reviewedBy:CU.email, reviewedAt:Date.now()});
+    await addDoc(collection(db,'notifications'), {toRole:null, toUid:pc.requestedByUid, type:'change_rejected', text:`تم رفض طلبك: ${pc.name}`, refId:pcId, read:false, createdAt:Date.now()});
+    await audit('reject', `رفض ${CU.displayName||CU.email} طلب ${pc.requestedByName}: ${pc.name}`);
+    toast('تم الرفض','info');
+  } catch(e){ toast('خطأ: '+e.message,'error'); }
+  SS('on');
+};
+
+function renderNotifBadge() {
+  const b = document.getElementById('notif-badge'); if(!b || !CU) return;
+  let n = 0;
+  if (isAdmin()) n = _pendingChanges.filter(p=>p.status==='pending').length;
+  else n = _notifications.filter(x=>x.toUid===CU.id && !x.read).length;
+  b.textContent = n>99?'99+':n;
+  b.classList.toggle('show', n>0);
+}
+
+window.openNotifPanel = () => { renderNotifPanel(); openM('mo-notif'); };
+
+function renderNotifPanel() {
+  const body = document.getElementById('notif-body'); if(!body || !CU) return;
+  if (isAdmin()) {
+    document.getElementById('notif-title').textContent = 'طلبات الموافقة';
+    const pending = _pendingChanges.filter(p=>p.status==='pending');
+    const done    = _pendingChanges.filter(p=>p.status!=='pending').slice(0,20);
+    const rowHtml = (p, showActs) => `
+      <div class="notif-item ${showActs?'unread':''}">
+        <div class="notif-item-txt">${p.requestedByName||p.requestedBy} طلب ${p.action==='edit'?'تعديل':'إضافة'} ${p.entityType==='product'?'منتج':'خامة'}: <strong>${p.name}</strong></div>
+        <div class="notif-item-meta">${fmtDate(p.requestedAt)} ${!showActs?`<span class="notif-status ${p.status}">${p.status==='approved'?'تمت الموافقة':'مرفوض'}</span>`:''}</div>
+        ${showActs?`<div class="notif-item-acts">
+          <button class="btn btn-g btn-sm" onclick="approveChange('${p.id}')"><i class="fas fa-check"></i>قبول</button>
+          <button class="btn btn-red btn-sm" onclick="rejectChange('${p.id}')"><i class="fas fa-times"></i>رفض</button>
+        </div>`:''}
+      </div>`;
+    body.innerHTML = (pending.length?pending.map(p=>rowHtml(p,true)).join(''):'<div class="empty"><i class="fas fa-check-circle"></i><p>لا توجد طلبات بانتظار الموافقة</p></div>')
+      + (done.length?`<div class="divider"></div><div class="sec-lbl" style="margin-bottom:8px">آخر الطلبات المنتهية</div>`+done.map(p=>rowHtml(p,false)).join(''):'');
+  } else {
+    document.getElementById('notif-title').textContent = 'الإشعارات';
+    const mine = _notifications.filter(x=>x.toUid===CU.id);
+    body.innerHTML = mine.length? mine.map(n=>`
+      <div class="notif-item ${n.read?'':'unread'}">
+        <div class="notif-item-txt">${n.text}</div>
+        <div class="notif-item-meta">${fmtDate(n.createdAt)} <span class="notif-status ${n.type==='change_approved'?'approved':'rejected'}">${n.type==='change_approved'?'تمت الموافقة':'مرفوض'}</span></div>
+      </div>`).join('') : '<div class="empty"><i class="fas fa-bell-slash"></i><p>لا توجد إشعارات</p></div>';
+    // علّم كل إشعارات المستخدم كمقروءة أول ما يفتح الجرس
+    mine.filter(n=>!n.read).forEach(n=>updateDoc(doc(db,'notifications',n.id),{read:true}).catch(()=>{}));
+  }
+}
 
 // ══════════════════════════════════════════════
 // AUTH
@@ -1193,6 +1324,7 @@ function setupUI() {
   document.querySelectorAll('.perm-btn').forEach(el=>{
     el.style.display = hasPerm(el.dataset.perm)?'inline-flex':'none';
   });
+  renderNotifBadge();
 }
 
 // ══════════════════════════════════════════════
@@ -1228,6 +1360,7 @@ function startListeners() {
           CU.role = fresh.role;
           CU.permissions = fresh.permissions;
           CU.displayName = fresh.displayName;
+          CU.requiresApproval = fresh.requiresApproval;
           setupUI();
         }
       }
@@ -1259,6 +1392,16 @@ function startListeners() {
       const d = s.data();
       if(d.capColors && d.capColors.length) _capColors = d.capColors;
       if(d.closureSubtypes && d.closureSubtypes.length) _closureSubtypes = d.closureSubtypes;
+    }),
+    onSnapshot(query(collection(db,'pending_changes'), orderBy('requestedAt','desc'), limit(200)), s=>{
+      _pendingChanges = s.docs.map(d=>({id:d.id,...d.data()}));
+      renderNotifBadge();
+      if(document.getElementById('mo-notif')?.classList.contains('open')) renderNotifPanel();
+    }),
+    onSnapshot(query(collection(db,'notifications'), orderBy('createdAt','desc'), limit(200)), s=>{
+      _notifications = s.docs.map(d=>({id:d.id,...d.data()}));
+      renderNotifBadge();
+      if(document.getElementById('mo-notif')?.classList.contains('open')) renderNotifPanel();
     })
   );
 }
@@ -1697,6 +1840,13 @@ window.saveProd = async () => {
   };
   SS('save');
   try {
+    if (!isAdmin() && CU.requiresApproval) {
+      await submitPendingChange('product', _editPid, data, document.getElementById('pp-code').value, name);
+      toast(_editPid?'تم إرسال طلب التعديل للأدمن للموافقة ✅':'تم إرسال طلب إضافة المنتج للأدمن للموافقة ✅','success');
+      window._prodImgUrl=null; window._prodShapeUrl=null;
+      SS('on'); closeM('mo-prod');
+      return;
+    }
     if (_editPid) {
       // حفظ نسخة قديمة قبل التعديل
       const oldSnap = _products.find(x=>x.id===_editPid);
@@ -1920,8 +2070,9 @@ window.showMDetail = id => {
   openM('mo-mdetail');
 };
 
-window.openMModal = (id=null) => {
+window.openMModal = (id=null, quickAdd=false) => {
   _editMid=id;
+  window._quickAddMatMode = quickAdd;
   document.getElementById('mm-title').textContent=id?'تعديل الخامة':'خامة جديدة';
   ['mm-img1-preview','mm-img2-preview'].forEach(pid=>{
     const el=document.getElementById(pid); if(el) el.innerHTML='';
@@ -1961,7 +2112,15 @@ window.openMModal = (id=null) => {
     document.getElementById('mm-unit').value='';
     buildElemCBs([],'elem-cbs',{});
   }
+  document.getElementById('mo-mat').classList.remove('minimized','quick-add');
+  document.getElementById('mat-min-btn').style.display = window._quickAddMatMode ? 'flex' : 'none';
   openM('mo-mat');
+};
+
+// ── فتح مودال "خامة جديدة" بسرعة من جوه فورم المنتج، من غير ما تسيب المنتج ──
+window.openQuickAddMaterial = (prefillName='') => {
+  openMModal(null, true);
+  if (prefillName) document.getElementById('mm-name').value = prefillName;
 };
 
 window.saveMat = async () => {
@@ -1986,16 +2145,35 @@ window.saveMat = async () => {
   };
   SS('save');
   try {
+    if (!isAdmin() && CU.requiresApproval) {
+      await submitPendingChange('material', _editMid, data, document.getElementById('mm-code').value, name);
+      toast(_editMid?'تم إرسال طلب التعديل للأدمن للموافقة ✅':'تم إرسال طلب إضافة الخامة للأدمن للموافقة ✅','success');
+      if (window._quickAddMatMode) toast('هتقدر تضيف الخامة للمنتج بعد ما الأدمن يوافق عليها','info');
+      window._quickAddMatMode=false;
+      SS('on'); closeM('mo-mat');
+      return;
+    }
     if(_editMid){
       await updateDoc(doc(db,'materials',_editMid),data);
       await audit('edit','عدّل '+(CU.displayName||CU.email)+' الخامة: '+name);
       toast('تم تعديل الخامة','success');
     } else {
-      await addDoc(collection(db,'materials'),{...data,code:document.getElementById('mm-code').value,createdAt:Date.now(),createdBy:CU.email});
+      const newRef = await addDoc(collection(db,'materials'),{...data,code:document.getElementById('mm-code').value,createdAt:Date.now(),createdBy:CU.email});
       await audit('add','أضاف '+(CU.displayName||CU.email)+' الخامة: '+name);
       toast('تم إضافة الخامة','success');
+      if (window._quickAddMatMode) {
+        const newMat = {id:newRef.id, ...data, code:document.getElementById('mm-code').value, createdAt:Date.now(), createdBy:CU.email};
+        if (!_materials.some(m=>m.id===newMat.id)) _materials.unshift(newMat);
+        window._quickAddMatMode=false;
+        SS('on'); closeM('mo-mat');
+        addIngFromSearch(newMat.id);
+        const si=document.getElementById('ing-search'); if(si) si.value='';
+        const sr=document.getElementById('ing-search-results'); if(sr) sr.innerHTML='';
+        return;
+      }
     }
   } catch(e){toast('خطأ: '+e.message,'error');}
+  window._quickAddMatMode=false;
   SS('on'); closeM('mo-mat');
 };
 
@@ -2380,7 +2558,7 @@ function renderUsers() {
     const on=p&&p.status==='online'&&(Date.now()-p.lastSeen)<120000;
     return `<tr>
       <td><div style="font-weight:700">${u.displayName||u.email}</div><div style="font-size:10px;color:var(--e400)">${u.email}</div></td>
-      <td><span class="badge ${u.role==='admin'?'bg-green':'bg-blue'}">${u.role==='admin'?'أدمن':'مستخدم'}</span></td>
+      <td><span class="badge ${u.role==='admin'?'bg-green':'bg-blue'}">${u.role==='admin'?'أدمن':'مستخدم'}</span> ${u.requiresApproval?'<span class="badge" style="background:#fef3c7;color:#92400e" title="تعديلاته وإضافاته تحتاج موافقة الأدمن">يحتاج موافقة</span>':''}</td>
       <td>${on?'<span style="color:#15803d;font-weight:700;font-size:12px">● متصل الآن</span>':'<span style="color:var(--e400);font-size:12px">○ غير متصل</span>'}</td>
       <td style="font-size:11px">${fmtDate(u.lastLogin)}</td>
       <td style="font-size:11px">${timeAgo(u.lastActivity)}</td>
@@ -2401,10 +2579,12 @@ window.openUModal = (id=null) => {
     document.getElementById('uu-pass').value='';
     document.getElementById('uu-name').value=u.displayName||'';
     document.getElementById('uu-role').value=u.role||'user';
+    document.getElementById('uu-needs-approval').checked=!!u.requiresApproval;
     buildPM(u.permissions||{});
   } else {
     ['uu-email','uu-pass','uu-name'].forEach(f=>document.getElementById(f).value='');
     document.getElementById('uu-role').value='user';
+    document.getElementById('uu-needs-approval').checked=false;
     buildPM({});
   }
   openM('mo-user');
@@ -2430,6 +2610,7 @@ window.saveUser = async () => {
   if(!email){toast('أدخل البريد الإلكتروني','error');return;}
   const perms={};
   PERMS_DEF.forEach(p=>{const el=document.getElementById('pc-'+p.k);if(el)perms[p.k]=el.checked;});
+  const requiresApproval = document.getElementById('uu-needs-approval').checked;
   SS('save');
   try {
     if(_editUid){
@@ -2437,6 +2618,7 @@ window.saveUser = async () => {
       await updateDoc(doc(db,'users',_editUid),{
         displayName:name, role,
         permissions:role==='admin'?ADMIN_PERMS:perms,
+        requiresApproval: role==='admin'?false:requiresApproval,
         updatedAt:Date.now()
       });
       await audit('edit',`عدّل ${CU.displayName||CU.email} المستخدم: ${email}`);
@@ -2472,6 +2654,7 @@ window.saveUser = async () => {
       await setDoc(doc(db,'users',newUid),{
         email, displayName:name, role,
         permissions:role==='admin'?ADMIN_PERMS:perms,
+        requiresApproval: role==='admin'?false:requiresApproval,
         loginCount:0, lastLogin:null, lastActivity:null,
         createdAt:Date.now(), createdBy:CU.email
       });
@@ -2526,6 +2709,10 @@ window.confirmDel = (type,id,name='') => {
 // ══════════════════════════════════════════════
 window.openM  = id => document.getElementById(id)?.classList.add('open');
 window.closeM = id => document.getElementById(id)?.classList.remove('open');
+
+// ── تصغير/استعادة مودال الخامة (مفيد وقت إضافة خامة سريعة من جوه فورم منتج) ──
+window.minimizeMatModal = () => document.getElementById('mo-mat')?.classList.add('minimized');
+window.restoreMatModal  = () => document.getElementById('mo-mat')?.classList.remove('minimized');
 
 document.querySelectorAll('.overlay').forEach(o=>{
   o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
@@ -3280,16 +3467,23 @@ window.exportProduction = () => {
   exportProductionPPTX(_production);
 };
 
+// ── helper: صف شريط موحّد — القيمة دايماً واضحة برّه الشريط (بتتفادى مشكلة اختفاء الأرقام في الشرايط الصغيرة) ──
+function barRowHTML(label, pct, color, valText, title='') {
+  pct = Math.max(0, Math.min(100, pct||0));
+  return `<div class="bar-row">
+    <div class="bar-label"${title?` title="${title}"`:''}>${label}</div>
+    <div class="bar-track"><div class="bar-fill" style="width:${pct}%;min-width:2px;background:${color}"></div></div>
+    <div class="bar-val-ext">${valText}</div>
+  </div>`;
+}
+
 // ── helper: top N + "show all" toggle ──
 function makeTopList(sorted, max, color, unit='', containerId='') {
   const TOP = 5;
   const makeRow = ([name,qty], i) => {
     const pct = Math.round(qty/max*100);
     const val = unit==='كجم' ? (qty>=1000?(qty/1000).toFixed(1)+'ط':qty+' كجم') : qty.toLocaleString()+(unit?' '+unit:'');
-    return `<div class="bar-row">
-      <div class="bar-label" title="${name}">${i+1}. ${name}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${color}"><span class="bar-val">${val}</span></div></div>
-    </div>`;
+    return barRowHTML(`${i+1}. ${name}`, pct, color, val, name);
   };
   const topHtml  = sorted.slice(0,TOP).map(makeRow).join('');
   const restHtml = sorted.length>TOP
@@ -3811,7 +4005,7 @@ window.runAnalytics = () => {
           const diff=prev!==null?qty-prev:null;
           const arrow=diff===null?'':diff>0?` <span style="color:#16a34a;font-size:10px">▲${Math.round(diff/prev*100)}%</span>`:(diff<0?` <span style="color:#dc2626;font-size:10px">▼${Math.abs(Math.round(diff/prev*100))}%</span>`:'');
           const m=parseInt(mon.split('-')[1]);
-          return`<div class="bar-row"><div class="bar-label">${MONTHS_AR_S[m-1]||mon}${arrow}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(qty/maxM*100)}%;background:#2563eb"><span class="bar-val">${qty>=1000?(qty/1000).toFixed(1)+'ط':qty+'كجم'}</span></div></div></div>`;
+          return barRowHTML(`${MONTHS_AR_S[m-1]||mon}${arrow}`, Math.round(qty/maxM*100), '#2563eb', qty>=1000?(qty/1000).toFixed(1)+'ط':qty+'كجم');
         }).join('');})()}
     </div>
   </div>
@@ -4550,10 +4744,7 @@ window.runSuppliesReport = () => {
     <div class="insight-head"><i class="fas fa-boxes"></i>إجمالي المستلزمات المستهلكة</div>
     <div class="insight-body">
       <div style="font-size:12px;color:var(--e400);margin-bottom:12px">من <strong>${from||'—'}</strong> إلى <strong>${to||'—'}</strong> — إجمالي ${data.length} دفعة</div>
-      ${sorted.map(([name,qty])=>`<div class="bar-row">
-        <div class="bar-label">${name}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(qty/max*100)}%;background:#7c3aed"><span class="bar-val">${qty.toLocaleString()}</span></div></div>
-      </div>`).join('')}
+      ${sorted.map(([name,qty])=>barRowHTML(name, Math.round(qty/max*100), '#7c3aed', qty.toLocaleString())).join('')}
     </div>
   </div>
   <div class="insight-card">
@@ -4602,10 +4793,7 @@ window.runRawMatsReport = () => {
   <div class="insight-card">
     <div class="insight-head"><i class="fas fa-flask"></i>إجمالي استهلاك الخامات (كجم)</div>
     <div class="insight-body">
-      ${sorted.map(([name,qty])=>`<div class="bar-row">
-        <div class="bar-label">${name}</div>
-        <div class="bar-track"><div class="bar-fill" style="width:${Math.round(qty/max*100)}%;background:#0891b2"><span class="bar-val">${qty.toLocaleString()}</span></div></div>
-      </div>`).join('')}
+      ${sorted.map(([name,qty])=>barRowHTML(name, Math.round(qty/max*100), '#0891b2', qty.toLocaleString())).join('')}
     </div>
   </div>
   ${allMonths.length>1&&sorted.length?`
@@ -4849,7 +5037,8 @@ window.ingSearch = val => {
   const matches = _materials.filter(m =>
     m.name.toLowerCase().includes(q) || (m.code||'').includes(q)
   ).slice(0, 12);
-  if (!matches.length) { res.innerHTML=`<div style="font-size:12px;color:var(--e400);padding:6px 0">لا توجد نتائج</div>`; return; }
+  const addNewBtn = `<button type="button" class="btn btn-ghost btn-sm" style="margin-top:6px;width:100%;justify-content:center" onclick="openQuickAddMaterial('${val.replace(/'/g,"\\'")}')"><i class="fas fa-plus"></i> مش لاقي الخامة؟ ضيفها دلوقتي باسم "${val}"</button>`;
+  if (!matches.length) { res.innerHTML=`<div style="font-size:12px;color:var(--e400);padding:6px 0">لا توجد نتائج</div>${addNewBtn}`; return; }
   res.innerHTML = `<div style="font-size:10px;font-weight:700;color:var(--e400);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">نتائج البحث — اضغط للإضافة</div>
   <div class="ing-results">` +
   matches.map(m => {
@@ -4866,7 +5055,7 @@ window.ingSearch = val => {
       </div>
       ${isAdded?'<i class="fas fa-check-circle" style="color:var(--g600)"></i>':'<i class="fas fa-plus-circle" style="color:var(--e400)"></i>'}
     </div>`;
-  }).join('') + `</div>`;
+  }).join('') + `</div>` + addNewBtn;
 };
 
 window.addIngFromSearch = matId => {
