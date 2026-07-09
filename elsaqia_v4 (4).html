@@ -82,6 +82,7 @@ html,body{height:100%;font-family:'Cairo',sans-serif;color:var(--e800);backgroun
 .sb-av-cam{position:absolute;inset:0;background:rgba(10,20,12,.5);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;opacity:0;transition:opacity .15s}
 .sb-av:hover .sb-av-cam{opacity:1}
 .stat-card.clickable{cursor:pointer;position:relative}
+.calc-mode-btn.active{background:var(--g600);color:#fff;border-color:var(--g600)}
 .users-popover{position:absolute;top:calc(100% + 8px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:12px;box-shadow:0 14px 34px rgba(0,0,0,.18);padding:10px;min-width:230px;max-height:280px;overflow-y:auto;z-index:400;display:none}
 .users-popover.show{display:block}
 .users-popover-title{font-size:10px;font-weight:800;color:var(--e400);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;padding:0 4px}
@@ -177,10 +178,10 @@ textarea.fc{resize:vertical;min-height:68px}
 .mh-acts{display:flex;align-items:center;gap:6px}
 .mmin{width:28px;height:28px;border-radius:50%;border:none;background:#f0f0ec;cursor:pointer;font-size:14px;color:var(--e400);display:flex;align-items:center;justify-content:center;transition:all .15s}
 .mmin:hover{background:#e5e0d8;color:var(--e700)}
-.overlay.minimized{background:transparent;backdrop-filter:none;align-items:flex-end;justify-content:flex-start;padding:0 0 20px 20px;pointer-events:none}
+.overlay.minimized{background:transparent;backdrop-filter:none;pointer-events:none}
 .overlay.minimized .modal{display:none}
-.mini-pill{display:none}
-.overlay.minimized .mini-pill{display:flex;align-items:center;gap:8px;pointer-events:all;background:var(--g600);color:#fff;padding:10px 16px;border-radius:30px;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;font-size:13px;font-weight:700;animation:pillPulse 2s infinite}
+#minimized-tray{position:fixed;bottom:20px;left:20px;z-index:600;display:flex;flex-direction:column-reverse;gap:10px;pointer-events:none}
+.mini-pill{display:flex;align-items:center;gap:8px;pointer-events:all;background:var(--g600);color:#fff;padding:10px 16px;border-radius:30px;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer;font-size:13px;font-weight:700;animation:pillPulse 2s infinite}
 @keyframes pillPulse{0%,100%{box-shadow:0 8px 24px rgba(0,0,0,.28)}50%{box-shadow:0 8px 30px rgba(45,125,66,.55)}}
 .mb{padding:16px 20px}
 .mf{padding:13px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;position:sticky;bottom:0;background:var(--surface);border-radius:0 0 16px 16px}
@@ -661,6 +662,13 @@ textarea.fc{resize:vertical;min-height:68px}
     <!-- CALC -->
     <div class="page" id="page-calc">
       <div class="ph"><div class="ph-left"><div class="ph-title">🧮 الحاسبة</div><div class="ph-sub">احسب كميات الخامات لتصنيع منتج أو أكثر</div></div></div>
+      <div class="card" id="calc-mode-card" style="border:1.5px dashed var(--g300)"><div class="card-body" style="padding:12px 16px">
+        <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:8px">🎯 وضع الحساب</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm calc-mode-btn active" id="calc-mode-mat" onclick="setCalcMode('materials')"><i class="fas fa-flask"></i>خامات بس</button>
+          <button class="btn btn-sm btn-ghost calc-mode-btn" id="calc-mode-full" onclick="setCalcMode('full')"><i class="fas fa-boxes"></i>خامات + مستلزمات</button>
+        </div>
+      </div></div>
       <div class="card"><div class="card-body">
         <div id="calc-items-list"></div>
         <div class="frow c3" style="margin-top:8px">
@@ -844,7 +852,7 @@ textarea.fc{resize:vertical;min-height:68px}
 <!-- Product Add/Edit -->
 <div class="overlay" id="mo-prod">
   <div class="modal xl">
-    <div class="mh"><span class="mh-title" id="mp-title">منتج جديد</span><button class="mclose" onclick="closeM('mo-prod')">×</button></div>
+    <div class="mh"><span class="mh-title" id="mp-title">منتج جديد</span><div class="mh-acts"><button class="mmin" onclick="minimizeModal('mo-prod')" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-prod')">×</button></div></div>
     <div class="mb">
       <div class="frow c2">
         <div class="fg"><label class="fl">كود المنتج (تلقائي)</label><input class="fc" id="pp-code" readonly></div>
@@ -914,9 +922,8 @@ textarea.fc{resize:vertical;min-height:68px}
 
 <!-- Material Add/Edit -->
 <div class="overlay" id="mo-mat">
-  <div class="mini-pill" id="mat-mini-pill" onclick="restoreMatModal()"><i class="fas fa-flask"></i><span>خامة جديدة — اضغط للمتابعة</span></div>
   <div class="modal">
-    <div class="mh"><span class="mh-title" id="mm-title">خامة جديدة</span><div class="mh-acts"><button class="mmin" id="mat-min-btn" style="display:none" onclick="minimizeMatModal()" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-mat')">×</button></div></div>
+    <div class="mh"><span class="mh-title" id="mm-title">خامة جديدة</span><div class="mh-acts"><button class="mmin" onclick="minimizeModal('mo-mat')" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-mat')">×</button></div></div>
     <div class="mb">
       <div class="frow c2">
         <div class="fg"><label class="fl">كود الخامة (تلقائي)</label><input class="fc" id="mm-code" readonly></div>
@@ -984,7 +991,7 @@ textarea.fc{resize:vertical;min-height:68px}
 <!-- User Add/Edit -->
 <div class="overlay" id="mo-user">
   <div class="modal lg">
-    <div class="mh"><span class="mh-title" id="mu-title">مستخدم جديد</span><button class="mclose" onclick="closeM('mo-user')">×</button></div>
+    <div class="mh"><span class="mh-title" id="mu-title">مستخدم جديد</span><div class="mh-acts"><button class="mmin" onclick="minimizeModal('mo-user')" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-user')">×</button></div></div>
     <div class="mb">
       <div class="frow c2">
         <div class="fg"><label class="fl">البريد الإلكتروني *</label><input class="fc" id="uu-email" type="email" placeholder="user@elsaqia.com"></div>
@@ -1090,6 +1097,8 @@ const PERMS_DEF = [
   {k:'edit_materials',   l:'تعديل الخامات'},
   {k:'delete_materials', l:'حذف الخامات'},
   {k:'use_calc',         l:'استخدام الحاسبة'},
+  {k:'calc_supplies',    l:'حساب المستلزمات في الحاسبة (مش خامات بس)'},
+  {k:'calc_to_batch',    l:'تحويل نتيجة الحاسبة لدفعة إنتاج فعلية'},
   {k:'print',            l:'الطباعة'},
   {k:'export_excel',     l:'تصدير Excel'},
   {k:'manage_users',     l:'إدارة المستخدمين'},
@@ -2168,8 +2177,7 @@ window.openMModal = (id=null, quickAdd=false) => {
     document.getElementById('mm-unit').value='';
     buildElemCBs([],'elem-cbs',{});
   }
-  document.getElementById('mo-mat').classList.remove('minimized','quick-add');
-  document.getElementById('mat-min-btn').style.display = window._quickAddMatMode ? 'flex' : 'none';
+  document.getElementById('mo-mat').classList.remove('minimized');
   openM('mo-mat');
 };
 
@@ -2236,11 +2244,25 @@ window.saveMat = async () => {
 // ══════════════════════════════════════════════
 // CALCULATOR
 // ══════════════════════════════════════════════
-let _calcItems = []; // [{prod, qty}]
+let _calcItems = []; // [{prodId,prodName,qty,unit, pkg,capColor,closureType,closureSubtype}]
+let _calcMode  = 'materials'; // 'materials' | 'full'
+
+window.setCalcMode = (mode) => {
+  if (mode==='full' && !hasPerm('calc_supplies')) { toast('ليس لديك صلاحية حساب المستلزمات','error'); return; }
+  _calcMode = mode;
+  document.getElementById('calc-mode-mat')?.classList.toggle('active', mode==='materials');
+  document.getElementById('calc-mode-mat')?.classList.toggle('btn-ghost', mode!=='materials');
+  document.getElementById('calc-mode-full')?.classList.toggle('active', mode==='full');
+  document.getElementById('calc-mode-full')?.classList.toggle('btn-ghost', mode!=='full');
+  renderCalcItemsList();
+};
 
 function renderCalcOpts() {
   const sel=document.getElementById('c-prod');
   if(!sel)return;
+  const modeCard = document.getElementById('calc-mode-card');
+  if (modeCard) modeCard.style.display = hasPerm('calc_supplies') ? '' : 'none';
+  if (!hasPerm('calc_supplies') && _calcMode==='full') setCalcMode('materials');
   const cur=sel.value;
   sel.innerHTML='<option value="">-- اختر المنتج --</option>'+_products.map(p=>`<option value="${p.id}" ${p.id===cur?'selected':''}>${p.name}</option>`).join('');
   calcPChange();
@@ -2264,7 +2286,7 @@ window.addCalcItem = () => {
   if(!id){toast('اختر منتجاً','error');return;}
   if(!qty||qty<=0){toast('أدخل كمية صحيحة','error');return;}
   const p=_products.find(x=>x.id===id); if(!p) return;
-  _calcItems.push({prodId:id, prodName:p.name, qty, unit:p.unit||'لتر'});
+  _calcItems.push({prodId:id, prodName:p.name, qty, unit:p.unit||'لتر', pkg:'', capColor:'أخضر', closureType:null, closureSubtype:null});
   document.getElementById('c-prod').value='';
   document.getElementById('c-unit').value='';
   renderCalcItemsList();
@@ -2292,18 +2314,71 @@ function renderCalcItemsList() {
     return;
   }
   if(cnt) cnt.textContent=`${_calcItems.length} منتج في القائمة`;
+  const full = _calcMode==='full';
   el.innerHTML=`<div style="background:#f8fcf8;border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:10px">
-    <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:8px">قائمة المنتجات المطلوب حسابها:</div>
-    ${_calcItems.map((it,i)=>`
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#fff;border-radius:6px;margin-bottom:4px;border:1px solid var(--border)">
-        <span style="font-size:13px;font-weight:700;color:var(--g900)">${it.prodName}</span>
-        <span style="display:flex;align-items:center;gap:10px">
-          <span style="font-size:13px;font-weight:900;color:var(--g700)">${it.qty} ${it.unit}</span>
-          <button class="btn btn-red btn-xs" onclick="removeCalcItem(${i})"><i class="fas fa-times"></i></button>
-        </span>
-      </div>`).join('')}
+    <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:8px">قائمة المنتجات المطلوب حسابها:${full?' (حدد التعبئة لكل منتج)':''}</div>
+    ${_calcItems.map((it,i)=>{
+      const needsCap = full && PACKAGING[it.pkg]?.needsCapColor;
+      const needsClosure = full && needsClosureChoice(it.pkg);
+      const closureType = it.closureType || defaultClosureType(it.pkg);
+      const pkgRow = full ? `<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px">
+        <select class="fc" style="margin:0;min-width:130px" onchange="onCalcPkgChange(${i},this.value)">${PKG_OPTS.replace(`>${it.pkg}<`,` selected>${it.pkg}<`)}</select>
+        ${needsCap?`<select class="fc" style="margin:0;min-width:120px" onchange="onCalcCapColorChange(${i},this.value)">${_optsFromList(_capColors, it.capColor||'أخضر', 'لون جديد...')}</select>`:''}
+        ${needsClosure?`<select class="fc" style="margin:0;min-width:90px" onchange="onCalcClosureTypeChange(${i},this.value)">
+          <option value="فنت"${closureType==='فنت'?' selected':''}>فنت</option>
+          <option value="طبة"${closureType==='طبة'?' selected':''}>طبة</option>
+        </select>`:''}
+        ${(needsClosure && closureType==='طبة')?`<select class="fc" style="margin:0;min-width:150px" onchange="onCalcClosureSubtypeChange(${i},this.value)">${_optsFromList(_closureSubtypes, it.closureSubtype||_closureSubtypes[0], 'نوع جديد...')}</select>`:''}
+      </div>` : '';
+      return `<div style="padding:6px 8px;background:#fff;border-radius:6px;margin-bottom:4px;border:1px solid var(--border)">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:13px;font-weight:700;color:var(--g900)">${it.prodName}</span>
+          <span style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:13px;font-weight:900;color:var(--g700)">${it.qty} ${it.unit}</span>
+            <button class="btn btn-red btn-xs" onclick="removeCalcItem(${i})"><i class="fas fa-times"></i></button>
+          </span>
+        </div>
+        ${pkgRow}
+      </div>`;
+    }).join('')}
   </div>`;
 }
+
+// ── تغيير التعبئة/الغطاء/الغلق لعنصر في الحاسبة (وضع خامات+مستلزمات) ──
+window.onCalcPkgChange = (i, val) => {
+  _calcItems[i].pkg = val;
+  _calcItems[i].closureType = null;
+  _calcItems[i].closureSubtype = null;
+  renderCalcItemsList();
+};
+window.onCalcCapColorChange = (i, val) => {
+  if (val === '__add_new__') {
+    if (!hasPerm('manage_packaging_settings')) { toast('ليس لديك صلاحية إضافة ألوان جديدة','error'); renderCalcItemsList(); return; }
+    const nv = prompt('اكتب اسم اللون الجديد:');
+    if (!nv || !nv.trim()) { renderCalcItemsList(); return; }
+    const clean = nv.trim();
+    if (!_capColors.includes(clean)) { _capColors.push(clean); saveGlobalPackagingSettings(); }
+    _calcItems[i].capColor = clean;
+  } else _calcItems[i].capColor = val;
+  renderCalcItemsList();
+};
+window.onCalcClosureTypeChange = (i, val) => {
+  _calcItems[i].closureType = val;
+  if (val !== 'طبة') _calcItems[i].closureSubtype = null;
+  else if (!_calcItems[i].closureSubtype) _calcItems[i].closureSubtype = _closureSubtypes[0];
+  renderCalcItemsList();
+};
+window.onCalcClosureSubtypeChange = (i, val) => {
+  if (val === '__add_new__') {
+    if (!hasPerm('manage_packaging_settings')) { toast('ليس لديك صلاحية إضافة أنواع جديدة','error'); renderCalcItemsList(); return; }
+    const nv = prompt('اكتب نوع الطبة الجديد:');
+    if (!nv || !nv.trim()) { renderCalcItemsList(); return; }
+    const clean = nv.trim();
+    if (!_closureSubtypes.includes(clean)) { _closureSubtypes.push(clean); saveGlobalPackagingSettings(); }
+    _calcItems[i].closureSubtype = clean;
+  } else _calcItems[i].closureSubtype = val;
+  renderCalcItemsList();
+};
 
 window.doCalc = async () => {
   const note=document.getElementById('c-note').value;
@@ -2313,10 +2388,13 @@ window.doCalc = async () => {
     const qty=parseFloat(document.getElementById('c-qty').value);
     if(qty>0) {
       const p=_products.find(x=>x.id===selId);
-      if(p) _calcItems.push({prodId:selId,prodName:p.name,qty,unit:p.unit||'لتر'});
+      if(p) _calcItems.push({prodId:selId,prodName:p.name,qty,unit:p.unit||'لتر',pkg:'',capColor:'أخضر',closureType:null,closureSubtype:null});
     }
   }
   if(!_calcItems.length){toast('أضف منتجاً واحداً على الأقل','error');return;}
+
+  const fullMode = _calcMode==='full' && hasPerm('calc_supplies');
+  if (fullMode && _calcItems.some(it=>!it.pkg)) { toast('اختر نوع التعبئة لكل منتج قبل الحساب','error'); return; }
 
   // احسب لكل منتج
   const allResults = _calcItems.map(it => {
@@ -2338,6 +2416,16 @@ window.doCalc = async () => {
       merged[row.matId].prods.push({name:r.prod.name,qty:row.needed});
     });
   });
+
+  // احسب المستلزمات المجمعة لو وضع خامات+مستلزمات
+  let mergedSupplies = {};
+  if (fullMode) {
+    _calcItems.forEach(it => {
+      const p=_products.find(x=>x.id===it.prodId); if(!p) return;
+      const sup = calcSupplies(it.qty, it.pkg, it.capColor||'أخضر', p.name, it.closureType||defaultClosureType(it.pkg), it.closureSubtype);
+      Object.entries(sup).forEach(([k,v])=>{ mergedSupplies[k]=(mergedSupplies[k]||0)+v; });
+    });
+  }
 
   SS('save');
   try {
@@ -2376,11 +2464,28 @@ window.doCalc = async () => {
         <div><div style="font-size:16px;font-weight:900">📊 الإجمالي المجمع — ${allResults.length} منتج</div>
         <div style="font-size:12px;opacity:.7;margin-top:2px">${_calcItems.map(x=>x.prodName+' ('+x.qty+' '+x.unit+')').join(' + ')} ${note?'| '+note:''}</div></div>
         <div style="display:flex;gap:6px">
+          ${hasPerm('calc_to_batch') && fullMode?`<button class="btn btn-sm" style="background:#fff;color:var(--g700)" onclick="convertCalcToBatch()"><i class="fas fa-industry"></i>تحويل لدفعة إنتاج</button>`:''}
           ${hasPerm('print_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="printCalc()"><i class="fas fa-print"></i>طباعة</button>`:''}
           ${hasPerm('export_calc')?`<button class="btn btn-ghost btn-sm" style="background:rgba(255,255,255,.15);color:#fff;border-color:rgba(255,255,255,.3)" onclick="exportCalc()"><i class="fas fa-file-excel"></i>Excel</button>`:''}
         </div>
       </div>
       <table class="tbl"><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية الإجمالية</th><th>شكل الخامة</th><th>التفاصيل</th></tr></thead><tbody>${mRows}</tbody></table>
+    </div>`;
+  } else if (fullMode) {
+    // منتج واحد بس لكن في وضع خامات+مستلزمات — لازم زرار التحويل يظهر برضو
+    html+=`<div style="display:flex;justify-content:flex-end;gap:6px;margin-bottom:10px">
+      ${hasPerm('calc_to_batch')?`<button class="btn btn-g btn-sm" onclick="convertCalcToBatch()"><i class="fas fa-industry"></i>تحويل لدفعة إنتاج</button>`:''}
+    </div>`;
+  }
+
+  // جدول المستلزمات المجمعة (لو وضع خامات+مستلزمات)
+  if (fullMode) {
+    const supRows = Object.entries(mergedSupplies).map(([k,v])=>`<tr><td style="font-weight:600">${k}</td><td style="font-size:16px;font-weight:900;color:#b45309">${v.toLocaleString()}</td></tr>`).join('');
+    html+=`<div class="card" style="border:2px solid #fde68a;margin-bottom:14px">
+      <div style="background:linear-gradient(135deg,#b45309,#d97706);padding:14px 18px;color:#fff">
+        <div style="font-size:16px;font-weight:900">📦 المستلزمات المطلوبة</div>
+      </div>
+      <table class="tbl"><thead><tr><th>المستلزم</th><th>الكمية</th></tr></thead><tbody>${supRows||'<tr><td colspan="2" style="color:var(--e400)">لا توجد مستلزمات</td></tr>'}</tbody></table>
     </div>`;
   }
 
@@ -2401,10 +2506,27 @@ window.doCalc = async () => {
   });
 
   document.getElementById('calc-result').innerHTML=html;
-  window._lastCalc={items:_calcItems, allResults, merged:Object.values(merged), note};
+  window._lastCalc={items:_calcItems.map(it=>({...it})), allResults, merged:Object.values(merged), note, mode:fullMode?'full':'materials', mergedSupplies};
   window._lastCalcHtml=html;
   renderCalcItemsList();
   toast('تم الحساب بنجاح','success');
+};
+
+// ── تحويل نتيجة الحاسبة (وضع خامات+مستلزمات) لدفعة إنتاج حقيقية — بيفتح فورم الدفعة معبّأ، والحفظ باختيارك ──
+window.convertCalcToBatch = () => {
+  if (!hasPerm('calc_to_batch')) { toast('ليس لديك صلاحية تحويل الحاسبة لدفعة إنتاج','error'); return; }
+  const r = window._lastCalc;
+  if (!r || r.mode!=='full') { toast('التحويل متاح بس في وضع "خامات + مستلزمات"','error'); return; }
+  openProductionModal();
+  _prodLines = r.items.map(it=>({
+    prodId: it.prodId, qty: it.qty, pkg: it.pkg,
+    capColor: it.capColor||'أخضر', closureType: it.closureType, closureSubtype: it.closureSubtype
+  }));
+  if (r.note) document.getElementById('mprod-note').value = r.note;
+  const titleEl = document.getElementById('mprod-title');
+  if (titleEl) titleEl.textContent = 'دفعة إنتاج — من الحاسبة (راجع قبل الحفظ)';
+  renderProdLines();
+  toast('راجع البيانات ثم اضغط "حفظ الدفعة" لتثبيتها فعلياً','info');
 };
 
 window.printCalc = () => {
@@ -2422,6 +2544,10 @@ window.printCalc = () => {
     body+=`<h3>${res.prod.name} — ${res.qty} ${res.prod.unit||'لتر'}</h3>
     <table><thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>شكل الخامة</th></tr></thead><tbody>${rows}</tbody></table><br>`;
   });
+  if (r.mode==='full' && r.mergedSupplies) {
+    const supRows = Object.entries(r.mergedSupplies).map(([k,v])=>`<tr><td>${k}</td><td style="font-weight:700">${v.toLocaleString()}</td></tr>`).join('');
+    body+=`<hr><h3>📦 المستلزمات المطلوبة</h3><table><thead><tr><th>المستلزم</th><th>الكمية</th></tr></thead><tbody>${supRows}</tbody></table>`;
+  }
   const w=window.open('','_blank');
   w.document.write(`<html dir="rtl"><head><meta charset="UTF-8"><title>حساب متعدد</title><style>body{font-family:sans-serif;padding:24px}h3{color:#1a4a2e;margin:16px 0 6px}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{padding:8px;border:1px solid #ccc;text-align:right}th{background:#e8f5e9}hr{border:none;border-top:2px solid #e8f5e9;margin:16px 0}</style></head><body>${body}<small>طُبع: ${new Date().toLocaleString('ar-EG')}</small></body></html>`);
   w.document.close(); w.print();
@@ -2447,6 +2573,13 @@ window.exportCalc = () => {
   const wsInfo = XLSX.utils.aoa_to_sheet(infoData);
   wsInfo['!cols'] = [{wch:15},{wch:60}];
   XLSX.utils.book_append_sheet(wb, wsInfo, 'تفاصيل الطلب');
+  if (r.mode==='full' && r.mergedSupplies) {
+    const supData = [['المستلزم','الكمية']];
+    Object.entries(r.mergedSupplies).forEach(([k,v])=>supData.push([k, v]));
+    const wsSup = XLSX.utils.aoa_to_sheet(supData);
+    wsSup['!cols'] = [{wch:30},{wch:15}];
+    XLSX.utils.book_append_sheet(wb, wsSup, 'المستلزمات');
+  }
   XLSX.writeFile(wb, 'حساب_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
   toast('تم تصدير Excel بنجاح','success');
 };
@@ -2763,12 +2896,45 @@ window.confirmDel = (type,id,name='') => {
 // ══════════════════════════════════════════════
 // UI UTILS
 // ══════════════════════════════════════════════
-window.openM  = id => document.getElementById(id)?.classList.add('open');
-window.closeM = id => document.getElementById(id)?.classList.remove('open');
+window.openM  = id => {
+  document.getElementById(id)?.classList.remove('minimized');
+  document.getElementById('pill-'+id)?.remove();
+  document.getElementById(id)?.classList.add('open');
+};
+window.closeM = id => {
+  document.getElementById(id)?.classList.remove('open','minimized');
+  document.getElementById('pill-'+id)?.remove();
+};
 
-// ── تصغير/استعادة مودال الخامة (مفيد وقت إضافة خامة سريعة من جوه فورم منتج) ──
-window.minimizeMatModal = () => document.getElementById('mo-mat')?.classList.add('minimized');
-window.restoreMatModal  = () => document.getElementById('mo-mat')?.classList.remove('minimized');
+// ── تصغير/استعادة أي مودال فورم (منتج/خامة/مستخدم/دفعة/تقويم) — عشان تراجع حاجة من غير ما تفقد اللي كاتبه ──
+const MODAL_MIN_INFO = {
+  'mo-prod':       {icon:'fa-flask',    text:'منتج جديد'},
+  'mo-mat':        {icon:'fa-vial',     text:'خامة جديدة'},
+  'mo-user':       {icon:'fa-user-plus',text:'مستخدم جديد'},
+  'mo-production': {icon:'fa-industry', text:'دفعة إنتاج'},
+  'mo-calendar':   {icon:'fa-calendar-alt', text:'تقويم الرش'},
+};
+window.minimizeModal = (id) => {
+  const ov = document.getElementById(id); if (!ov) return;
+  ov.classList.add('minimized');
+  let pill = document.getElementById('pill-'+id);
+  if (!pill) {
+    const info = MODAL_MIN_INFO[id] || {icon:'fa-window-restore', text:'نافذة مصغّرة'};
+    pill = document.createElement('div');
+    pill.id = 'pill-'+id;
+    pill.className = 'mini-pill';
+    pill.innerHTML = `<i class="fas ${info.icon}"></i><span>${info.text} — اضغط للمتابعة</span>`;
+    pill.onclick = () => restoreModal(id);
+    document.getElementById('minimized-tray').appendChild(pill);
+  }
+};
+window.restoreModal = (id) => {
+  document.getElementById(id)?.classList.remove('minimized');
+  document.getElementById('pill-'+id)?.remove();
+};
+// أسماء قديمة لسه شغالة (توافق مع الكود القديم) — بتنده على النظام العام
+window.minimizeMatModal = () => minimizeModal('mo-mat');
+window.restoreMatModal  = () => restoreModal('mo-mat');
 
 document.querySelectorAll('.overlay').forEach(o=>{
   o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
@@ -5951,7 +6117,7 @@ window.installPWA = async () => {
 <!-- Production Modal -->
 <div class="overlay" id="mo-production">
   <div class="modal xl">
-    <div class="mh"><span class="mh-title" id="mprod-title">دفعة إنتاج جديدة</span><button class="mclose" onclick="closeM('mo-production')">×</button></div>
+    <div class="mh"><span class="mh-title" id="mprod-title">دفعة إنتاج جديدة</span><div class="mh-acts"><button class="mmin" onclick="minimizeModal('mo-production')" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-production')">×</button></div></div>
     <div class="mb">
       <!-- التاريخ -->
       <div class="frow c2">
@@ -6022,7 +6188,7 @@ window.installPWA = async () => {
 <!-- Seasonal Calendar Modal -->
 <div class="overlay" id="mo-calendar">
   <div class="modal xl">
-    <div class="mh"><span class="mh-title">🌱 تقويم الرش الموسمي</span><button class="mclose" onclick="closeM('mo-calendar')">×</button></div>
+    <div class="mh"><span class="mh-title">🌱 تقويم الرش الموسمي</span><div class="mh-acts"><button class="mmin" onclick="minimizeModal('mo-calendar')" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-calendar')">×</button></div></div>
     <div class="mb" id="calendar-body" style="min-height:300px"></div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-calendar')">إغلاق</button></div>
   </div>
@@ -6036,6 +6202,8 @@ window.installPWA = async () => {
     <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-timeline')">إغلاق</button></div>
   </div>
 </div>
+
+<div id="minimized-tray"></div>
 
 </body>
 </html>
