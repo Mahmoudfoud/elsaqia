@@ -665,7 +665,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="card" id="calc-mode-card" style="border:1.5px dashed var(--g300)"><div class="card-body" style="padding:12px 16px">
         <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:8px">🎯 وضع الحساب</div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-sm calc-mode-btn active" id="calc-mode-mat" onclick="setCalcMode('materials')"><i class="fas fa-flask"></i>خامات </button>
+          <button class="btn btn-sm calc-mode-btn active" id="calc-mode-mat" onclick="setCalcMode('materials')"><i class="fas fa-flask"></i>خامات بس</button>
           <button class="btn btn-sm btn-ghost calc-mode-btn" id="calc-mode-full" onclick="setCalcMode('full')"><i class="fas fa-boxes"></i>خامات + مستلزمات</button>
         </div>
       </div></div>
@@ -1106,6 +1106,8 @@ const PERMS_DEF = [
   {k:'edit_formulations',l:'تعديل التركيبات'},
   {k:'global_search',    l:'البحث العام'},
   {k:'view_history',     l:'عرض السجل'},
+  {k:'edit_history',     l:'تعديل طلبية في السجل'},
+  {k:'delete_history',   l:'حذف طلبية من السجل'},
   {k:'view_batches',     l:'عرض الإنتاج'},
   {k:'add_batches',      l:'إضافة إنتاج'},
   {k:'edit_batches',     l:'تعديل إنتاج'},
@@ -2300,6 +2302,7 @@ window.removeCalcItem = idx => {
 
 window.clearCalcItems = () => {
   _calcItems=[];
+  if (window._editHistoryId) { window._editHistoryId=null; toast('تم إلغاء وضع تعديل الطلبية','info'); }
   renderCalcItemsList();
   document.getElementById('calc-result').innerHTML='';
   window._lastCalcHtml='';
@@ -2315,7 +2318,8 @@ function renderCalcItemsList() {
   }
   if(cnt) cnt.textContent=`${_calcItems.length} منتج في القائمة`;
   const full = _calcMode==='full';
-  el.innerHTML=`<div style="background:#f8fcf8;border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:10px">
+  const editBanner = window._editHistoryId ? `<div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px"><i class="fas fa-edit"></i>بتعدّل في طلبية قديمة — الحفظ هيحدّث نفس الطلبية مش يعمل واحدة جديدة</div>` : '';
+  el.innerHTML=`${editBanner}<div style="background:#f8fcf8;border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:10px">
     <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:8px">قائمة المنتجات المطلوب حسابها:${full?' (حدد التعبئة لكل منتج)':''}</div>
     ${_calcItems.map((it,i)=>{
       const needsCap = full && PACKAGING[it.pkg]?.needsCapColor;
@@ -2428,18 +2432,28 @@ window.doCalc = async () => {
   }
 
   SS('save');
+  const wasEditing = !!window._editHistoryId;
   try {
     const names = _calcItems.map(x=>`${x.prodName} (${x.qty} ${x.unit})`).join(' + ');
-    await addDoc(collection(db,'history'),{
+    const histData = {
       productName: names,
       qty: _calcItems.length,
       unit: 'منتج',
       note,
+      mode: fullMode ? 'full' : 'materials',
       result: Object.values(merged).map(m=>({name:m.name, code:m.code, unit:m.unit, needed:m.total.toFixed(3)})),
-      items: _calcItems.map(it=>({prodName:it.prodName, qty:it.qty, unit:it.unit})),
+      items: _calcItems.map(it=>({prodId:it.prodId, prodName:it.prodName, qty:it.qty, unit:it.unit, pkg:it.pkg||null, capColor:it.capColor||null, closureType:it.closureType||null, closureSubtype:it.closureSubtype||null})),
+      mergedSupplies: fullMode ? mergedSupplies : null,
       user: CU.email, userName: CU.displayName||CU.email, ts: Date.now()
-    });
-    await audit('calc',`حسب ${CU.displayName||CU.email}: ${names}`);
+    };
+    if (window._editHistoryId) {
+      await updateDoc(doc(db,'history',window._editHistoryId), histData);
+      await audit('edit',`عدّل ${CU.displayName||CU.email} طلبية في السجل: ${names}`);
+      window._editHistoryId = null;
+    } else {
+      await addDoc(collection(db,'history'), histData);
+      await audit('calc',`حسب ${CU.displayName||CU.email}: ${names}`);
+    }
   } catch(e){}
   SS('on');
 
@@ -2509,16 +2523,19 @@ window.doCalc = async () => {
   window._lastCalc={items:_calcItems.map(it=>({...it})), allResults, merged:Object.values(merged), note, mode:fullMode?'full':'materials', mergedSupplies};
   window._lastCalcHtml=html;
   renderCalcItemsList();
-  toast('تم الحساب بنجاح','success');
+  toast(wasEditing ? 'تم تحديث الطلبية بنجاح' : 'تم الحساب بنجاح','success');
 };
 
 // ── تحويل نتيجة الحاسبة (وضع خامات+مستلزمات) لدفعة إنتاج حقيقية — بيفتح فورم الدفعة معبّأ، والحفظ باختيارك ──
-window.convertCalcToBatch = () => {
+window.convertCalcToBatch = (source) => {
   if (!hasPerm('calc_to_batch')) { toast('ليس لديك صلاحية تحويل الحاسبة لدفعة إنتاج','error'); return; }
-  const r = window._lastCalc;
+  const r = source || window._lastCalc;
   if (!r || r.mode!=='full') { toast('التحويل متاح بس في وضع "خامات + مستلزمات"','error'); return; }
+  const srcItems = r.items || [];
+  if (!srcItems.length || srcItems.some(it=>!it.pkg)) { toast('بيانات التعبئة غير مكتملة لهذه الطلبية','error'); return; }
+  closeM('mo-hdetail');
   openProductionModal();
-  _prodLines = r.items.map(it=>({
+  _prodLines = srcItems.map(it=>({
     prodId: it.prodId, qty: it.qty, pkg: it.pkg,
     capColor: it.capColor||'أخضر', closureType: it.closureType, closureSubtype: it.closureSubtype
   }));
@@ -2592,19 +2609,46 @@ function renderHistory() {
   const items=_history.filter(h=>!q||(h.productName||'').toLowerCase().includes(q)||(h.note||'').toLowerCase().includes(q)||(h.userName||'').toLowerCase().includes(q));
   const tbody=document.getElementById('h-body');
   if(!items.length){tbody.innerHTML=`<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--e400)">لا توجد سجلات</td></tr>`;return;}
-  tbody.innerHTML=items.map((h,i)=>`<tr>
+  const cEdit = hasPerm('edit_history');
+  const cDel  = hasPerm('delete_history');
+  tbody.innerHTML=items.map((h,i)=>{
+    const isGrouped = (h.items?.length||0) > 3;
+    const displayName = isGrouped ? `📦 طلبية مجمعة (${h.items.length} منتج)` : (h.productName||'—');
+    return `<tr>
     <td style="color:var(--e400);font-size:11px">${items.length-i}</td>
     <td style="font-size:11px">${new Date(h.ts).toLocaleDateString('ar-EG')}</td>
-    <td style="font-weight:600">${h.productName||'—'}</td>
+    <td style="font-weight:600">${displayName}</td>
     <td>${h.qty} ${h.unit||''}</td>
     <td><span class="badge bg-earth">${h.userName||h.user||'—'}</span></td>
     <td style="font-size:11px;color:var(--e400)">${h.note||'—'}</td>
     <td style="display:flex;gap:3px">
       <button class="btn btn-ghost btn-xs btn-ic" onclick="showHDetail('${h.id}')"><i class="fas fa-eye"></i></button>
-      ${isAdmin()?`<button class="btn btn-red btn-xs btn-ic" onclick="confirmDel('history','${h.id}','هذا الطلب')"><i class="fas fa-trash"></i></button>`:''}
+      ${cEdit?`<button class="btn btn-gold btn-xs btn-ic" onclick="editHistoryItem('${h.id}')"><i class="fas fa-edit"></i></button>`:''}
+      ${cDel?`<button class="btn btn-red btn-xs btn-ic" onclick="confirmDel('history','${h.id}','هذا الطلب')"><i class="fas fa-trash"></i></button>`:''}
     </td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
+
+// ── تحميل طلبية قديمة داخل الحاسبة عشان تعدّل فيها وتحفظ نفس السجل ──
+window.editHistoryItem = id => {
+  if (!hasPerm('edit_history')) { toast('ليس لديك صلاحية تعديل الطلبات','error'); return; }
+  const h = _history.find(x=>x.id===id); if (!h) return;
+  if (!h.items || !h.items.length) { toast('هذه الطلبية القديمة لا تحتوي على تفاصيل كافية للتعديل','error'); return; }
+  closeM('mo-hdetail');
+  _calcItems = h.items.map(it=>({
+    prodId: it.prodId, prodName: it.prodName, qty: it.qty, unit: it.unit,
+    pkg: it.pkg||'', capColor: it.capColor||'أخضر', closureType: it.closureType||null, closureSubtype: it.closureSubtype||null
+  }));
+  window._editHistoryId = id;
+  goPage('calc');
+  setTimeout(()=>{
+    setCalcMode(h.mode==='full' && hasPerm('calc_supplies') ? 'full' : 'materials');
+    document.getElementById('c-note').value = h.note||'';
+    renderCalcItemsList();
+    toast('الطلبية اتحمّلت في الحاسبة — عدّل ثم اضغط "احسب الآن" لتحديثها','info');
+  }, 50);
+};
 
 window.showHDetail = id => {
   const h=_history.find(x=>x.id===id); if(!h)return;
@@ -2615,6 +2659,11 @@ window.showHDetail = id => {
         <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">المنتجات المكوّنة للطلبية:</div>
         ${h.items.map(it=>`<span style="display:inline-block;background:#fff;border:1px solid var(--g300);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--g800);margin:2px">${it.prodName} — ${it.qty} ${it.unit}</span>`).join('')}
       </div>` : '';
+  const suppliesHtml = (h.mode==='full' && h.mergedSupplies && Object.keys(h.mergedSupplies).length)
+    ? `<table class="tbl" style="border:1px solid var(--border);border-radius:8px;margin-top:14px">
+        <thead><tr><th colspan="2">📦 المستلزمات المطلوبة</th></tr></thead>
+        <tbody>${Object.entries(h.mergedSupplies).map(([k,v])=>`<tr><td style="font-weight:600">${k}</td><td style="font-weight:900;color:#b45309">${v.toLocaleString()}</td></tr>`).join('')}</tbody>
+      </table>` : '';
   document.getElementById('hd-body').innerHTML=`
     <div style="margin-bottom:14px">
       <div style="font-size:18px;font-weight:900">${h.productName}</div>
@@ -2624,10 +2673,14 @@ window.showHDetail = id => {
     <table class="tbl" style="border:1px solid var(--border);border-radius:8px">
       <thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead>
       <tbody>${rows}</tbody>
-    </table>`;
+    </table>
+    ${suppliesHtml}`;
   window._printH=h;
   const hfoot=document.getElementById('hdetail-foot');
   hfoot.innerHTML='';
+  const canConvert = hasPerm('calc_to_batch') && h.mode==='full' && (h.items||[]).every(it=>it.pkg);
+  if(canConvert){const b=document.createElement('button');b.className='btn btn-g';b.innerHTML='<i class="fas fa-industry"></i>تحويل لدفعة إنتاج';b.onclick=()=>convertCalcToBatch(h);hfoot.insertBefore(b,hfoot.firstChild);}
+  if(hasPerm('edit_history') && h.items?.length){const b=document.createElement('button');b.className='btn btn-gold';b.innerHTML='<i class="fas fa-edit"></i>تعديل';b.onclick=()=>editHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
   if(hasPerm('print_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-print"></i>طباعة';b.onclick=printH;hfoot.insertBefore(b,hfoot.firstChild);}
   if(hasPerm('export_history')){const b=document.createElement('button');b.className='btn btn-ghost';b.innerHTML='<i class="fas fa-file-excel"></i>Excel';b.onclick=()=>exportHistoryItem(h.id);hfoot.insertBefore(b,hfoot.firstChild);}
   const closeBtn=document.createElement('button');closeBtn.className='btn btn-ghost';closeBtn.textContent='إغلاق';closeBtn.onclick=()=>closeM('mo-hdetail');hfoot.appendChild(closeBtn);
@@ -3242,7 +3295,7 @@ function calcSupplies(qty, pkgKey, capColor, productName, closureType, closureSu
       // المستخدم اختار نوع غلق مختلف عن الافتراضي (أو نوع طبة معين)
       key = (closureType === 'طبة' && closureSubtype) ? closureSubtype : closureType;
     }
-    if (s === 'غطاء' && capColor) key = `غطاء ${capColor}`;
+    if (s === 'غطاء' && capColor) key = `غطاء ${pkgKey.replace('عبوة ','')} ${capColor}`;
     if (s === 'ستيكر' && productName) key = `ستيكر ${productName} ${pkgKey}`;
     if (s === 'ستيكر كرتونة' && productName) key = `ستيكر كرتونة ${productName}`;
     result[key] = totalUnits;
