@@ -632,6 +632,7 @@ textarea.fc{resize:vertical;min-height:68px}
       <div class="nav-link active" data-page="dashboard" onclick="goPage('dashboard')"><i class="fas fa-chart-pie"></i>لوحة التحكم</div>
       <div class="nav-link perm-nav" data-perm="use_calc" data-page="calc" onclick="goPage('calc')"><i class="fas fa-calculator"></i>الحاسبة</div>
       <div class="nav-link" data-page="history" data-perm="view_history" onclick="goPage('history')"><i class="fas fa-history"></i>سجل الطلبات</div>
+      <div class="nav-link perm-nav" data-page="distributors" data-perm="view_distributors" onclick="goPage('distributors')"><i class="fas fa-truck"></i>سجل الموزعين</div>
       <div class="sb-grp-lbl" style="margin-top:6px">التصنيع</div>
       <div class="nav-link perm-nav" data-perm="view_products" data-page="products" onclick="goPage('products')"><i class="fas fa-flask"></i>المنتجات</div>
       <div class="nav-link perm-nav" data-perm="view_materials" data-page="materials" onclick="goPage('materials')"><i class="fas fa-box-open"></i>الخامات</div>
@@ -697,6 +698,18 @@ textarea.fc{resize:vertical;min-height:68px}
       </div>
       <div class="sbar"><input class="sinput" id="h-q" type="text" placeholder="بحث..." oninput="renderHistory()"></div>
       <div class="card"><table class="tbl"><thead><tr><th>#</th><th>التاريخ</th><th>المنتج</th><th>الكمية</th><th>المستخدم</th><th>ملاحظة</th><th></th></tr></thead><tbody id="h-body"></tbody></table></div>
+    </div>
+
+    <!-- DISTRIBUTORS -->
+    <div class="page" id="page-distributors">
+      <div class="ph">
+        <div class="ph-left"><div class="ph-title">🚚 سجل الموزعين</div><div class="ph-sub">طلبيات كل موزع + تحليلات</div></div>
+        <div class="ph-acts" id="dist-back-wrap" style="display:none">
+          <button class="btn btn-ghost btn-sm" onclick="showDistOverview()"><i class="fas fa-arrow-right"></i>كل الموزعين</button>
+        </div>
+      </div>
+      <div id="dist-overview"></div>
+      <div id="dist-detail" style="display:none"></div>
     </div>
 
     <!-- PRODUCTS -->
@@ -1069,6 +1082,8 @@ let _capColors = ['أخضر','أزرق','أحمر','أصفر','أبيض','برت
 let _closureSubtypes = ['طبة عادية','طبة مضادة للأحماض','طبة 100مللي','طبة ألومنيوم سادة'];
 let _pendingChanges = [];
 let _notifications  = [];
+let _distributorOrders = [];
+const DISTRIBUTORS = ['الصناعات','ان فارم','التنمية','نبتة'];
 
 // ══════════════════════════════════════════════
 // SYNC STATUS
@@ -1125,6 +1140,11 @@ const PERMS_DEF = [
   {k:'export_calc',      l:'تصدير الحاسبة'},
   {k:'print_history',    l:'طباعة السجل'},
   {k:'export_history',   l:'تصدير السجل'},
+  {k:'view_distributors',  l:'عرض سجل الموزعين'},
+  {k:'add_distributors',   l:'إضافة طلبية موزع'},
+  {k:'edit_distributors',  l:'تعديل طلبية موزع'},
+  {k:'delete_distributors',l:'حذف طلبية موزع'},
+  {k:'export_distributors',l:'تصدير سجل الموزعين'},
 ];
 const ADMIN_PERMS = Object.fromEntries(PERMS_DEF.map(p=>[p.k,true]));
 
@@ -1436,6 +1456,13 @@ function startListeners() {
       _notifications = s.docs.map(d=>({id:d.id,...d.data()}));
       renderNotifBadge();
       if(document.getElementById('mo-notif')?.classList.contains('open')) renderNotifPanel();
+    }),
+    onSnapshot(query(collection(db,'distributor_orders'), orderBy('ts','desc'), limit(500)), s=>{
+      _distributorOrders = s.docs.map(d=>({id:d.id,...d.data()}));
+      if(_page==='distributors') {
+        if (window._curDist && document.getElementById('dist-detail')?.style.display!=='none') renderDistDetailBody(window._curDist);
+        else renderDistributors();
+      }
     })
   );
 }
@@ -1462,6 +1489,7 @@ window.goPage = name => {
     history:   'view_history',
     users:     'manage_users',
     audit:     'manage_users',
+    distributors: 'view_distributors',
   };
 
   if (pagePerms.hasOwnProperty(name)) {
@@ -1483,6 +1511,7 @@ window.goPage = name => {
     users:      renderUsers,
     audit:      renderAudit,
     batches:    renderProduction,
+    distributors: renderDistributors,
   };
   renders[name]?.();
 };
@@ -2288,7 +2317,7 @@ window.addCalcItem = () => {
   if(!id){toast('اختر منتجاً','error');return;}
   if(!qty||qty<=0){toast('أدخل كمية صحيحة','error');return;}
   const p=_products.find(x=>x.id===id); if(!p) return;
-  _calcItems.push({prodId:id, prodName:p.name, qty, unit:p.unit||'لتر', pkg:'', capColor:'أخضر', closureType:null, closureSubtype:null});
+  _calcItems.push({prodId:id, prodName:p.name, qty, unit:p.unit||'لتر', pkg:'', capColor:'أخضر', closureType:null, closureSubtype:null, distributor:null});
   document.getElementById('c-prod').value='';
   document.getElementById('c-unit').value='';
   renderCalcItemsList();
@@ -2319,7 +2348,12 @@ function renderCalcItemsList() {
   if(cnt) cnt.textContent=`${_calcItems.length} منتج في القائمة`;
   const full = _calcMode==='full';
   const editBanner = window._editHistoryId ? `<div style="background:#fef3c7;border:1px solid #fcd34d;color:#92400e;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:6px"><i class="fas fa-edit"></i>بتعدّل في طلبية قديمة — الحفظ هيحدّث نفس الطلبية مش يعمل واحدة جديدة</div>` : '';
-  el.innerHTML=`${editBanner}<div style="background:#f8fcf8;border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:10px">
+  const hasUntagged = _calcItems.some(it=>!it.distributor);
+  const distTagRow = hasUntagged ? `<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;background:#fff;border:1px dashed var(--g300);border-radius:8px;padding:8px">
+      <select class="fc" id="calc-distributor-select" style="margin:0;max-width:200px"><option value="">— اختر الموزع —</option>${DISTRIBUTORS.map(d=>`<option value="${d}">${d}</option>`).join('')}</select>
+      <button class="btn btn-gold btn-sm" onclick="tagCalcItemsDistributor()"><i class="fas fa-tag"></i>حدد موزع للمنتجات اللي فاتت</button>
+    </div>` : '';
+  el.innerHTML=`${editBanner}${distTagRow}<div style="background:#f8fcf8;border:1px solid var(--border);border-radius:var(--rs);padding:10px;margin-bottom:10px">
     <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:8px">قائمة المنتجات المطلوب حسابها:${full?' (حدد التعبئة لكل منتج)':''}</div>
     ${_calcItems.map((it,i)=>{
       const needsCap = full && PACKAGING[it.pkg]?.needsCapColor;
@@ -2334,6 +2368,9 @@ function renderCalcItemsList() {
         </select>`:''}
         ${(needsClosure && closureType==='طبة')?`<select class="fc" style="margin:0;min-width:150px" onchange="onCalcClosureSubtypeChange(${i},this.value)">${_optsFromList(_closureSubtypes, it.closureSubtype||_closureSubtypes[0], 'نوع جديد...')}</select>`:''}
       </div>` : '';
+      const distBadge = it.distributor
+        ? `<span class="badge bg-gold" style="cursor:pointer" title="اضغط لإلغاء التحديد" onclick="untagCalcItem(${i})"><i class="fas fa-tag"></i> ${it.distributor} <i class="fas fa-times" style="margin-right:3px"></i></span>`
+        : `<span style="font-size:10px;color:var(--e400)">— بدون موزع —</span>`;
       return `<div style="padding:6px 8px;background:#fff;border-radius:6px;margin-bottom:4px;border:1px solid var(--border)">
         <div style="display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:13px;font-weight:700;color:var(--g900)">${it.prodName}</span>
@@ -2342,11 +2379,28 @@ function renderCalcItemsList() {
             <button class="btn btn-red btn-xs" onclick="removeCalcItem(${i})"><i class="fas fa-times"></i></button>
           </span>
         </div>
+        <div style="margin-top:5px">${distBadge}</div>
         ${pkgRow}
       </div>`;
     }).join('')}
   </div>`;
 }
+
+// ── تحديد موزع لكل المنتجات المضافة لحد دلوقتي واللي لسه من غير موزع ("قطع هنا") ──
+window.tagCalcItemsDistributor = () => {
+  const sel = document.getElementById('calc-distributor-select');
+  const dist = sel ? sel.value : '';
+  if (!dist) { toast('اختر الموزع الأول','error'); return; }
+  let count = 0;
+  _calcItems.forEach(it=>{ if(!it.distributor){ it.distributor = dist; count++; } });
+  if (!count) { toast('كل المنتجات في القائمة متحددلها موزع بالفعل','info'); return; }
+  renderCalcItemsList();
+  toast(`تم تحديد ${count} منتج لـ ${dist}`,'success');
+};
+window.untagCalcItem = i => {
+  if (_calcItems[i]) _calcItems[i].distributor = null;
+  renderCalcItemsList();
+};
 
 // ── تغيير التعبئة/الغطاء/الغلق لعنصر في الحاسبة (وضع خامات+مستلزمات) ──
 window.onCalcPkgChange = (i, val) => {
@@ -2392,7 +2446,7 @@ window.doCalc = async () => {
     const qty=parseFloat(document.getElementById('c-qty').value);
     if(qty>0) {
       const p=_products.find(x=>x.id===selId);
-      if(p) _calcItems.push({prodId:selId,prodName:p.name,qty,unit:p.unit||'لتر',pkg:'',capColor:'أخضر',closureType:null,closureSubtype:null});
+      if(p) _calcItems.push({prodId:selId,prodName:p.name,qty,unit:p.unit||'لتر',pkg:'',capColor:'أخضر',closureType:null,closureSubtype:null,distributor:null});
     }
   }
   if(!_calcItems.length){toast('أضف منتجاً واحداً على الأقل','error');return;}
@@ -2401,14 +2455,14 @@ window.doCalc = async () => {
   if (fullMode && _calcItems.some(it=>!it.pkg)) { toast('اختر نوع التعبئة لكل منتج قبل الحساب','error'); return; }
 
   // احسب لكل منتج
-  const allResults = _calcItems.map(it => {
+  const allResults = _calcItems.map((it, _srcIdx) => {
     const p=_products.find(x=>x.id===it.prodId); if(!p) return null;
     const factor=it.qty/(p.baseQty||1000);
     const rows=(p.ingredients||[]).map(ing=>{
       const m=_materials.find(x=>x.id===ing.matId);
       return {matId:ing.matId, name:m?m.name:ing.matId, code:m?m.code||m.id:'—', unit:m?m.unit:'—', needed:+(ing.qty*factor).toFixed(3)};
     });
-    return {prod:p, qty:it.qty, rows};
+    return {prod:p, qty:it.qty, rows, _srcIdx};
   }).filter(Boolean);
 
   // اجمع الخامات المشتركة
@@ -2442,17 +2496,48 @@ window.doCalc = async () => {
       note,
       mode: fullMode ? 'full' : 'materials',
       result: Object.values(merged).map(m=>({name:m.name, code:m.code, unit:m.unit, needed:m.total.toFixed(3)})),
-      items: _calcItems.map(it=>({prodId:it.prodId, prodName:it.prodName, qty:it.qty, unit:it.unit, pkg:it.pkg||null, capColor:it.capColor||null, closureType:it.closureType||null, closureSubtype:it.closureSubtype||null})),
+      items: _calcItems.map(it=>({prodId:it.prodId, prodName:it.prodName, qty:it.qty, unit:it.unit, pkg:it.pkg||null, capColor:it.capColor||null, closureType:it.closureType||null, closureSubtype:it.closureSubtype||null, distributor:it.distributor||null})),
       mergedSupplies: fullMode ? mergedSupplies : null,
       user: CU.email, userName: CU.displayName||CU.email, ts: Date.now()
     };
+    let parentHistId;
     if (window._editHistoryId) {
-      await updateDoc(doc(db,'history',window._editHistoryId), histData);
+      parentHistId = window._editHistoryId;
+      await updateDoc(doc(db,'history',parentHistId), histData);
       await audit('edit',`عدّل ${CU.displayName||CU.email} طلبية في السجل: ${names}`);
       window._editHistoryId = null;
     } else {
-      await addDoc(collection(db,'history'), histData);
+      const newRef = await addDoc(collection(db,'history'), histData);
+      parentHistId = newRef.id;
       await audit('calc',`حسب ${CU.displayName||CU.email}: ${names}`);
+    }
+
+    // ── مزامنة سجل الموزعين: امسح أي طلبيات موزع قديمة مرتبطة بالسجل ده، وأنشئ الجداد حسب التاجات الحالية ──
+    if (wasEditing) {
+      const stale = _distributorOrders.filter(d=>d.parentHistoryId===parentHistId);
+      for (const d of stale) await deleteDoc(doc(db,'distributor_orders',d.id));
+    }
+    const byDist = {};
+    _calcItems.forEach((it,i)=>{
+      if (!it.distributor) return;
+      const r = allResults.find(x=>x._srcIdx===i);
+      if (r) (byDist[it.distributor] = byDist[it.distributor] || []).push(r);
+    });
+    for (const [dist, resArr] of Object.entries(byDist)) {
+      const distMerged = {};
+      resArr.forEach(r=>{
+        r.rows.forEach(row=>{
+          if(!distMerged[row.matId]) distMerged[row.matId]={name:row.name,code:row.code,unit:row.unit,total:0};
+          distMerged[row.matId].total += row.needed;
+        });
+      });
+      await addDoc(collection(db,'distributor_orders'), {
+        distributor: dist,
+        items: resArr.map(r=>({prodId:r.prod.id, prodName:r.prod.name, qty:r.qty, unit:r.prod.unit||'لتر'})),
+        result: Object.values(distMerged).map(m=>({name:m.name, code:m.code, unit:m.unit, needed:m.total.toFixed(3)})),
+        note, user:CU.email, userName:CU.displayName||CU.email, ts:Date.now(),
+        parentHistoryId: parentHistId
+      });
     }
   } catch(e){}
   SS('on');
@@ -2638,7 +2723,8 @@ window.editHistoryItem = id => {
   closeM('mo-hdetail');
   _calcItems = h.items.map(it=>({
     prodId: it.prodId, prodName: it.prodName, qty: it.qty, unit: it.unit,
-    pkg: it.pkg||'', capColor: it.capColor||'أخضر', closureType: it.closureType||null, closureSubtype: it.closureSubtype||null
+    pkg: it.pkg||'', capColor: it.capColor||'أخضر', closureType: it.closureType||null, closureSubtype: it.closureSubtype||null,
+    distributor: it.distributor||null
   }));
   window._editHistoryId = id;
   goPage('calc');
@@ -2657,7 +2743,7 @@ window.showHDetail = id => {
   const itemsHtml = h.items?.length>0
     ? `<div style="background:#f0f7f0;border:1px solid var(--g200);border-radius:8px;padding:10px 14px;margin-bottom:12px">
         <div style="font-size:11px;font-weight:700;color:var(--e400);margin-bottom:6px">المنتجات المكوّنة للطلبية:</div>
-        ${h.items.map(it=>`<span style="display:inline-block;background:#fff;border:1px solid var(--g300);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--g800);margin:2px">${it.prodName} — ${it.qty} ${it.unit}</span>`).join('')}
+        ${h.items.map(it=>`<span style="display:inline-block;background:#fff;border:1px solid var(--g300);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--g800);margin:2px">${it.prodName} — ${it.qty} ${it.unit}${it.distributor?` <span style="color:#7a5a0e"><i class="fas fa-tag" style="font-size:9px"></i> ${it.distributor}</span>`:''}</span>`).join('')}
       </div>` : '';
   const suppliesHtml = (h.mode==='full' && h.mergedSupplies && Object.keys(h.mergedSupplies).length)
     ? `<table class="tbl" style="border:1px solid var(--border);border-radius:8px;margin-top:14px">
@@ -2788,6 +2874,296 @@ window.exportHistory = () => {
   ws['!cols'] = [{wch:20},{wch:35},{wch:10},{wch:10},{wch:20},{wch:25}];
   XLSX.utils.book_append_sheet(wb, ws, 'سجل الطلبات');
   XLSX.writeFile(wb, 'سجل_الطلبات_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
+  toast('تم تصدير Excel بنجاح','success');
+};
+
+// ══════════════════════════════════════════════════════════════════
+// DISTRIBUTORS — سجل الموزعين
+// ══════════════════════════════════════════════════════════════════
+function _distOrdersFor(dist) { return _distributorOrders.filter(d=>d.distributor===dist); }
+
+function computeDistStats(dist) {
+  const orders = _distOrdersFor(dist).slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+  const totalQty = orders.reduce((a,o)=>a+(o.items||[]).reduce((x,it)=>x+(it.qty||0),0),0);
+  const prodQtys = {};
+  orders.forEach(o=>(o.items||[]).forEach(it=>{ prodQtys[it.prodName]=(prodQtys[it.prodName]||0)+(it.qty||0); }));
+  const matQtys = {};
+  orders.forEach(o=>(o.result||[]).forEach(r=>{ matQtys[r.name]=(matQtys[r.name]||0)+(parseFloat(r.needed)||0); }));
+  const monthlyQty = {};
+  orders.forEach(o=>{
+    const mon = new Date(o.ts||Date.now()).toISOString().substring(0,7);
+    monthlyQty[mon]=(monthlyQty[mon]||0)+(o.items||[]).reduce((x,it)=>x+(it.qty||0),0);
+  });
+  return {
+    orders, totalQty,
+    sortedProds: Object.entries(prodQtys).sort((a,b)=>b[1]-a[1]),
+    sortedMats:  Object.entries(matQtys).sort((a,b)=>b[1]-a[1]),
+    sortedMonths: Object.entries(monthlyQty).sort((a,b)=>a[0].localeCompare(b[0])),
+  };
+}
+
+window.showDistOverview = () => {
+  window._curDist = null;
+  document.getElementById('dist-back-wrap').style.display='none';
+  document.getElementById('dist-detail').style.display='none';
+  document.getElementById('dist-overview').style.display='';
+  renderDistributors();
+};
+
+function renderDistributors() {
+  document.getElementById('dist-back-wrap').style.display='none';
+  document.getElementById('dist-detail').style.display='none';
+  const ov = document.getElementById('dist-overview');
+  ov.style.display='';
+  if (!hasPerm('view_distributors')) { ov.innerHTML=''; return; }
+  const stats = DISTRIBUTORS.map(d=>({name:d, ...computeDistStats(d)}));
+  const maxQty   = Math.max(1, ...stats.map(s=>s.totalQty));
+  const maxCount = Math.max(1, ...stats.map(s=>s.orders.length));
+  const anyOrders = stats.some(s=>s.orders.length);
+
+  const cardsHtml = stats.map(s=>`
+    <div class="card" style="cursor:pointer" onclick="openDistributorDetail('${s.name}')">
+      <div class="card-body" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:44px;height:44px;border-radius:10px;background:var(--g100);display:flex;align-items:center;justify-content:center;font-size:20px">🚚</div>
+          <div>
+            <div style="font-size:15px;font-weight:900;color:var(--g900)">${s.name}</div>
+            <div style="font-size:11px;color:var(--e400)">${s.orders.length} طلبية</div>
+          </div>
+        </div>
+        <div style="text-align:left">
+          <div style="font-size:18px;font-weight:900;color:var(--g700)">${s.totalQty.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--e400)">إجمالي الكمية</div>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const cmpHtml = `
+  <div style="margin:22px 0 12px;display:flex;align-items:center;gap:8px">
+    <i class="fas fa-chart-bar" style="color:var(--g700)"></i>
+    <span style="font-size:15px;font-weight:800;color:var(--g900)">مقارنة الموزعين</span>
+  </div>
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-balance-scale"></i>مقارنة الكمية الإجمالية</div>
+    <div class="insight-body">${makeTopList(stats.map(s=>[s.name,s.totalQty]).sort((a,b)=>b[1]-a[1]), maxQty, '#2d7d42', 'كجم', 'dist-cmp-qty')}</div>
+  </div>
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-list-ol"></i>مقارنة عدد الطلبيات</div>
+    <div class="insight-body">${makeTopList(stats.map(s=>[s.name,s.orders.length]).sort((a,b)=>b[1]-a[1]), maxCount, '#7c3aed', 'طلبية', 'dist-cmp-count')}</div>
+  </div>`;
+
+  ov.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-bottom:8px">${cardsHtml}</div>
+    ${anyOrders?cmpHtml:`<div class="empty"><i class="fas fa-truck"></i><p>لسه مفيش طلبيات موزعين متسجلة — احسب طلبية من الحاسبة وحدد لها موزع، أو أضف طلبية يدوي من جوه أي موزع</p></div>`}`;
+}
+window.renderDistributors = renderDistributors;
+
+window.openDistributorDetail = (dist) => {
+  window._curDist = dist;
+  document.getElementById('dist-overview').style.display='none';
+  document.getElementById('dist-back-wrap').style.display='';
+  const wrap = document.getElementById('dist-detail');
+  wrap.style.display='';
+  renderDistDetailBody(dist);
+};
+
+function renderDistDetailBody(dist) {
+  const wrap = document.getElementById('dist-detail'); if(!wrap) return;
+  const s = computeDistStats(dist);
+  const cAdd = hasPerm('add_distributors'), cEdit = hasPerm('edit_distributors'), cDel = hasPerm('delete_distributors'), cExp = hasPerm('export_distributors');
+  const rowsHtml = s.orders.length ? s.orders.map(o=>{
+    const names = (o.items||[]).map(it=>`${it.prodName} (${it.qty} ${it.unit})`).join(' + ');
+    return `<tr>
+      <td style="font-size:11px">${fmtDate(o.ts)}</td>
+      <td style="font-weight:600">${names}</td>
+      <td>${(o.items||[]).reduce((a,it)=>a+(it.qty||0),0).toLocaleString()}</td>
+      <td style="font-size:11px;color:var(--e400)">${o.note||'—'}</td>
+      <td style="display:flex;gap:3px">
+        <button class="btn btn-ghost btn-xs btn-ic" onclick="showDistOrderDetail('${o.id}')"><i class="fas fa-eye"></i></button>
+        ${cEdit?`<button class="btn btn-gold btn-xs btn-ic" onclick="openDistOrderModal('${dist}','${o.id}')"><i class="fas fa-edit"></i></button>`:''}
+        ${cDel?`<button class="btn btn-red btn-xs btn-ic" onclick="confirmDel('distributor_order','${o.id}','هذه الطلبية')"><i class="fas fa-trash"></i></button>`:''}
+      </td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--e400)">لا توجد طلبيات لـ ${dist} بعد</td></tr>`;
+
+  const maxProd = s.sortedProds[0]?.[1]||1;
+  const maxMat  = s.sortedMats[0]?.[1]||1;
+  const forecast = s.sortedMonths.length ? aaForecast(s.sortedMonths) : null;
+
+  wrap.innerHTML = `
+  <div class="ph" style="padding:0 0 12px">
+    <div class="ph-left"><div class="ph-title" style="font-size:18px">🚚 ${dist}</div><div class="ph-sub">${s.orders.length} طلبية — إجمالي ${s.totalQty.toLocaleString()} كجم</div></div>
+    <div class="ph-acts">
+      ${cExp?`<button class="btn btn-ghost btn-sm" onclick="exportDistributorOrders('${dist}')"><i class="fas fa-file-excel"></i>Excel</button>`:''}
+      ${cAdd?`<button class="btn btn-g btn-sm" onclick="openDistOrderModal('${dist}')"><i class="fas fa-plus"></i>طلبية جديدة</button>`:''}
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:18px"><table class="tbl"><thead><tr><th>التاريخ</th><th>المنتجات</th><th>الإجمالي</th><th>ملاحظة</th><th></th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+
+  ${s.orders.length ? `
+  <div style="margin:18px 0 12px;display:flex;align-items:center;gap:8px">
+    <i class="fas fa-chart-pie" style="color:var(--g700)"></i>
+    <span style="font-size:15px;font-weight:800;color:var(--g900)">تحليل ${dist}</span>
+  </div>
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-trophy"></i>أعلى المنتجات طلباً</div>
+    <div class="insight-body">${makeTopList(s.sortedProds, maxProd, '#2d7d42', 'كجم', 'dist-prod-cur')}</div>
+  </div>
+  <div class="insight-card">
+    <div class="insight-head"><i class="fas fa-flask"></i>أعلى الخامات استهلاكاً لطلبياته</div>
+    <div class="insight-body">${makeTopList(s.sortedMats, maxMat, '#0891b2', 'كجم', 'dist-mat-cur')}</div>
+  </div>
+  ${s.sortedMonths.length>=2?`<div class="insight-card">
+    <div class="insight-head"><i class="fas fa-chart-line"></i>الاتجاه الشهري للطلبيات</div>
+    <div class="insight-body">${(()=>{const maxM=Math.max(...s.sortedMonths.map(([,v])=>v));return s.sortedMonths.map(([mon,qty])=>{const m=parseInt(mon.split('-')[1]);return barRowHTML(`${MONTHS_AR_S[m-1]||mon}`, Math.round(qty/maxM*100), '#2563eb', qty>=1000?(qty/1000).toFixed(1)+'ط':qty+'كجم');}).join('');})()}</div>
+  </div>`:''}
+  ${forecast?`<div class="insight-card">
+    <div class="insight-head"><i class="fas fa-brain"></i>توقع الشهر القادم</div>
+    <div class="insight-body"><div class="ins-alert info"><span class="ins-alert-ic">🔮</span><span class="ins-alert-txt">الشهر القادم المتوقع لـ ${dist}: <strong>${forecast.value.toLocaleString()} كجم</strong> — الطريقة: ${forecast.method} — الثقة: <strong>${forecast.confidence}</strong></span></div></div>
+  </div>`:''}
+  ` : ''}`;
+}
+
+// ── تفاصيل طلبية موزع واحدة ──
+window.showDistOrderDetail = id => {
+  const o = _distributorOrders.find(x=>x.id===id); if(!o) return;
+  const rows = (o.result||[]).map(r=>`<tr><td style="font-family:monospace;color:var(--g500)">#${r.code}</td><td style="font-weight:600">${r.name}</td><td style="font-weight:900;color:var(--g700);font-size:15px">${r.needed}</td><td>${r.unit}</td></tr>`).join('');
+  document.getElementById('mdistd-title').textContent = '🚚 '+o.distributor;
+  document.getElementById('mdistd-body').innerHTML = `
+    <div style="margin-bottom:14px">
+      <div style="font-size:13px;color:var(--e400)">${fmtDate(o.ts)} | ${o.userName||o.user||'—'} ${o.note?'| '+o.note:''}</div>
+      <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px">${(o.items||[]).map(it=>`<span style="display:inline-block;background:#fff;border:1px solid var(--g300);border-radius:6px;padding:3px 10px;font-size:12px;font-weight:700;color:var(--g800)">${it.prodName} — ${it.qty} ${it.unit}</span>`).join('')}</div>
+    </div>
+    <table class="tbl" style="border:1px solid var(--border);border-radius:8px">
+      <thead><tr><th>الكود</th><th>الخامة</th><th>الكمية</th><th>الوحدة</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  const foot = document.getElementById('mdistd-foot'); foot.innerHTML='';
+  if (hasPerm('edit_distributors')) { const b=document.createElement('button'); b.className='btn btn-gold'; b.innerHTML='<i class="fas fa-edit"></i>تعديل'; b.onclick=()=>{closeM('mo-dist-detail');openDistOrderModal(o.distributor,o.id);}; foot.appendChild(b); }
+  const closeBtn=document.createElement('button'); closeBtn.className='btn btn-ghost'; closeBtn.textContent='إغلاق'; closeBtn.onclick=()=>closeM('mo-dist-detail'); foot.appendChild(closeBtn);
+  openM('mo-dist-detail');
+};
+
+// ── إضافة/تعديل طلبية موزع يدوياً (مباشرة من جوه سجل الموزعين، مش مرتبطة بسجل الطلبات العام) ──
+let _distItems = [];
+window._editDistId = null;
+
+window.openDistOrderModal = (dist, id=null) => {
+  window._editDistId = id;
+  window._curDistForModal = dist;
+  document.getElementById('mdist-title').textContent = id ? 'تعديل طلبية — '+dist : 'طلبية جديدة — '+dist;
+  document.getElementById('mdist-name').value = dist;
+  document.getElementById('mdist-note').value = '';
+  const sel = document.getElementById('mdist-prod');
+  sel.innerHTML = '<option value="">-- اختر --</option>'+_products.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  document.getElementById('mdist-qty').value = 1000;
+  document.getElementById('mdist-unit').value = '';
+  if (id) {
+    const o = _distributorOrders.find(x=>x.id===id);
+    _distItems = o ? (o.items||[]).map(it=>({...it})) : [];
+    document.getElementById('mdist-note').value = o?.note || '';
+  } else {
+    _distItems = [];
+  }
+  renderDistItemsList();
+  openM('mo-dist-order');
+};
+
+window.onDistProdChange = () => {
+  const id = document.getElementById('mdist-prod').value;
+  const p = _products.find(x=>x.id===id);
+  document.getElementById('mdist-unit').value = p ? (p.unit||'لتر') : '';
+  document.getElementById('mdist-qty').value = p ? (p.baseQty||1000) : 1000;
+};
+
+window.addDistItem = () => {
+  const id = document.getElementById('mdist-prod').value;
+  const qty = parseFloat(document.getElementById('mdist-qty').value);
+  if (!id) { toast('اختر منتجاً','error'); return; }
+  if (!qty || qty<=0) { toast('أدخل كمية صحيحة','error'); return; }
+  const p = _products.find(x=>x.id===id); if (!p) return;
+  _distItems.push({prodId:id, prodName:p.name, qty, unit:p.unit||'لتر'});
+  document.getElementById('mdist-prod').value='';
+  document.getElementById('mdist-unit').value='';
+  renderDistItemsList();
+};
+window.removeDistItem = i => { _distItems.splice(i,1); renderDistItemsList(); };
+
+function renderDistItemsList() {
+  const el = document.getElementById('mdist-items-list'); if (!el) return;
+  if (!_distItems.length) { el.innerHTML = '<div style="color:var(--e400);font-size:12px;padding:6px 0">لسه مفيش منتجات مضافة</div>'; return; }
+  el.innerHTML = _distItems.map((it,i)=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 8px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:4px">
+      <span style="font-size:13px;font-weight:700;color:var(--g900)">${it.prodName}</span>
+      <span style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:13px;font-weight:900;color:var(--g700)">${it.qty} ${it.unit}</span>
+        <button class="btn btn-red btn-xs" onclick="removeDistItem(${i})"><i class="fas fa-times"></i></button>
+      </span>
+    </div>`).join('');
+}
+
+window.saveDistOrder = async () => {
+  if (!_distItems.length) { toast('أضف منتج واحد على الأقل','error'); return; }
+  const dist = document.getElementById('mdist-name').value;
+  const note = document.getElementById('mdist-note').value.trim();
+  const merged = {};
+  _distItems.forEach(it=>{
+    const p = _products.find(x=>x.id===it.prodId); if(!p) return;
+    const factor = it.qty/(p.baseQty||1000);
+    (p.ingredients||[]).forEach(ing=>{
+      const m = _materials.find(x=>x.id===ing.matId);
+      const needed = +(ing.qty*factor).toFixed(3);
+      if (!merged[ing.matId]) merged[ing.matId]={name:m?m.name:ing.matId, code:m?m.code||m.id:'—', unit:m?m.unit:'—', total:0};
+      merged[ing.matId].total += needed;
+    });
+  });
+  const existing = window._editDistId ? _distributorOrders.find(x=>x.id===window._editDistId) : null;
+  const data = {
+    distributor: dist,
+    items: _distItems.map(it=>({...it})),
+    result: Object.values(merged).map(m=>({name:m.name, code:m.code, unit:m.unit, needed:m.total.toFixed(3)})),
+    note, user:CU.email, userName:CU.displayName||CU.email, ts: existing ? (existing.ts||Date.now()) : Date.now(),
+    parentHistoryId: existing ? (existing.parentHistoryId||null) : null
+  };
+  SS('save');
+  try {
+    if (window._editDistId) {
+      await updateDoc(doc(db,'distributor_orders',window._editDistId), data);
+      await audit('edit',`عدّل ${CU.displayName||CU.email} طلبية موزع (${dist})`);
+      toast('تم تعديل الطلبية','success');
+    } else {
+      await addDoc(collection(db,'distributor_orders'), {...data, createdAt:Date.now()});
+      await audit('add',`أضاف ${CU.displayName||CU.email} طلبية موزع جديدة (${dist})`);
+      toast('تم إضافة الطلبية','success');
+    }
+    closeM('mo-dist-order');
+    window._editDistId = null;
+    if (window._curDist) renderDistDetailBody(window._curDist);
+  } catch(e) { toast('خطأ: '+e.message,'error'); }
+  SS('on');
+};
+
+window.exportDistributorOrders = (dist) => {
+  if (!hasPerm('export_distributors')) { toast('ليس لديك صلاحية التصدير','error'); return; }
+  const orders = _distOrdersFor(dist);
+  if (!orders.length) { toast('لا توجد طلبيات لتصديرها','error'); return; }
+  const wb = XLSX.utils.book_new();
+  const ordersData = [['التاريخ','المنتجات','الإجمالي (كجم)','ملاحظة']];
+  orders.forEach(o=>{
+    ordersData.push([fmtDate(o.ts), (o.items||[]).map(it=>`${it.prodName} (${it.qty})`).join(' + '), (o.items||[]).reduce((a,it)=>a+(it.qty||0),0), o.note||'']);
+  });
+  const wsOrders = XLSX.utils.aoa_to_sheet(ordersData);
+  wsOrders['!cols'] = [{wch:20},{wch:50},{wch:16},{wch:25}];
+  XLSX.utils.book_append_sheet(wb, wsOrders, 'الطلبيات');
+
+  const matAgg = {};
+  orders.forEach(o=>(o.result||[]).forEach(r=>{ matAgg[r.name]=(matAgg[r.name]||0)+(parseFloat(r.needed)||0); }));
+  const matData = [['الخامة','الإجمالي']];
+  Object.entries(matAgg).sort((a,b)=>b[1]-a[1]).forEach(([k,v])=>matData.push([k, +v.toFixed(3)]));
+  const wsMat = XLSX.utils.aoa_to_sheet(matData);
+  wsMat['!cols'] = [{wch:30},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsMat, 'إجمالي الخامات');
+
+  XLSX.writeFile(wb, 'موزع_'+dist+'_'+new Date().toLocaleDateString('ar-EG').replace(/\//g,'-')+'.xlsx');
   toast('تم تصدير Excel بنجاح','success');
 };
 
@@ -2936,7 +3312,7 @@ window.confirmDel = (type,id,name='') => {
   document.getElementById('cf-ok').onclick = async () => {
     closeM('mo-confirm'); SS('save');
     try {
-      const colMap={product:'products',material:'materials',history:'history',batch:'batches',production:'production',user:'users'};
+      const colMap={product:'products',material:'materials',history:'history',batch:'batches',production:'production',user:'users',distributor_order:'distributor_orders'};
       await deleteDoc(doc(db,colMap[type],id));
       if(type!=='history') await audit('delete',`حذف ${CU.displayName||CU.email} ${name}`);
       toast('تم الحذف بنجاح','success');
@@ -2966,6 +3342,7 @@ const MODAL_MIN_INFO = {
   'mo-user':       {icon:'fa-user-plus',text:'مستخدم جديد'},
   'mo-production': {icon:'fa-industry', text:'دفعة إنتاج'},
   'mo-calendar':   {icon:'fa-calendar-alt', text:'تقويم الرش'},
+  'mo-dist-order': {icon:'fa-truck', text:'طلبية موزع'},
 };
 window.minimizeModal = (id) => {
   const ov = document.getElementById(id); if (!ov) return;
@@ -6253,6 +6630,37 @@ window.installPWA = async () => {
     <div class="mh"><span class="mh-title" id="tl-title">📅 Timeline المنتج</span><button class="mclose" onclick="closeM('mo-timeline')">×</button></div>
     <div class="mb" id="tl-body" style="min-height:200px;padding:20px 24px"></div>
     <div class="mf"><button class="btn btn-ghost" onclick="closeM('mo-timeline')">إغلاق</button></div>
+  </div>
+</div>
+
+<!-- Distributor Order Modal (Add/Edit) -->
+<div class="overlay" id="mo-dist-order">
+  <div class="modal xl">
+    <div class="mh"><span class="mh-title" id="mdist-title">طلبية موزع جديدة</span><div class="mh-acts"><button class="mmin" onclick="minimizeModal('mo-dist-order')" title="تصغير"><i class="fas fa-window-minimize"></i></button><button class="mclose" onclick="closeM('mo-dist-order')">×</button></div></div>
+    <div class="mb">
+      <div class="fg"><label class="fl">الموزع</label><input class="fc" id="mdist-name" readonly style="font-weight:800;color:var(--g700)"></div>
+      <div id="mdist-items-list"></div>
+      <div class="frow c3" style="margin-top:8px">
+        <div class="fg"><label class="fl">المنتج</label><select class="fc" id="mdist-prod" onchange="onDistProdChange()"><option value="">-- اختر --</option></select></div>
+        <div class="fg"><label class="fl">الكمية</label><input type="number" class="fc" id="mdist-qty" value="1000" min="1"></div>
+        <div class="fg"><label class="fl">الوحدة</label><input class="fc" id="mdist-unit" readonly></div>
+      </div>
+      <button class="btn btn-ghost" onclick="addDistItem()"><i class="fas fa-plus"></i>أضف للقائمة</button>
+      <div class="fg" style="margin-top:10px"><label class="fl">ملاحظة</label><input class="fc" id="mdist-note" placeholder="ملاحظة..."></div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-ghost" onclick="closeM('mo-dist-order')">إلغاء</button>
+      <button class="btn btn-g" onclick="saveDistOrder()"><i class="fas fa-save"></i>حفظ الطلبية</button>
+    </div>
+  </div>
+</div>
+
+<!-- Distributor Order Detail Modal -->
+<div class="overlay" id="mo-dist-detail">
+  <div class="modal lg">
+    <div class="mh"><span class="mh-title" id="mdistd-title">تفاصيل طلبية</span><button class="mclose" onclick="closeM('mo-dist-detail')">×</button></div>
+    <div class="mb" id="mdistd-body"></div>
+    <div class="mf" id="mdistd-foot"></div>
   </div>
 </div>
 
